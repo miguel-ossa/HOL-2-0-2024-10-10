@@ -1,0 +1,21 @@
+DSN     SYSTEM     (DB9G)                                               00010000
+BIND PLAN          (BTHPLAN)    -                                       00020001
+     PKLIST        (BTHPAC.*)  -                                        00021001
+     ISOLATION     (CS)        -                                        00022000
+     VALIDATE      (BIND)      -                                        00023000
+     RELEASE       (COMMIT)    -                                        00024000
+     EXPLAIN       (YES)       -                                        00025000
+     CURRENTDATA   (NO)        -                                        00026000
+     DEGREE        (ANY)       -                                        00027000
+     DYNAMICRULES  (RUN)       -                                        00028000
+     ACQUIRE       (USE)       -                                        00029000
+     NODEFER       (PREPARE)   -                                        00029100
+     SQLRULES      (DB2)       -                                        00029200
+     DISCONNECT    (EXPLICIT)  -                                        00029300
+     ACTION        (REPLACE)   -                                        00029400
+     RETAIN                    -                                        00029500
+     FLAG          (I)         -                                        00029600
+     QUALIFIER  (IBMUSER)      -                                        00029700
+     CACHESIZE  (4096)         -                                        00030000
+     OWNER      (IBMUSER)                                               00060000
+END                                                                     00070000

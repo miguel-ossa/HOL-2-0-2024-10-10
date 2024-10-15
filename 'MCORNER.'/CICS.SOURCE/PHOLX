@@ -1,0 +1,1204 @@
+      *****************************************************************
+      *                 IDENTIFICATION     DIVISION                   *
+      *****************************************************************
+       IDENTIFICATION DIVISION.
+      *
+       PROGRAM-ID.      PHOLX.
+       AUTHOR.          LUIS MARTINEZ.
+      *
+      *****************************************************************
+      **  PROYECTO .........: HOL                                    **
+      **  PROGRAMA .........: PHOLX                                  **
+      **  VERSION ..........: 1.0                                    **
+      **  TITULO ...........: MANTENIMIENTO REGISTRO CLIENTES        **
+      **                                                             **
+      **  TIPO .............:                                        **
+      **     - LENGUAJE ...............: COBOL II                    **
+      **     - ENTORNO ................: CICS                        **
+      **     - BASE DE DATOS ..........: DB2                         **
+      **                                                             **
+      **  DESCRIPCION ......:                                        **
+      **                                                             **
+      **    - HOLX recibe desde el menu HOLM la accion que se debe   **
+      **      de realizar sobre un registro de la tabla CLIENTES.    **
+      **      (A)lta,(B)aja,(C)consulta o (M)odificacion.            **
+      **      Segun la accion debe de proteger o desproteger los     **
+      **      campos del mapa para posibilitar la accion al usuario. **
+      **      Debe de validar los campos segun la accion y acceder   **
+      **      a DB2 para actualizar la base de datos.                **
+      **                                                             **
+      **                                                             **
+      **  LOG DE MODIFICACIONES:                                     **
+      **  FECHA----- DESCRIPCION------------------------------ BUSCA **
+      **  2024-08-18 Adaptaci¢n multiidioma (MOSSA)            TXMUL **
+      **  2024-09-24 Multiusuario (MOSSA)                      USER  **
+      **                                                             **
+      **                                                             **
+      **                                                             **
+      **                                                             **
+      **                                                             **
+      **                                                             **
+      **                                                             **
+      *****************************************************************
+       ENVIRONMENT DIVISION.
+      *
+       CONFIGURATION SECTION.
+       SPECIAL-NAMES.
+           DECIMAL-POINT IS COMMA.
+      *
+       DATA DIVISION.
+      *----------------------------------------------------------------
+       WORKING-STORAGE SECTION.
+      *
+      *--- Zona CICS --------------------------------------------------
+      *
+           COPY DFHAID.
+           COPY DFHBMSCA.
+           COPY CICSATTR.
+           COPY HOLXMP.
+           COPY DDCICS.
+      *
+      *--- Zona CICS fin ----------------------------------------------
+      *
+      *--- Zona DB2 ---------------------------------------------------
+      *
+           EXEC SQL
+                INCLUDE SQLCA
+           END-EXEC
+      *
+           EXEC SQL
+                INCLUDE CLIENTES
+           END-EXEC
+      *
+           EXEC SQL
+                INCLUDE DDDB2
+           END-EXEC
+      *--- TXMUL ->
+           EXEC SQL
+                INCLUDE TABLAS
+           END-EXEC
+      *--- TXMUL <-
+      *--- Zona DB2 fin -----------------------------------------------
+      *
+       01  FILLER                          PIC X(19)
+           VALUE '***START-WORKING***'.
+       01  WC-CONSTANTES.
+           03  WC-PROGRAMA                 PIC X(8)  VALUE 'PHOLX'.
+           03  WC-TRANSACCION              PIC X(4)  VALUE 'HOLX'.
+           03  WC-MAP                      PIC X(8)  VALUE 'HOLXMP'.
+           03  WC-MAPSET                   PIC X(8)  VALUE 'HOLXMP'.
+           03  WC-CURPOS                   PIC S9(4) VALUE +992.
+      *--- USER ->
+      *    03  WC-LONGITUD-TITULO          PIC 99    VALUE 74.
+      *--- USER <-
+      *
+           03  WC-CUR-DNI                  PIC S9(4) COMP VALUE +514.
+           03  WC-CUR-NOMBRE               PIC S9(4) COMP VALUE +674.
+           03  WC-CUR-APELLIDOS            PIC S9(4) COMP VALUE +754.
+           03  WC-CUR-DIRECCION            PIC S9(4) COMP VALUE +834.
+      *
+       01  SW-SWITCHES.
+           03 SW-ENVIO-MAPA                PIC X    VALUE '0'.
+              88 ENVIO-ERASE                        VALUE '1'.
+              88 ENVIO-DATAONLY                     VALUE '2'.
+      *
+           03 SW-ERROR-VALIDACION          PIC 999  VALUE 0.
+              88 ERROR-VALIDACION                   VALUE 1.
+      *
+       01  WL-LITERALES.
+           03  WL-FIN-SESION               PIC X(80) VALUE
+               'La transaccion HOLX ha finalizado...'.
+      *
+       01  WX-VARIABLES.
+           03  WX-NOMI                     PIC X(20).
+           03  WX-APEI                     PIC X(20).
+           03  WX-DIRI                     PIC X(35).
+      *
+      *--- TXMUL ->
+       77 IND                             PIC 99 VALUE ZERO.
+      *--- TXMUL <-
+      *
+      *--- Zona para CALLs --------------------------------------------
+      *
+           COPY LKCENTI.
+      *
+       01 FILLER                           PIC X(17)
+           VALUE '***END-WORKING***'.
+      *----------------------------------------------------------------
+       LINKAGE SECTION.
+      *
+       01 DFHCOMMAREA                      PIC X(2048).
+      *
+      *================================================================
+       PROCEDURE DIVISION.
+      *----------------------------------------------------------------
+      *--- Proceso principal                                        ---
+      *----------------------------------------------------------------
+       0000-PROCESO-TAREA.
+      *
+           EXEC SQL
+                INCLUDE PDOPCIDB
+           END-EXEC
+      *
+           MOVE WC-TRANSACCION              TO WA-TRANSACCION
+      *
+           IF EIBCALEN > 0
+              MOVE DFHCOMMAREA              TO CH-COMMAREA-HOL
+           END-IF
+      *
+      *--- Evaluacion de Commarea y Teclas para identificar
+      *--- los procesos que deban de ejecutarse
+      *
+           EVALUATE TRUE
+      *
+      *--- No hay Commarea
+      *--- Se inicializa la Commarea y se envia mapa limpio
+      *
+               WHEN EIBCALEN = ZERO
+                    MOVE LOW-VALUE          TO HOLXMPO
+      *             INITIALIZE CH-COMUN
+                    MOVE WC-CUR-DNI         TO CH-CURPOS
+                    SET ENVIO-ERASE         TO TRUE
+                    MOVE 'X'                TO CH-X-ACCION
+                    MOVE DFHRED             TO MSGC
+      *--- TXMUL ->
+                    MOVE 'HOLXARR'          TO CL-CLAVE1
+                    PERFORM 20100-OBTENER-TEXTO
+                    MOVE CL-VALOR           TO MSGO
+      *             MOVE 'Para arrancar HOLX utiliza HOLM... pulsa F3'
+      *               TO MSGO
+      *--- TXMUL <-
+                    PERFORM 8000-ENVIO-MAPA
+      *
+      *--- Hay Commarea
+      *--- El programa ha podido ser arrancado por XCTL desde otro
+      *--- programa. En este caso la transaccion actual ser  la del
+      *--- programa que ha llamado a ‚ste hasta que se haga un
+      *--- RETURN TRANSID
+      *
+               WHEN EIBCALEN > ZERO AND EIBTRNID NOT = WC-TRANSACCION
+                    MOVE LOW-VALUE          TO HOLXMPO
+                    PERFORM 0100-PREPARA-CAMPOS
+                    SET ENVIO-ERASE         TO TRUE
+                    PERFORM 8000-ENVIO-MAPA
+      *
+      *--- Borrado de pantalla  - Mensaje y retorno a CICS
+      *--- F3 tambien puede terminar esta transaccion
+      *
+               WHEN EIBAID = DFHCLEAR
+                    MOVE LOW-VALUE          TO HOLXMPO
+                    PERFORM 8100-ENVIA-MENSAJE
+                    PERFORM 8900-RETORNO-CICS
+      *
+      *--- Teclas de Att no hacemos nada
+      *
+               WHEN EIBAID = DFHPA1 OR DFHPA2 OR DFHPA3
+                    CONTINUE
+      *
+      *--- Teclas de funcion Legales
+      *--- Teclas que requieren un procesado del mapa
+      *
+               WHEN EIBAID = DFHENTER
+                 OR EIBAID = DFHPF1
+                 OR EIBAID = DFHPF3
+                 OR EIBAID = DFHPF12
+                    PERFORM 1000-PROCESO-MAPA
+      *
+      *--- Teclas ilegales
+      *--- Teclas no programadas que se detectaran en proceso de mapa
+      *
+               WHEN OTHER
+                    PERFORM 1000-PROCESO-MAPA
+      *
+           END-EVALUATE
+      *
+      *--- Terminamos el proceso con Return TransId
+      *--- Volvemos a enganchar esta misma transaccion
+      *
+           PERFORM 8200-RETORNO-TRANS.
+      *
+       0000-PROCESO-TAREA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Protege / Desprotege campos seg£n acci¢n requerida       ---
+      *----------------------------------------------------------------
+       0100-PREPARA-CAMPOS.
+      *
+           EVALUATE TRUE
+      *
+              WHEN CH-X-ACCION = 'C'
+                   PERFORM 0110-PROT-CONSULTA
+      *
+              WHEN CH-X-ACCION = 'A'
+                   PERFORM 0120-PROT-ALTA
+      *
+              WHEN CH-X-ACCION = 'M'
+                   PERFORM 0130-PROT-MODIFICA
+      *
+              WHEN CH-X-ACCION = 'B'
+                   PERFORM 0140-PROT-BAJA
+      *
+              WHEN OTHER
+                   MOVE SPACES             TO CH-X-DNI
+                   MOVE DFHRED             TO MSGC
+      *--- TXMUL ->
+                   MOVE 'ERRENTD'          TO CL-CLAVE1
+                   PERFORM 20100-OBTENER-TEXTO
+                   MOVE CL-VALOR           TO MSGO
+      *            MOVE 'Error de entrada de datos desde HOLM/HOLS'
+      *              TO MSGO
+      *--- TXMUL <-
+      *
+           END-EVALUATE.
+      *
+      *--- Preparamos la pantalla para una eventual entrada por
+      *--- retorno de la transaccion HOLS (Listas y Seleccion)
+      *
+           IF EIBTRNID = 'HOLS'
+              IF CH-X-DNI NOT = SPACES      AND
+                 CH-X-DNI NOT = LOW-VALUES  AND
+                 CH-X-DNI NOT = HIGH-VALUES
+                 PERFORM 0200-FORZAR-CONSULTA
+              END-IF
+           END-IF.
+      *
+       0100-PREPARA-CAMPOS-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Protege Desprotege campos para Consulta                  ---
+      *----------------------------------------------------------------
+       0110-PROT-CONSULTA.
+      *
+           MOVE ATTR-UNPROT-BRT-MDT        TO DNIA
+           MOVE DFHGREEN                   TO DNIC
+           MOVE ATTR-PROT-MDT              TO NOMA
+           MOVE ATTR-PROT-MDT              TO APEA
+           MOVE ATTR-PROT-MDT              TO DIRA
+           MOVE DFHBLUE                    TO NOMC APEC DIRC
+      *
+           MOVE WC-CUR-DNI                 TO CH-CURPOS
+           MOVE DFHGREEN                   TO MSGC.
+      *--- TXMUL ->
+           MOVE 'INTDNI'                   TO CL-CLAVE1.
+           PERFORM 20100-OBTENER-TEXTO.
+           MOVE CL-VALOR                   TO MSGO.
+      *    MOVE 'Introducir DNI y pulsar Intro...' TO MSGO.
+      *--- TXMUL <-
+      *
+       0110-PROT-CONSULTA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Protege Desprotege campos para Alta                      ---
+      *----------------------------------------------------------------
+       0120-PROT-ALTA.
+      *
+           MOVE ATTR-UNPROT-BRT-MDT        TO DNIA
+           MOVE ATTR-UNPROT-BRT-MDT        TO NOMA
+           MOVE ATTR-UNPROT-BRT-MDT        TO APEA
+           MOVE ATTR-UNPROT-BRT-MDT        TO DIRA
+           MOVE DFHGREEN                   TO NOMC APEC DIRC DNIC
+      *
+           MOVE WC-CUR-DNI                 TO CH-CURPOS
+           MOVE DFHGREEN                   TO MSGC.
+      *--- TXMUL ->
+           MOVE 'INTCAM'                   TO CL-CLAVE1.
+           PERFORM 20100-OBTENER-TEXTO
+           MOVE CL-VALOR                   TO MSGO.
+      *    MOVE 'Introducir campos y pulsar Intro...' TO MSGO.
+      *--- TXMUL <-
+      *
+       0120-PROT-ALTA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Protege Desprotege campos para Modificacion              ---
+      *----------------------------------------------------------------
+       0130-PROT-MODIFICA.
+      *
+           MOVE ATTR-PROT-BRT-MDT          TO DNIA
+           MOVE DFHBLUE                    TO DNIC
+           MOVE ATTR-UNPROT-MDT            TO NOMA
+           MOVE ATTR-UNPROT-MDT            TO APEA
+           MOVE ATTR-UNPROT-MDT            TO DIRA
+           MOVE DFHGREEN                   TO NOMC APEC DIRC
+      *
+           MOVE WC-CUR-NOMBRE              TO CH-CURPOS
+           MOVE DFHGREEN                   TO MSGC.
+      *--- TXMUL ->
+           MOVE 'MODCAM'                   TO CL-CLAVE1.
+           PERFORM 20100-OBTENER-TEXTO.
+           MOVE CL-VALOR                   TO MSGO.
+      *    MOVE 'Modificar campos y pulsar Intro...' TO MSGO.
+      *--- TXMUL <-
+      *
+       0130-PROT-MODIFICA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Protege Desprotege campos para Baja                      ---
+      *----------------------------------------------------------------
+       0140-PROT-BAJA.
+      *
+           MOVE ATTR-PROT-BRT-MDT          TO DNIA
+           MOVE ATTR-PROT-BRT-MDT          TO NOMA
+           MOVE ATTR-PROT-BRT-MDT          TO APEA
+           MOVE ATTR-PROT-BRT-MDT          TO DIRA
+           MOVE DFHPINK                    TO NOMC APEC DIRC
+           MOVE DFHYELLO                   TO DNIC
+      *
+           MOVE WC-CUR-DNI                 TO CH-CURPOS
+           MOVE DFHPINK                    TO MSGC.
+      *--- TXMUL ->
+           MOVE 'CONFBAJ'                  TO CL-CLAVE1.
+           PERFORM 20100-OBTENER-TEXTO.
+           MOVE CL-VALOR                   TO MSGO.
+      *    MOVE 'Confirmar Baja con Intro...' TO MSGO.
+      *--- TXMUL <-
+      *
+       0140-PROT-BAJA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Forzamos una consulta de DNI que entra por CA desde HOLS ---
+      *----------------------------------------------------------------
+       0200-FORZAR-CONSULTA.
+      *
+           IF SQLCODE = 0
+              PERFORM 2510-CONSULTA
+              IF CH-X-ACCION = 'M'
+      *--- TXMUL ->
+                MOVE 'MODCAM'                   TO CL-CLAVE1
+                PERFORM 20100-OBTENER-TEXTO
+                MOVE CL-VALOR                   TO MSGO
+      *          MOVE 'Modificar campos y pulsar intro...' TO MSGO
+      *--- TXMUL <-
+              END-IF
+              IF CH-X-ACCION = 'B'
+      *--- TXMUL ->
+                 MOVE 'CONFBAJ'                  TO CL-CLAVE1
+                 PERFORM 20100-OBTENER-TEXTO
+                 MOVE CL-VALOR                   TO MSGO
+      *          MOVE 'Confirmar la baja con intro...' TO MSGO
+      *--- TXMUL <-
+              END-IF
+           END-IF.
+      *
+       0200-FORZAR-CONSULTA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Muestra la variables host en pantalla                    ---
+      *----------------------------------------------------------------
+       0210-HOST-PANTALLA.
+      *
+           MOVE CL-DNI                     TO DNIO
+           MOVE CL-NOMBRE                  TO NOMO
+           MOVE CL-APELLIDOS               TO APEO
+           MOVE CL-DIRECCION               TO DIRO.
+      *
+       0210-HOST-PANTALLA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Procesa la pantalla segun opcion elegida en menu         ---
+      *----------------------------------------------------------------
+       1000-PROCESO-MAPA.
+      *
+      * Recuperamos el mapa desde el terminal
+      *
+           PERFORM 8400-RECIBE-MAPA
+      *
+           EVALUATE TRUE
+      *
+      *--- Enter: Si la accion de CA es 'X' volvemos al menu
+      *
+              WHEN EIBAID = DFHENTER AND CH-X-ACCION = 'X'
+                  PERFORM 3000-PROCESO-VOLVER
+      *
+      *--- Enter: Validamos el mapa y si es correcto proceso Enter
+      *
+              WHEN EIBAID = DFHENTER
+                  PERFORM 2000-ACCION-MAPA
+      *
+      *--- F3: Se llama al programa de MENU (Volver)
+      *
+              WHEN EIBAID = DFHPF3
+                   PERFORM 3000-PROCESO-VOLVER
+      *
+      *--- F12: Se llama al programa de Listas y Seleccion
+      *
+              WHEN EIBAID = DFHPF12
+                   PERFORM 4000-PROCESO-LISTA
+      *
+      *--- F1: Se llama al programa de ayuda online
+      *
+              WHEN EIBAID = DFHPF1
+                   PERFORM 5000-PROCESO-AYUDA
+      *
+      *-- Otras teclas: Se avisa con mensaje en pantalla y mapa limpio
+      *
+              WHEN OTHER
+      *--- TXMUL ->
+                   MOVE 'KEYERR'           TO CL-CLAVE1
+                   PERFORM 20100-OBTENER-TEXTO
+                   MOVE CL-VALOR           TO MSGO
+      *            MOVE 'Tecla erronea...' TO MSGO
+      *--- TXMUL <-
+      *
+           END-EVALUATE.
+      *
+           SET ENVIO-DATAONLY              TO TRUE
+           PERFORM 8000-ENVIO-MAPA.
+      *
+       1000-PROCESO-MAPA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Validamos y procesamos el mapa segun la accion de CA     ---
+      *----------------------------------------------------------------
+       2000-ACCION-MAPA.
+      *
+           PERFORM 2100-VALIDA-CAMPOS
+      *
+           IF NOT ERROR-VALIDACION
+              PERFORM 2500-EJECUTA-ACCION
+           END-IF.
+      *
+       2000-ACCION-MAPA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Validamos campos obligatorios segun accion               ---
+      *----------------------------------------------------------------
+       2100-VALIDA-CAMPOS.
+      *
+           MOVE 0                          TO SW-ERROR-VALIDACION
+      *
+           EVALUATE TRUE
+      *
+              WHEN CH-X-ACCION = 'C'
+                   MOVE WC-CUR-DNI         TO CH-CURPOS
+                   PERFORM 2110-VALIDA-DNI
+      *
+              WHEN CH-X-ACCION = 'A'
+                   MOVE WC-CUR-DNI         TO CH-CURPOS
+                   PERFORM 2110-VALIDA-DNI
+                   PERFORM 2120-VALIDA-NOM
+                   PERFORM 2130-VALIDA-APE
+                   PERFORM 2140-VALIDA-DIR
+      *
+              WHEN CH-X-ACCION = 'M'
+                   MOVE WC-CUR-NOMBRE      TO CH-CURPOS
+                   PERFORM 2120-VALIDA-NOM
+                   PERFORM 2130-VALIDA-APE
+                   PERFORM 2140-VALIDA-DIR
+      *
+              WHEN CH-X-ACCION = 'B'
+                   MOVE WC-CUR-DNI         TO CH-CURPOS
+                   PERFORM 2110-VALIDA-DNI
+      *
+           END-EVALUATE.
+      *
+       2100-VALIDA-CAMPOS-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Validar DNI                                              ---
+      *----------------------------------------------------------------
+       2110-VALIDA-DNI.
+      *
+           IF NOT ERROR-VALIDACION
+              IF DNIO = LOW-VALUES      OR
+                 DNIO = HIGH-VALUES     OR
+                 DNIO = SPACES
+                 SET ERROR-VALIDACION      TO TRUE
+                 MOVE WC-CUR-DNI           TO CH-CURPOS
+                 MOVE DFHRED               TO MSGC
+      *--- TXMUL ->
+                 MOVE 'DNIOBL'             TO CL-CLAVE1
+                 PERFORM 20100-OBTENER-TEXTO
+                 MOVE CL-VALOR             TO MSGO
+      *          MOVE 'DNI es Obligatorio...' TO MSGO
+      *--- TXMUL <-
+              END-IF
+           END-IF.
+      *
+       2110-VALIDA-DNI-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Validar Nombre                                           ---
+      *----------------------------------------------------------------
+       2120-VALIDA-NOM.
+      *
+           IF NOT ERROR-VALIDACION
+              IF NOMO = LOW-VALUES      OR
+                 NOMO = HIGH-VALUES     OR
+                 NOMO = SPACES
+                 SET ERROR-VALIDACION      TO TRUE
+                 MOVE WC-CUR-NOMBRE        TO CH-CURPOS
+                 MOVE DFHRED               TO MSGC
+      *--- TXMUL ->
+                 MOVE 'NOMOBL'             TO CL-CLAVE1
+                 PERFORM 20100-OBTENER-TEXTO
+                 MOVE CL-VALOR             TO MSGO
+      *          MOVE 'Nombre es Obligatorio...' TO MSGO
+      *--- TXMUL <-
+              END-IF
+           END-IF.
+      *
+       2120-VALIDA-NOM-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Validar Apellidos                                        ---
+      *----------------------------------------------------------------
+       2130-VALIDA-APE.
+      *
+           IF NOT ERROR-VALIDACION
+              IF APEO = LOW-VALUES      OR
+                 APEO = HIGH-VALUES     OR
+                 APEO = SPACES
+                 SET ERROR-VALIDACION      TO TRUE
+                 MOVE DFHRED               TO MSGC
+                 MOVE WC-CUR-APELLIDOS     TO CH-CURPOS
+      *--- TXMUL ->
+                 MOVE 'APEOBL'             TO CL-CLAVE1
+                 PERFORM 20100-OBTENER-TEXTO
+                 MOVE CL-VALOR             TO MSGO
+      *          MOVE 'Apellidos es Obligatorio...' TO MSGO
+      *--- TXMUL <-
+              END-IF
+           END-IF.
+      *
+       2130-VALIDA-APE-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Validar Direccion                                        ---
+      *----------------------------------------------------------------
+       2140-VALIDA-DIR.
+      *
+           IF NOT ERROR-VALIDACION
+              IF DIRO = LOW-VALUES      OR
+                 DIRO = HIGH-VALUES     OR
+                 DIRO = SPACES
+                 SET ERROR-VALIDACION      TO TRUE
+                 MOVE DFHRED               TO MSGC
+                 MOVE WC-CUR-DIRECCION     TO CH-CURPOS
+      *--- TXMUL ->
+                 MOVE 'DIROBL'             TO CL-CLAVE1
+                 PERFORM 20100-OBTENER-TEXTO
+                 MOVE CL-VALOR             TO MSGO
+      *          MOVE 'Direccion es Obligatoria...' TO MSGO
+      *--- TXMUL <-
+              END-IF
+           END-IF.
+      *
+       2140-VALIDA-DIR-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Ejecutamos la accion segun opcion de CA                  ---
+      *----------------------------------------------------------------
+       2500-EJECUTA-ACCION.
+      *
+           EVALUATE TRUE
+      *
+
+              WHEN CH-X-ACCION = 'C'
+                   MOVE DNII               TO CH-X-DNI
+                   PERFORM 2510-CONSULTA
+                   IF SQLCODE = +100
+                      MOVE SPACES          TO NOMO APEO DIRO
+                      MOVE DFHRED          TO MSGC
+      *--- TXMUL ->
+                      MOVE 'CLIINEXC'      TO CL-CLAVE1
+                      PERFORM 20100-OBTENER-TEXTO
+                      MOVE CL-VALOR        TO MSGO
+      *               MOVE 'El Cliente a consultar NO existe'
+      *                 TO MSGO
+      *--- TXMUL <-
+                   ELSE
+                      PERFORM 0210-HOST-PANTALLA
+                      MOVE DFHGREEN        TO MSGC
+      *--- TXMUL ->
+                      MOVE 'REGSHOW'       TO CL-CLAVE1
+                      PERFORM 20100-OBTENER-TEXTO
+                      MOVE CL-VALOR        TO MSGO
+      *               MOVE 'OK - Registro en pantalla...' TO MSGO
+      *--- TXMUL <-
+      *
+      *--- Guardar utlimo DNI visualizado
+                      MOVE DNIO            TO CH-X-DNI
+      *---
+                   END-IF
+      *
+              WHEN CH-X-ACCION = 'A'
+                   MOVE DNII               TO CH-X-DNI
+                   PERFORM 2510-CONSULTA
+                   IF SQLCODE = 0
+                      PERFORM 0210-HOST-PANTALLA
+                      MOVE DFHRED          TO MSGC
+      *--- TXMUL ->
+                      MOVE 'CLIEXIS'       TO CL-CLAVE1
+                      PERFORM 20100-OBTENER-TEXTO
+                      MOVE CL-VALOR        TO MSGO
+      *               MOVE 'El Cliente ya existe' TO MSGO
+      *--- TXMUL <-
+                   ELSE
+                      PERFORM 2520-ALTA
+      *--- Guardar utlimo DNI visualizado
+                      MOVE DNIO            TO CH-X-DNI
+      *---
+                   END-IF
+      *
+              WHEN CH-X-ACCION = 'M'
+                   MOVE DNII               TO CH-X-DNI
+                      PERFORM 2530-MODIFICA
+      *--- Guardar utlimo DNI visualizado
+                      MOVE DNIO            TO CH-X-DNI
+      *---
+      *
+              WHEN CH-X-ACCION = 'B'
+                   MOVE DNII               TO CH-X-DNI
+                   PERFORM 2510-CONSULTA
+                   IF SQLCODE = +100
+                      MOVE DFHRED          TO MSGC
+      *--- TXMUL ->
+                      MOVE 'CLIBINEX'      TO CL-CLAVE1
+                      PERFORM 20100-OBTENER-TEXTO
+                      MOVE CL-VALOR        TO MSGO
+      *               MOVE 'El Cliente a borrar no existe'
+      *                 TO MSGO
+      *--- TXMUL <-
+                   ELSE
+      *               PERFORM 0210-HOST-PANTALLA
+                      PERFORM 2540-BAJA
+                   END-IF
+      *--- Borrar utlimo DNI visualizado
+                   MOVE SPACES          TO CH-X-DNI
+      *---
+      *
+           END-EVALUATE.
+      *
+       2500-EJECUTA-ACCION-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Consulta de cliente                                      ---
+      *----------------------------------------------------------------
+       2510-CONSULTA.
+      *
+           MOVE '2510-CONSULTA'            TO WA-PARRAFO
+           MOVE 'LEER CLIENTE'             TO CH-E-ACCION
+           MOVE CH-X-DNI                   TO CL-DNI
+           PERFORM 7000-CLIENTE-PK
+           IF SQLCODE = 0
+              PERFORM 0210-HOST-PANTALLA
+              MOVE DFHGREEN                TO MSGC
+      *--- TXMUL ->
+              MOVE 'REGSHOW'               TO CL-CLAVE1
+              PERFORM 20100-OBTENER-TEXTO
+              MOVE CL-VALOR                TO MSGO
+      *       MOVE 'OK - Registro mostrado...'  TO MSGO
+      *--- TXMUL <-
+           ELSE
+              MOVE DFHRED                  TO MSGC
+      *--- TXMUL ->
+              MOVE 'CLIINEX'               TO CL-CLAVE1
+              PERFORM 20100-OBTENER-TEXTO
+              MOVE CL-VALOR                TO MSGO
+      *       MOVE 'El Cliente no existe...'  TO MSGO
+      *--- TXMUL <-
+           END-IF.
+      *
+       2510-CONSULTA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Alta de Cliente                                          ---
+      *----------------------------------------------------------------
+       2520-ALTA.
+      *
+           MOVE '2510-ALTA'                TO WA-PARRAFO
+           MOVE 'ALTA CLIENTE'             TO CH-E-ACCION
+           MOVE CH-X-DNI                   TO CL-DNI
+           MOVE NOMI                       TO CL-NOMBRE
+           MOVE APEI                       TO CL-APELLIDOS
+           MOVE DIRI                       TO CL-DIRECCION
+           PERFORM 7100-CLIENTE-INS
+           IF SQLCODE = 0
+              MOVE DFHGREEN                TO MSGC
+      *--- TXMUL ->
+              MOVE 'ALTPROC'               TO CL-CLAVE1
+              PERFORM 20100-OBTENER-TEXTO
+              MOVE CL-VALOR                TO MSGO
+      *       MOVE 'OK - Alta procesada...'   TO MSGO
+      *--- TXMUL <-
+           END-IF.
+      *
+       2520-ALTA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Modificacion del cliente                                 ---
+      *----------------------------------------------------------------
+       2530-MODIFICA.
+      *
+           MOVE '2510-MODIFICA'            TO WA-PARRAFO
+           MOVE 'MODIF CLIENTE'            TO CH-E-ACCION
+           MOVE CH-X-DNI                   TO CL-DNI
+           MOVE NOMI                       TO CL-NOMBRE
+           MOVE APEI                       TO CL-APELLIDOS
+           MOVE DIRI                       TO CL-DIRECCION
+           PERFORM 7200-CLIENTE-UPD
+           IF SQLCODE = 0
+              MOVE DFHGREEN                TO MSGC
+      *--- TXMUL ->
+              MOVE 'MODCORR'               TO CL-CLAVE1
+              PERFORM 20100-OBTENER-TEXTO
+              MOVE CL-VALOR                TO MSGO
+      *       MOVE 'OK - Modificacion correcta...' TO MSGO
+      *--- TXMUL <-
+           END-IF.
+      *
+       2530-MODIFICA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Baja del cliente                                         ---
+      *----------------------------------------------------------------
+       2540-BAJA.
+      *
+           MOVE '2510-BAJA'                TO WA-PARRAFO
+           MOVE 'BAJA CLIENTE'             TO CH-E-ACCION
+           MOVE CH-X-DNI                   TO CL-DNI
+           PERFORM 7300-CLIENTE-DEL
+           IF SQLCODE = 0
+              MOVE DFHGREEN                TO MSGC
+      *--- TXMUL ->
+              MOVE 'REGELI'                TO CL-CLAVE1
+              PERFORM 20100-OBTENER-TEXTO
+              MOVE CL-VALOR                TO MSGO
+      *       MOVE 'OK - Baja procesada. Registro eliminado...' TO MSGO
+      *--- TXMUL <-
+           END-IF.
+      *
+       2540-BAJA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Llamamos al programa de MENU (Volver)                    ---
+      *----------------------------------------------------------------
+       3000-PROCESO-VOLVER.
+      *
+           MOVE CS-PGM-CLIENTES            TO CH-XCTL
+           MOVE WC-TRANSACCION             TO CH-TRANSACCION
+           MOVE WC-TRANSACCION             TO CH-TRANS-RETORNO
+           MOVE WC-PROGRAMA                TO CH-PROGRAMA-RETORNO
+           PERFORM 8700-XCTL-PROGRAMA.
+      *
+       3000-PROCESO-VOLVER-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Procesa la tecla F12                                     ---
+      *---    Llamamos al programa de Listas y Seleccion            ---
+      *---    Si es la primera vez que llamamos a seleccion         ---
+      *---    pondremos por defecto el tipo de orden que hay por    ---
+      *---    defecto en el mapa DNI ascendente sin filtros         ---
+      *----------------------------------------------------------------
+       4000-PROCESO-LISTA.
+      *
+           IF CH-S-CODIGO-CURSOR = SPACES      OR
+              CH-S-CODIGO-CURSOR = LOW-VALUES  OR
+              CH-S-CODIGO-CURSOR = HIGH-VALUES
+              MOVE 'DA'                    TO CH-S-CODIGO-CURSOR
+              MOVE SPACES                  TO CH-S-BUSCAR
+              MOVE 'N'                     TO CH-S-COMIENZA
+              MOVE 'N'                     TO CH-S-CONTIENE
+              MOVE SPACES                  TO CH-S-DNI1 CH-S-DNI4
+              MOVE SPACES                  TO CH-S-NOMBRE1 CH-S-NOMBRE4
+              MOVE SPACES                  TO CH-S-APELLIDOS1
+              MOVE SPACES                  TO CH-S-APELLIDOS4
+              MOVE SPACES                  TO CH-S-UP-MORE
+              MOVE SPACES                  TO CH-S-DOWN-MORE
+              MOVE SPACES                  TO CH-S-DNI-SELECCION
+           END-IF
+      *
+           MOVE CS-PGM-LISTA               TO CH-XCTL
+           MOVE WC-TRANSACCION             TO CH-TRANSACCION
+           MOVE WC-TRANSACCION             TO CH-TRANS-RETORNO
+           MOVE WC-PROGRAMA                TO CH-PROGRAMA-RETORNO
+           PERFORM 8700-XCTL-PROGRAMA.
+      *
+       4000-PROCESO-LISTA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Procesa la tecla F1                                      ---
+      *---    Llamamos al programa de visualizacion de ayuda        ---
+      *----------------------------------------------------------------
+       5000-PROCESO-AYUDA.
+      *
+           MOVE CS-PGM-AYUDAOL             TO CH-XCTL
+           MOVE WC-TRANSACCION             TO CH-TRANSACCION
+           MOVE WC-TRANSACCION             TO CH-TRANS-RETORNO
+           MOVE WC-PROGRAMA                TO CH-PROGRAMA-RETORNO
+           PERFORM 8700-XCTL-PROGRAMA.
+      *
+       5000-PROCESO-AYUDA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Lectura tabla clientes por PK                            ---
+      *----------------------------------------------------------------
+       7000-CLIENTE-PK.
+      *
+           EXEC SQL
+                SELECT  DNI
+                      , NOMBRE
+                      , APELLIDOS
+                      , DIRECCION
+                   INTO
+                        :CL-DNI
+                      , :CL-NOMBRE
+                      , :CL-APELLIDOS
+                      , :CL-DIRECCION
+                   FROM CLIENTES
+                   WHERE
+                        DNI = :CL-DNI
+           END-EXEC
+      *
+           IF SQLCODE NOT = 0 AND SQLCODE NOT = +100
+              PERFORM G999-ERROR-DB2
+           END-IF.
+      *
+       7000-CLIENTE-PK-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Insercion tabla clientes                                 ---
+      *----------------------------------------------------------------
+       7100-CLIENTE-INS.
+      *
+           EXEC SQL
+                INSERT INTO CLIENTES
+                       (
+                         DNI
+                       , NOMBRE
+                       , APELLIDOS
+                       , DIRECCION
+                       )
+                       VALUES
+                       (
+                         :CL-DNI
+                       , :CL-NOMBRE
+                       , :CL-APELLIDOS
+                       , :CL-DIRECCION
+                       )
+           END-EXEC
+      *
+           IF SQLCODE NOT = 0
+              PERFORM G999-ERROR-DB2
+           ELSE
+              PERFORM 8600-COMMIT
+           END-IF.
+      *
+       7100-CLIENTE-INS-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Update tabla clientes                                    ---
+      *----------------------------------------------------------------
+       7200-CLIENTE-UPD.
+      *
+           EXEC SQL
+                UPDATE CLIENTES
+                SET NOMBRE      = :CL-NOMBRE
+                  , APELLIDOS   = :CL-APELLIDOS
+                  , DIRECCION   = :CL-DIRECCION
+                WHERE
+                    DNI         = :CL-DNI
+           END-EXEC
+      *
+           IF SQLCODE NOT = 0
+              PERFORM G999-ERROR-DB2
+           ELSE
+              PERFORM 8600-COMMIT
+           END-IF.
+      *
+       7200-CLIENTE-UPD-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Delete tabla clientes                                    ---
+      *----------------------------------------------------------------
+       7300-CLIENTE-DEL.
+      *
+           EXEC SQL
+                DELETE FROM CLIENTES
+                   WHERE  DNI = :CL-DNI
+           END-EXEC
+      *
+           IF SQLCODE NOT = 0
+              PERFORM G999-ERROR-DB2
+           ELSE
+              PERFORM 8600-COMMIT
+           END-IF.
+      *
+       7300-CLIENTE-DEL-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Envia el mapa al terminal segun modo del switch          ---
+      *----------------------------------------------------------------
+       8000-ENVIO-MAPA.
+      *
+           EVALUATE TRUE
+      *
+      *--- Envio de mapa limpio
+      *
+               WHEN ENVIO-ERASE
+      *--- TXMUL ->
+      * Carga del t¡tulo del mapa
+                   MOVE 50 TO RTC-CENTER-AREA
+                   PERFORM 20000-TITULO-MAPA-INI
+                   MOVE CH-X-ACCION TO CL-CLAVE2
+                   PERFORM 20000-TITULO-MAPA-FIN
+      * Carga de los textos fijos del mapa
+                   MOVE WC-TRANSACCION TO TB-CLAVE1
+                   PERFORM 20200-OPEN-CURSOR-MAPS
+                   PERFORM WITH TEST AFTER UNTIL SQLCODE = 100
+                       PERFORM 20200-FETCH-CURSOR-MAPS
+                       IF SQLCODE NOT = 100 AND
+                          TB-CLAVE3 = CL-IDIOMA THEN
+                          ADD 1 TO IND
+                          EVALUATE IND
+                             WHEN 1
+                                MOVE TB-VALOR TO TX10O
+                             WHEN 2
+                                MOVE TB-VALOR TO TX20O
+                             WHEN 3
+                                MOVE TB-VALOR TO TX30O
+                             WHEN 4
+                                MOVE TB-VALOR TO TX40O
+                             WHEN 5
+                                MOVE TB-VALOR TO TX50O
+                             WHEN 6
+                                MOVE TB-VALOR TO TX60O
+                             WHEN 7
+                                MOVE TB-VALOR TO TX70O
+                          END-EVALUATE
+                       END-IF
+                   END-PERFORM
+                   PERFORM 20200-CLOSE-CURSOR-MAPS
+      *--- TXMUL <-
+                   PERFORM 8310-ENLACE-DNI
+      *
+                   EXEC CICS
+                       SEND MAP    ('HOLXMP')
+                            MAPSET ('HOLXMP')
+                            FROM   (HOLXMPO)
+                            CURSOR (CH-CURPOS)
+                            ERASE
+                   END-EXEC
+      *
+      *--- Envio del mapa Solo datos
+      *
+               WHEN ENVIO-DATAONLY
+      *
+                   EXEC CICS
+                       SEND MAP     ('HOLXMP')
+                            MAPSET  ('HOLXMP')
+                            FROM    (HOLXMPO)
+                            CURSOR  (CH-CURPOS)
+                            DATAONLY
+                   END-EXEC
+      *
+           END-EVALUATE.
+      *
+       8000-ENVIO-MAPA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Envia un mensaje al terminal del usuario (fin sesion)    ---
+      *----------------------------------------------------------------
+       8100-ENVIA-MENSAJE.
+      *
+      *--- TXMUL ->
+           MOVE 'HOLXEND'                  TO CL-CLAVE1.
+           PERFORM 20100-OBTENER-TEXTO.
+           MOVE CL-VALOR                   TO WL-FIN-SESION.
+      * 'La transaccion HOLX ha finalizado...'
+      *--- TXMUL <-
+           EXEC CICS
+               SEND TEXT FROM(WL-FIN-SESION)
+                         ERASE
+                         FREEKB
+           END-EXEC.
+      *
+       8100-ENVIA-MENSAJE-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Devuelve el control a una transaccion                    ---
+      *----------------------------------------------------------------
+       8200-RETORNO-TRANS.
+      *
+           EXEC CICS
+               RETURN
+               TRANSID      (WA-TRANSACCION)
+               COMMAREA     (CH-COMMAREA-HOL)
+           END-EXEC.
+      *
+       8200-RETORNO-TRANS-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Si entra un DNI por commarea lo presentamos              ---
+      *----------------------------------------------------------------
+       8310-ENLACE-DNI.
+      *
+           IF (CH-X-DNI NOT = SPACES       AND
+               CH-X-DNI NOT = HIGH-VALUES  AND
+               CH-X-DNI NOT = LOW-VALUES)  AND
+              (CH-X-ACCION = 'M'           OR
+               CH-X-ACCION = 'B')
+              MOVE CH-X-DNI                TO CL-DNI
+              PERFORM 7000-CLIENTE-PK
+              IF SQLCODE = 0
+                 MOVE CL-DNI               TO DNIO
+                 MOVE CL-NOMBRE            TO NOMO
+                 MOVE CL-APELLIDOS         TO APEO
+                 MOVE CL-DIRECCION         TO DIRO
+              ELSE
+                 MOVE DFHRED               TO MSGC
+      *--- TXMUL ->
+                 MOVE 'CLIINEXM'           TO CL-CLAVE1
+                 PERFORM 20100-OBTENER-TEXTO
+                 MOVE CL-VALOR             TO MSGO
+      *          MOVE 'El Cliente no existe para acci¢n M / B...'
+      *            TO MSGO
+      *--- TXMUL <-
+              END-IF
+           END-IF
+      *
+           IF (CH-X-DNI = SPACES       OR
+               CH-X-DNI = HIGH-VALUES  OR
+               CH-X-DNI = LOW-VALUES)  AND
+              (CH-X-ACCION = 'M'           OR
+               CH-X-ACCION = 'B')
+              MOVE 'X'                  TO CH-X-ACCION
+              MOVE ATTR-PROT-MDT        TO DNIA
+              MOVE ATTR-PROT-MDT        TO NOMA
+              MOVE ATTR-PROT-MDT        TO APEA
+              MOVE ATTR-PROT-MDT        TO DIRA
+              MOVE DFHBLUE              TO DNIC NOMC APEC DIRC
+              MOVE DFHRED               TO MSGC
+              MOVE 'X'                  TO CH-X-ACCION
+      *--- TXMUL ->
+              MOVE 'CONAMOD'               TO CL-CLAVE1
+              PERFORM 20100-OBTENER-TEXTO
+              MOVE CL-VALOR                TO MSGO
+      *       MOVE 'Hay que consultar antes de modificar o borrar...'
+      *         TO MSGO
+      *--- TXMUL <-
+           END-IF.
+      *
+           IF CH-X-ACCION = 'M'
+              MOVE ATTR-PROT-BRT-MDT       TO DNIA
+              MOVE ATTR-UNPROT-MDT         TO NOMA
+              MOVE ATTR-UNPROT-MDT         TO APEA
+              MOVE ATTR-UNPROT-MDT         TO DIRA
+           END-IF.
+      *
+       8310-ENLACE-DNI-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Recibe el mapa de la tarea                               ---
+      *----------------------------------------------------------------
+       8400-RECIBE-MAPA.
+      *
+           EXEC CICS
+                RECEIVE
+                MAP     ('HOLXMP')
+                MAPSET  ('HOLXMP')
+                INTO    (HOLXMPI)
+           END-EXEC
+      *
+           PERFORM 8410-MAYUSCULAS.
+      *
+       8400-RECIBE-MAPA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Pasa datos sensibles a mayusculas                        ---
+      *----------------------------------------------------------------
+       8410-MAYUSCULAS.
+      *
+           MOVE FUNCTION UPPER-CASE(DNII)    TO DNIO.
+      *
+       8410-MAYUSCULAS-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Llama a otro programa CICS por LINK con Commarea         ---
+      *----------------------------------------------------------------
+       8500-LINK-PROGRAMA.
+      *
+           EXEC CICS
+                LINK
+                PROGRAM (CH-LINK)
+                COMMAREA(CH-COMMAREA-HOL)
+                LENGTH  (LENGTH OF CH-COMMAREA-HOL)
+           END-EXEC.
+      *
+       8500-LINK-PROGRAMA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Commit de base de datos DB2 dede CICS                    ---
+      *----------------------------------------------------------------
+       8600-COMMIT.
+      *
+           EXEC CICS
+               SYNCPOINT
+           END-EXEC.
+      *
+       8600-COMMIT-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Cede el control a otro programa CICS                     ---
+      *----------------------------------------------------------------
+       8700-XCTL-PROGRAMA.
+      *
+           EXEC CICS
+                SET TERMINAL(EIBTRMID) UCTRAN
+           END-EXEC
+      *
+           EXEC CICS
+               XCTL PROGRAM  (CH-XCTL)
+                    COMMAREA (CH-COMMAREA-HOL)
+                    RESP     (WA-RESPUESTA-CICS)
+           END-EXEC.
+      *
+       8700-XCTL-PROGRAMA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- CEDF visualiza una traza - Quitar para produccion        ---
+      *----------------------------------------------------------------
+       8800-TRAZA.
+      *
+           EXEC CICS
+               ENTER       TRACEID(0)
+               FROM        (WA-TRAZA)
+           END-EXEC.
+      *
+       8800-TRAZA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Devuelve el control a CICS - Salida total                ---
+      *----------------------------------------------------------------
+       8900-RETORNO-CICS.
+      *
+           EXEC CICS
+                SET TERMINAL(EIBTRMID) UCTRAN
+           END-EXEC
+      *
+           EXEC CICS
+                RETURN
+           END-EXEC.
+      *
+       8900-RETORNO-CICS-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- TXMUL ->
+      *
+      * Rutinas multiidioma
+      *
+           EXEC SQL
+                INCLUDE PTXMUL
+           END-EXEC.
+      *
+       999999-DB2-ERRORES SECTION.
+      *--- TXMUL <-
+      *--- DB2 Errores y otros                                      ---
+      *----------------------------------------------------------------
+           EXEC SQL
+                INCLUDE PDDB2
+           END-EXEC.
+      *----------------------------------------------------------------
+      *-------------------- FIN DE PROGRAMA  --------------------------
+      *----------------------------------------------------------------

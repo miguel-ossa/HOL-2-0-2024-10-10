@@ -1,0 +1,75 @@
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*                   -----  MAP  'HOLRMP' -----                        *
+*        PANTALLA MOSTRAR LISTADO CLIENTES TITULO DINAMICO            *
+*                          VERSION 1.0                                *
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+HOLRMP   DFHMSD MODE=INOUT,LANG=COBOL,TIOAPFX=YES,TYPE=DSECT,TERM=ALL, X
+               CTRL=FREEKB,STORAGE=AUTO,                               X
+               MAPATTS=(COLOR,HILIGHT,OUTLINE),                        X
+               DSATTS=(COLOR,HILIGHT,OUTLINE),                         X
+               EXTATT=YES,COLOR=GREEN
+*
+HOLRMP   DFHMDI SIZE=(24,80),LINE=1,COLUMN=1
+*
+TRN1     DFHMDF POS=(01,01),LENGTH=04,ATTRB=(PROT,FSET),               X
+               COLOR=YELLOW,INITIAL='HOLR'
+*
+USER     DFHMDF POS=(01,06),LENGTH=08,                                 X
+               ATTRB=(PROT,BRT),COLOR=RED
+*
+TITLE    DFHMDF POS=(01,18),LENGTH=46,ATTRB=(PROT,BRT),COLOR=YELLOW,   X
+               INITIAL='                  ÈLTIMO INFORME CLIENTES'
+TX10     DFHMDF POS=(01,65),LENGTH=09,ATTRB=(PROT,BRT),COLOR=BLUE,     X
+               INITIAL='Clientes:'
+TOTCL    DFHMDF POS=(01,75),LENGTH=04,ATTRB=(PROT,BRT,FSET),           X
+               COLOR=YELLOW,PICOUT='ZZZ9'
+         DFHMDF POS=(02,01),LENGTH=79,ATTRB=(PROT,NORM),               X
+               INITIAL='===============================================X
+               ================================'
+L01      DFHMDF POS=(03,01),LENGTH=79,ATTRB=(PROT,FSET),COLOR=TURQUOISE
+L02      DFHMDF POS=(04,01),LENGTH=79,ATTRB=(PROT,FSET),COLOR=TURQUOISE
+L03      DFHMDF POS=(05,01),LENGTH=79,ATTRB=(PROT,FSET),COLOR=TURQUOISE
+L04      DFHMDF POS=(06,01),LENGTH=79,ATTRB=(PROT,FSET),COLOR=TURQUOISE
+L05      DFHMDF POS=(07,01),LENGTH=79,ATTRB=(PROT,FSET),COLOR=TURQUOISE
+L06      DFHMDF POS=(08,01),LENGTH=79,ATTRB=(PROT,FSET),COLOR=TURQUOISE
+L07      DFHMDF POS=(09,01),LENGTH=79,ATTRB=(PROT,FSET),COLOR=TURQUOISE
+L08      DFHMDF POS=(10,01),LENGTH=79,ATTRB=(PROT,FSET),COLOR=TURQUOISE
+L09      DFHMDF POS=(11,01),LENGTH=79,ATTRB=(PROT,FSET),COLOR=TURQUOISE
+L10      DFHMDF POS=(12,01),LENGTH=79,ATTRB=(PROT,FSET),COLOR=TURQUOISE
+L11      DFHMDF POS=(13,01),LENGTH=79,ATTRB=(PROT,FSET),COLOR=TURQUOISE
+L12      DFHMDF POS=(14,01),LENGTH=79,ATTRB=(PROT,FSET),COLOR=TURQUOISE
+L13      DFHMDF POS=(15,01),LENGTH=79,ATTRB=(PROT,FSET),COLOR=TURQUOISE
+L14      DFHMDF POS=(16,01),LENGTH=79,ATTRB=(PROT,FSET),COLOR=TURQUOISE
+L15      DFHMDF POS=(17,01),LENGTH=79,ATTRB=(PROT,FSET),COLOR=TURQUOISE
+*
+         DFHMDF POS=(18,01),LENGTH=07,INITIAL='======='
+SHOW     DFHMDF POS=(18,10),LENGTH=68,ATTRB=(PROT,FSET),COLOR=YELLOW
+*
+         DFHMDF POS=(19,01),LENGTH=04,INITIAL='M/9:'
+SCROL    DFHMDF POS=(19,06),LENGTH=02,ATTRB=(UNPROT,FSET,IC),          X
+               COLOR=GREEN,HILIGHT=UNDERLINE
+         DFHMDF POS=(19,09),LENGTH=01,ATTRB=ASKIP
+*
+         DFHMDF POS=(20,01),LENGTH=78,ATTRB=(PROT,NORM),               X
+               INITIAL='-----------------------------------------------X
+               -------------------------------',                       X
+               COLOR=TURQUOISE
+TX60     DFHMDF POS=(21,01),LENGTH=35,ATTRB=(PROT,NORM),               X
+               INITIAL='F1-Ayuda             F3-Volver',               X
+               COLOR=TURQUOISE
+TX70     DFHMDF POS=(21,45),LENGTH=28,ATTRB=(PROT,NORM),               X
+               INITIAL='F7-Subir           F8-Bajar',                  X
+               COLOR=TURQUOISE
+TX80     DFHMDF POS=(22,01),LENGTH=36,ATTRB=(PROT,NORM),               X
+               INITIAL='F9-Eliminar          F10-Izquierda',           X
+               COLOR=TURQUOISE
+TX90     DFHMDF POS=(22,45),LENGTH=11,ATTRB=(PROT,NORM),               X
+               INITIAL='F11-Derecha',                                  X
+               COLOR=TURQUOISE
+         DFHMDF POS=(23,01),LENGTH=78,ATTRB=(PROT,NORM),               X
+               INITIAL='-----------------------------------------------X
+               -------------------------------',                       X
+               COLOR=TURQUOISE
+MSG      DFHMDF POS=(24,01),LENGTH=78,ATTRB=(PROT,BRT,FSET),COLOR=RED
+         DFHMSD TYPE=FINAL
+         END

@@ -1,0 +1,432 @@
+      *****************************************************************
+      *                 IDENTIFICATION     DIVISION                   *
+      *****************************************************************
+       IDENTIFICATION DIVISION.
+      *
+       PROGRAM-ID.      PHOLE.
+       AUTHOR.          LUIS MARTINEZ.
+      *
+      *****************************************************************
+      **  PROYECTO .........: HOL                                    **
+      **  PROGRAMA .........: PHOLE                                  **
+      **  VERSION ..........: 1.1                                    **
+      **  TITULO ...........: PROGRAMA VISUALIZADOR DE ERRORES DB2   **
+      **                                                             **
+      **  TIPO .............:                                        **
+      **     - LENGUAJE ...............: COBOL II                    **
+      **     - ENTORNO ................: CICS                        **
+      **     - BASE DE DATOS ..........: DB2                         **
+      **                                                             **
+      **  DESCRIPCION ......:                                        **
+      **                                                             **
+      **    - Recibe por Commarea los datos a mostrar en pantalla    **
+      **    - Devuelve el control al programa que ha llamado XCTL    **
+      **      a partir de los datos de Commarea *-RETORNO            **
+      **                                                             **
+      **                                                             **
+      **  LOG DE MODIFICACIONES:                                     **
+      **  FECHA----- DESCRIPCION------------------------------ BUSCA **
+      **  2024-08-20 Adaptaci¢n multiidioma (MOSSA)            TXMUL **
+      **  2024-09-24 Multiusuario (MOSSA)                      USER  **
+      **                                                             **
+      **                                                             **
+      **                                                             **
+      **                                                             **
+      **                                                             **
+      **                                                             **
+      *****************************************************************
+       ENVIRONMENT DIVISION.
+      *
+       CONFIGURATION SECTION.
+       SPECIAL-NAMES.
+           DECIMAL-POINT IS COMMA.
+      *
+       DATA DIVISION.
+      *----------------------------------------------------------------
+       WORKING-STORAGE SECTION.
+      *
+      *--- Zona CICS --------------------------------------------------
+      *
+       COPY DFHAID.
+       COPY DFHBMSCA.
+       COPY HOLEMP.
+       COPY DDCICS.
+      *
+      *--- Zona CICS fin ----------------------------------------------
+      *
+      *--- Zona DB2 ---------------------------------------------------
+      *
+           EXEC SQL
+                INCLUDE SQLCA
+           END-EXEC
+      *
+           EXEC SQL
+                INCLUDE CLIENTES
+           END-EXEC.
+      *
+           EXEC SQL
+                INCLUDE DDDB2
+           END-EXEC.
+      *--- TXMUL ->
+           EXEC SQL
+                INCLUDE TABLAS
+           END-EXEC
+      *--- TXMUL <-
+      *--- Zona DB2 fin -----------------------------------------------
+      *
+       01  FILLER                          PIC X(19)
+           VALUE '***START-WORKING***'.
+      *
+       01  WC-CONSTANTES.
+           03  WC-PROGRAMA                 PIC X(8)  VALUE 'PHOLE'.
+           03  WC-TRANSACCION              PIC X(4)  VALUE 'HOLE'.
+           03  WC-MAP                      PIC X(8)  VALUE 'HOLEMP'.
+           03  WC-MAPSET                   PIC X(8)  VALUE 'HOLEMP'.
+      *--- USER ->
+      *    03  WC-LONGITUD-TITULO          PIC 99    VALUE 74.
+      *--- USER ->
+      *
+           03  WC-CALL-RTCENTI             PIC X(8)  VALUE 'RTCENTI'.
+      *
+       01  SW-SWITCHES.
+           03 SW-ENVIO-MAPA                PIC X    VALUE '0'.
+              88 ENVIO-ERASE                        VALUE '1'.
+              88 ENVIO-DATAONLY                     VALUE '2'.
+      *
+       01  WL-LITERALES.
+           03  WL-FIN-SESION               PIC X(80) VALUE
+               'La transaccion HOLE ha finalizado...'.
+      *--- TXMUL ->
+       77 IND                             PIC 99 VALUE ZERO.
+      *--- TXMUL <-
+      *--- Zona para CALLs --------------------------------------------
+      *
+           COPY LKCENTI.
+      *
+       01 FILLER                           PIC X(17)
+           VALUE '***END-WORKING***'.
+      *----------------------------------------------------------------
+       LINKAGE SECTION.
+      *
+       01 DFHCOMMAREA                      PIC X(2048).
+      *
+      *================================================================
+       PROCEDURE DIVISION.
+      *----------------------------------------------------------------
+      *--- Proceso principal - Estructura de programa               ---
+      *----------------------------------------------------------------
+       0000-PROCESO-TAREA.
+      *
+           EXEC SQL
+                INCLUDE PDOPCIDB
+           END-EXEC
+      *
+           MOVE WC-TRANSACCION              TO WA-TRANSACCION
+      *
+           IF EIBCALEN > 0
+              MOVE DFHCOMMAREA              TO CH-COMMAREA-HOL
+           END-IF
+      *
+           EVALUATE TRUE
+      *
+      *--- No hay Commarea. Se inicializa y se envia mapa vacio
+      *--- Situacion anormal. No se debe arrancar HOLE desde CICS
+      *--- Se envia mapa vacio con mensaje
+      *
+               WHEN EIBCALEN = ZERO
+                    INITIALIZE CH-COMMAREA-HOL
+                    MOVE LOW-VALUE          TO HOLEMPO
+                    SET ENVIO-ERASE         TO TRUE
+      *--- TXMUL ->
+                    MOVE 'TRNOCICS'         TO CL-CLAVE1
+                    PERFORM 20100-OBTENER-TEXTO
+                    MOVE CL-VALOR           TO MSGO
+      *             MOVE 'La transaccion no es arrancable desde CICS'
+      *               TO MSGO
+      *--- TXMUL <-
+                    PERFORM 8000-ENVIO-MAPA
+      *
+      *--- Hay Commarea. Si se hace un XCTL a este programa la
+      *--- transaccion actual no sera la de este programa en el primer
+      *--- ciclo de ejecucion. Esto permite detectar Commarea mas
+      *--- primera ejecucion para enviar un mapa con los datos del
+      *--- error recibidos por CA
+      *
+               WHEN EIBCALEN > ZERO AND EIBTRNID NOT = WC-TRANSACCION
+                    MOVE LOW-VALUE          TO HOLEMPO
+                    SET ENVIO-ERASE         TO TRUE
+                    PERFORM 1100-CARGA-DATOS
+      *--- TXMUL ->
+                    MOVE 'ERRDETEC'         TO CL-CLAVE1
+                    PERFORM 20100-OBTENER-TEXTO
+                    MOVE CL-VALOR           TO MSGO
+      *             MOVE 'Este es el error detectado. Sigue con F3...'
+      *               TO MSGO
+      *--- TXMUL <-
+      *             MOVE 'CA-NO' TO WA-TRAZA PERFORM 8800-TRAZA
+                    PERFORM 8000-ENVIO-MAPA
+      *
+      *--- Fin de la sesion - Mensaje y retorno a CICS
+      *--- el proceso termina aqui con retorno a CICS
+      *
+               WHEN EIBAID = DFHCLEAR
+                    MOVE LOW-VALUE         TO HOLEMPO
+                    PERFORM 8100-ENVIA-MENSAJE
+                    PERFORM 8900-RETORNO-CICS
+      *
+      *--- Teclas de Att no hacemos nada
+      *--- el proceso termina al final del parrafo con RTransId
+      *
+               WHEN EIBAID = DFHPA1 OR DFHPA2 OR DFHPA3
+                    CONTINUE
+      *
+      *--- Teclas de funcion Legales
+      *--- el proceso termina al final del parrafo con RTransId
+      *
+      *--- F3 Volveremos a la transaccion que nos llamo con XCTL
+      *---    o terminaremos del todo el proceso
+      *
+               WHEN EIBAID = DFHPF3  AND CH-TRANS-RETORNO NOT = SPACES
+                    MOVE CH-TRANS-RETORNO     TO WA-TRANSACCION
+                    MOVE CH-PROGRAMA-RETORNO  TO CH-XCTL
+      *             MOVE CH-PROGRAMA-RETORNO TO WA-TRAZA
+      *                  PERFORM 8800-TRAZA
+                    PERFORM 8700-XCTL-PROGRAMA
+      *
+               WHEN EIBAID = DFHPF3  AND CH-TRANS-RETORNO = SPACES
+                    MOVE LOW-VALUE         TO HOLEMPO
+                    PERFORM 8100-ENVIA-MENSAJE
+                    PERFORM 8900-RETORNO-CICS
+      *
+               WHEN EIBAID = DFHENTER
+                    MOVE LOW-VALUE          TO HOLEMPO
+                    SET ENVIO-DATAONLY      TO TRUE
+      *--- TXMUL ->
+                    MOVE 'F3SALIR'          TO CL-CLAVE1
+                    PERFORM 20100-OBTENER-TEXTO
+                    MOVE CL-VALOR           TO MSGO
+      *             MOVE 'Por favor, pulsa F3 para salir...'
+      *               TO MSGO
+      *--- TXMUL <-
+                    PERFORM 8000-ENVIO-MAPA
+      *
+      *--- Teclas ilegales. Se envia un mensaje a pantalla
+      *--- el proceso termina al final del parrafo con RTransId
+      *
+               WHEN OTHER
+      *             MOVE LOW-VALUE          TO HOLEMPO
+                    SET ENVIO-DATAONLY      TO TRUE
+      *--- TXMUL ->
+                    MOVE 'KEYERR'           TO CL-CLAVE1
+                    PERFORM 20100-OBTENER-TEXTO
+                    MOVE CL-VALOR           TO MSGO
+      *             MOVE 'Tecla no valida...'
+      *               TO MSGO
+      *--- TXMUL <-
+                    PERFORM 8000-ENVIO-MAPA
+      *
+           END-EVALUATE
+      *
+      *--- Terminamos el proceso con Return TransId
+      *--- La siguiente entrada vendra de esta misma transaccion HOLE
+      *
+           PERFORM 8200-RETORNO-TRANS.
+      *
+       0000-PROCESO-TAREA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Carga los datos de Commarea en pantalla                  ---
+      *----------------------------------------------------------------
+       1100-CARGA-DATOS.
+      *
+           MOVE CH-E-TRANSACCION           TO TRANO
+           MOVE CH-E-PROGRAMA              TO PROGO
+           MOVE CH-E-PARRAFO               TO PARRO
+           MOVE CH-E-ACCION                TO ACCO
+           MOVE CH-E-CODIGO                TO CODO
+           MOVE CH-E-MENSAJE               TO MENO.
+      *
+       1100-CARGA-DATOS-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Envia el mapa al terminal sergun modo del switch         ---
+      *----------------------------------------------------------------
+       8000-ENVIO-MAPA.
+      *
+           EVALUATE TRUE
+      *
+               WHEN ENVIO-ERASE
+      *--- TXMUL ->
+                   MOVE 50 TO RTC-CENTER-AREA
+                   PERFORM 20000-TITULO-MAPA
+      * Carga de los textos fijos del mapa
+                   MOVE WC-TRANSACCION TO TB-CLAVE1
+                   PERFORM 20200-OPEN-CURSOR-MAPS
+                   PERFORM WITH TEST AFTER UNTIL SQLCODE = 100
+                       PERFORM 20200-FETCH-CURSOR-MAPS
+                       IF SQLCODE NOT = 100 AND
+                          TB-CLAVE3 = CL-IDIOMA THEN
+                          ADD 1 TO IND
+                          EVALUATE IND
+                             WHEN 1
+                                MOVE TB-VALOR TO TX10O
+                             WHEN 2
+                                MOVE TB-VALOR TO TX20O
+                             WHEN 3
+                                MOVE TB-VALOR TO TX30O
+                             WHEN 4
+                                MOVE TB-VALOR TO TX40O
+                             WHEN 5
+                                MOVE TB-VALOR TO TX50O
+                             WHEN 6
+                                MOVE TB-VALOR TO TX60O
+                             WHEN 7
+                                MOVE TB-VALOR TO TX70O
+                             WHEN 8
+                                MOVE TB-VALOR TO TX80O
+                          END-EVALUATE
+                       END-IF
+                   END-PERFORM
+                   PERFORM 20200-CLOSE-CURSOR-MAPS
+      *--- TXMUL <-
+      *
+                   EXEC CICS
+                       SEND MAP    ('HOLEMP')
+                            MAPSET ('HOLEMP')
+                            FROM   (HOLEMPO)
+                            ERASE
+                   END-EXEC
+      *
+               WHEN ENVIO-DATAONLY
+                   EXEC CICS
+                       SEND MAP     ('HOLEMP')
+                            MAPSET  ('HOLEMP')
+                            FROM    (HOLEMPO)
+                            DATAONLY
+                   END-EXEC
+      *
+           END-EVALUATE.
+      *
+       8000-ENVIO-MAPA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Envia un mensaje al terminal                             ---
+      *----------------------------------------------------------------
+       8100-ENVIA-MENSAJE.
+      *
+      *--- TXMUL ->
+           MOVE 'HOLEEND'                  TO CL-CLAVE1.
+           PERFORM 20100-OBTENER-TEXTO.
+           MOVE CL-VALOR                   TO WL-FIN-SESION.
+      * 'La transaccion HOLE ha finalizado.'
+      *--- TXMUL <-
+           EXEC CICS
+               SEND TEXT FROM(WL-FIN-SESION)
+                         ERASE
+                         FREEKB
+           END-EXEC.
+      *
+       8100-ENVIA-MENSAJE-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Devuelve el control a la transaccion                     ---
+      *----------------------------------------------------------------
+       8200-RETORNO-TRANS.
+      *
+           EXEC CICS
+               RETURN
+               TRANSID      (WA-TRANSACCION)
+               COMMAREA     (CH-COMMAREA-HOL)
+           END-EXEC.
+      *
+       8200-RETORNO-TRANS-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Recibe el mapa de la tarea                               ---
+      *----------------------------------------------------------------
+       8400-RECIBE-MAPA.
+      *
+           EXEC CICS
+                RECEIVE
+                MAP     ('HOLEMP')
+                MAPSET  ('HOLEMP')
+                INTO    (HOLEMPI)
+           END-EXEC.
+      *
+       8400-RECIBE-MAPA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Llama a otro programa CICS por LINK con Commarea         ---
+      *----------------------------------------------------------------
+       8500-LINK-PROGRAMA.
+      *
+           EXEC CICS
+                LINK
+                PROGRAM (CH-LINK)
+                COMMAREA(CH-COMMAREA-HOL)
+                LENGTH  (LENGTH OF CH-COMMAREA-HOL)
+           END-EXEC.
+      *
+       8500-LINK-PROGRAMA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Llama a otro programa con XCTL                           ---
+      *----------------------------------------------------------------
+       8700-XCTL-PROGRAMA.
+      *
+           EXEC CICS
+                SET TERMINAL(EIBTRMID) UCTRAN
+           END-EXEC
+      *
+           EXEC CICS
+               XCTL PROGRAM  (CH-XCTL)
+                    COMMAREA (CH-COMMAREA-HOL)
+                    RESP     (WA-RESPUESTA-CICS)
+           END-EXEC.
+      *
+       8700-XCTL-PROGRAMA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- CEDF visualiza una traza - Quitar para produccion        ---
+      *----------------------------------------------------------------
+       8800-TRAZA.
+      *
+           EXEC CICS
+               ENTER       TRACEID(0)
+               FROM        (WA-TRAZA)
+           END-EXEC.
+      *
+       8800-TRAZA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Devuelve el control a CICS - Salida total                ---
+      *----------------------------------------------------------------
+       8900-RETORNO-CICS.
+      *
+           EXEC CICS
+                SET TERMINAL(EIBTRMID) UCTRAN
+           END-EXEC
+      *
+           EXEC CICS
+                RETURN
+           END-EXEC.
+      *
+       8900-RETORNO-CICS-EXIT.
+           EXIT.
+      *--- TXMUL ->
+      *
+      * Rutinas multiidioma
+      *
+           EXEC SQL
+                INCLUDE PTXMUL
+           END-EXEC.
+      *
+       999999-DB2-ERRORES SECTION.
+      *--- TXMUL <-
+      *
+      *----------------------------------------------------------------
+      *--- Errores de DB2 - Llamada a la transaccion HOLE           ---
+      *----------------------------------------------------------------
+           EXEC SQL
+                INCLUDE PDDB2
+           END-EXEC.

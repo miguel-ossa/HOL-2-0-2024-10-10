@@ -1,0 +1,116 @@
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*                   -----  MAP  'HOLMMP' -----                        *
+*                   PANTALLA MENU DE GESTION                          *
+*                          VERSION 1.1                                *
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+HOLMMP   DFHMSD MODE=INOUT,LANG=COBOL,TIOAPFX=YES,TYPE=DSECT,TERM=ALL, X
+               CTRL=FREEKB,STORAGE=AUTO,                               X
+               MAPATTS=(COLOR,HILIGHT,OUTLINE),                        X
+               DSATTS=(COLOR,HILIGHT,OUTLINE),                         X
+               EXTATT=YES,COLOR=GREEN
+*
+HOLMMP   DFHMDI SIZE=(24,80),LINE=1,COLUMN=1
+*
+TRN1     DFHMDF POS=(01,01),LENGTH=04,INITIAL='HOLM',                  X
+               ATTRB=(PROT,BRT),COLOR=YELLOW
+*
+USER     DFHMDF POS=(01,06),LENGTH=08,                                 X
+               ATTRB=(PROT,BRT),COLOR=RED
+*
+TITLE    DFHMDF POS=(01,15),LENGTH=50,                                 X
+               INITIAL='Men£ General de la Aplicaci¢n HOL*',           X
+               ATTRB=(PROT,NORM),COLOR=YELLOW
+*
+         DFHMDF POS=(02,01),LENGTH=79,                                 X
+               INITIAL='===============================================X
+               ================================',                      X
+               ATTRB=(PROT,NORM),COLOR=YELLOW
+*
+CUR1     DFHMDF POS=(07,21),LENGTH=01,                                 X
+               ATTRB=(UNPROT,FSET),COLOR=GREEN,HILIGHT=UNDERLINE
+         DFHMDF POS=(07,23),LENGTH=01,ATTRB=ASKIP
+TX10     DFHMDF POS=(07,25),LENGTH=30,INITIAL='1 Clientes            ',X
+               ATTRB=(PROT,NORM),COLOR=GREEN
+*
+CUR2     DFHMDF POS=(08,21),LENGTH=01,                                 X
+               ATTRB=(UNPROT,FSET),COLOR=RED,HILIGHT=UNDERLINE
+         DFHMDF POS=(08,23),LENGTH=01,ATTRB=ASKIP
+TX20     DFHMDF POS=(08,25),LENGTH=30,INITIAL='2 Proveedores    ',     X
+               ATTRB=(PROT,NORM),COLOR=RED
+*
+CUR3     DFHMDF POS=(09,21),LENGTH=01,                                 X
+               ATTRB=(UNPROT,FSET),COLOR=RED,HILIGHT=UNDERLINE
+         DFHMDF POS=(09,23),LENGTH=01,ATTRB=ASKIP
+TX30     DFHMDF POS=(09,25),LENGTH=30,                                 X
+               INITIAL='3 Almac‚n                ',                    X
+               ATTRB=(PROT,NORM),COLOR=RED
+*
+CUR4     DFHMDF POS=(10,21),LENGTH=01,                                 X
+               ATTRB=(UNPROT,FSET),COLOR=RED,HILIGHT=UNDERLINE
+         DFHMDF POS=(10,23),LENGTH=01,ATTRB=ASKIP
+TX40     DFHMDF POS=(10,25),LENGTH=30,INITIAL='4 Pedidos        ',     X
+               ATTRB=(PROT,NORM),COLOR=RED
+*
+CUR5     DFHMDF POS=(11,21),LENGTH=01,                                 X
+               ATTRB=(UNPROT,FSET),COLOR=RED,HILIGHT=UNDERLINE
+         DFHMDF POS=(11,23),LENGTH=01,ATTRB=ASKIP
+TX50     DFHMDF POS=(11,25),LENGTH=30,INITIAL='5 Facturaci¢n       ',  X
+               ATTRB=(PROT,NORM),COLOR=RED
+*
+CUR6     DFHMDF POS=(12,21),LENGTH=01,                                 X
+               ATTRB=(UNPROT,FSET),COLOR=RED,HILIGHT=UNDERLINE
+         DFHMDF POS=(12,23),LENGTH=01,ATTRB=ASKIP
+TX60     DFHMDF POS=(12,25),LENGTH=30,INITIAL='6 Contabilidad    ',    X
+               ATTRB=(PROT,NORM),COLOR=RED
+*
+CUR7     DFHMDF POS=(13,21),LENGTH=01,                                 X
+               ATTRB=(UNPROT,FSET),COLOR=RED,HILIGHT=UNDERLINE
+         DFHMDF POS=(13,23),LENGTH=01,ATTRB=ASKIP
+TX70     DFHMDF POS=(13,25),LENGTH=50,INITIAL='7 Estad¡stica',         X
+               ATTRB=(PROT,NORM),COLOR=RED
+*
+CUR8     DFHMDF POS=(14,21),LENGTH=01,                                 X
+               ATTRB=(UNPROT,FSET),COLOR=RED,HILIGHT=UNDERLINE
+         DFHMDF POS=(14,23),LENGTH=01,ATTRB=ASKIP
+TX80     DFHMDF POS=(14,25),LENGTH=30,INITIAL='8 Configuraciones    ', X
+               ATTRB=(PROT,NORM),COLOR=RED
+*
+CUR9     DFHMDF POS=(15,21),LENGTH=01,                                 X
+               ATTRB=(UNPROT,FSET),COLOR=GREEN,HILIGHT=UNDERLINE
+         DFHMDF POS=(15,23),LENGTH=01,ATTRB=ASKIP
+TX90     DFHMDF POS=(15,25),LENGTH=30,INITIAL='9 Administraci¢n  ',    X
+               ATTRB=(PROT,NORM),COLOR=GREEN
+*
+TX100    DFHMDF POS=(17,24),LENGTH=07,INITIAL='Opcion:',               X
+               ATTRB=(PROT,NORM),COLOR=GREEN
+*
+OPC      DFHMDF POS=(17,32),LENGTH=01,                                 X
+               ATTRB=(UNPROT,FSET,NUM,IC),PICIN='9',PICOUT='Z',        X
+               COLOR=GREEN
+         DFHMDF POS=(17,34),LENGTH=01,ATTRB=ASKIP
+*
+SHOW     DFHMDF POS=(20,01),LENGTH=78,                                 X
+               ATTRB=(PROT,FSET,NORM),                                 X
+               COLOR=YELLOW
+*
+         DFHMDF POS=(21,01),LENGTH=79,                                 X
+               INITIAL='-----------------------------------------------X
+               --------------------------------',                      X
+               ATTRB=(PROT,NORM),COLOR=TURQUOISE
+*
+TX110    DFHMDF POS=(22,01),LENGTH=40,                                 X
+               INITIAL='F1-Ayuda                        F3-Fin',       X
+               ATTRB=(PROT,NORM),COLOR=TURQUOISE
+TX120    DFHMDF POS=(22,49),LENGTH=22,                                 X
+               INITIAL='                   ',                          X
+               ATTRB=(PROT,NORM),COLOR=TURQUOISE
+*
+         DFHMDF POS=(23,01),LENGTH=79,                                 X
+               INITIAL='-----------------------------------------------X
+               --------------------------------',                      X
+               ATTRB=(PROT,NORM),COLOR=TURQUOISE
+*
+MSG      DFHMDF POS=(24,01),LENGTH=79,ATTRB=(PROT,BRT,FSET),           X
+               COLOR=RED
+         DFHMSD TYPE=FINAL
+         END

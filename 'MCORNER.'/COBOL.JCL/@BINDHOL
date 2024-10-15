@@ -1,0 +1,24 @@
+//BINDHOL  JOB MCORNER,'COMP-CICS-DB2',NOTIFY=&SYSUID,                  00010002
+//            MSGCLASS=A,CLASS=A,MSGLEVEL=(1,1),REGION=0M               00020000
+//*                                                                     00021003
+//* VERSION 1.0                                                         00022003
+//*                                                                     00023003
+//*================================================================     00030000
+//*                                                                     00060100
+//SETPL   SET PLN=HOLPLAN                                               00060200
+//*                                                                     00061000
+//*-----------------------------------------------------------------    00062000
+//*        DB2 BIND PLAN COLECCION APPHOL = LISTA PACKAGES              00063000
+//*-----------------------------------------------------------------    00064000
+//*                                                                     00065000
+//BINDPL   EXEC PGM=IKJEFT01,REGION=8M,DYNAMNBR=20                      00066000
+//*                                                                     00069000
+//STEPLIB  DD  DISP=SHR,DSN=DSN910.SDSNLOAD                             00070000
+//         DD  DISP=SHR,DSN=DSN910.DB9G.SDSNEXIT                        00080001
+//         DD  DISP=SHR,DSN=MCORNER.CICS.LOAD                           00090000
+//DBRMLIB  DD  DISP=SHR,DSN=MCORNER.DB2.DBRMLIB                         00100000
+//SYSPRINT DD  SYSOUT=A                                                 00110000
+//SYSTSPRT DD  SYSOUT=A                                                 00120000
+//SYSTSPRT DD  SYSOUT=A                                                 00130000
+//SYSTSIN  DD  DSN=MCORNER.DB2.BIND(&PLN),DISP=SHR                      00140000
+//*                                                                     00150000

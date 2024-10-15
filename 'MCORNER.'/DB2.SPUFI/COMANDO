@@ -1,0 +1,12 @@
+-- SPUFI COMMAND                                                        00010000
+                                                                        00020000
+   DELETE FROM CLIENTES;                                                00030000
+   INSERT INTO CLIENTES                                                 00040000
+    (DNI, NOMBRE, APELLIDOS, DIRECCION) VALUES                          00050000
+    ('000000000', 'LUIS', 'MARTINEZ', 'CALLE MEDIO 6 (TERUEL)');        00060000
+   INSERT INTO CLIENTES                                                 00070000
+    (DNI, NOMBRE, APELLIDOS, DIRECCION) VALUES                          00080000
+    ('000000001', 'MIGUEL', 'DE LA OSSA', 'CALLE DESCONOCIDA');         00090001
+   INSERT INTO CLIENTES                                                 00100001
+    (DNI, NOMBRE, APELLIDOS, DIRECCION) VALUES                          00110001
+    ('000000002', 'PEPITO', 'DE LA PALOTES', 'UNKNOWN ADDRESS');        00120001

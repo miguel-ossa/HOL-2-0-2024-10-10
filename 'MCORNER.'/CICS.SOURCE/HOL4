@@ -1,0 +1,218 @@
+      *************************************************************
+      *  PROGRAMA DE PRUEBA DE CICS-COBOL CON FICHEROS VSAM
+      *
+      *  MODIFICACIONES:
+      *-----------------------------------------------------------
+      * FECHA----- TITULO DEL CAMBIO------------------------ REF---
+      *
+      * 2023-02-25 LMA MIGRACION DE ALMACENAMIENTO           MODSQL
+      *                DE VSAM HACIA DB2
+      *-----------------------------------------------------------
+      *************************************************************
+       IDENTIFICATION DIVISION.
+      * MODSQL - CAMBIO NOMBRE DE PROGRAMA
+       PROGRAM-ID. HOL4.
+       ENVIRONMENT DIVISION.
+       DATA DIVISION.
+       WORKING-STORAGE SECTION.
+      *===============================================================
+      * LA COPY DEL MAPA GENERADO
+      *===============================================================
+      * MODSQL - CAMBIO NOMBRE DEL MAPA
+       COPY HOL4MP.
+      *===============================================================
+      * FIN DE LA COPY DEL MAPA GENERADO
+      *===============================================================
+       01 MSG-FIN-SESION  PIC X(13) VALUE 'FIN DE SESION'.
+       01 MI-COMMAREA.
+       03 CAMPOINICIO                     PIC X(8).
+      *
+      * MODSQL - SUSTITUCION DE REGISTRO POR INCLUDE DE TABLA DB2
+      *01  REGISTRO-CLIENTES.
+      *    05  C-DNI                      PIC X(9).
+      *    05  C-NOMBRE                   PIC X(20).
+      *    05  C-APELLIDO                 PIC X(20).
+      *    05  C-DIRECCION                PIC X(31).
+       01 FILLER PIC X(20) VALUE 'TABLA678901234567890'.
+           EXEC SQL
+                INCLUDE CLIENTES
+           END-EXEC.
+      * MODSQL - SE TIENE QUE UTILIZAR SQLCA
+       01 FILLER PIC X(20) VALUE 'SQLCA678901234567890'.
+           EXEC SQL
+                INCLUDE SQLCA
+           END-EXEC.
+      * MODSQL CAMPOS PARA ERROR DE DB2
+       01 FILLER PIC X(20) VALUE 'SQLER678901234567890'.
+       01  DB2-ERR.
+           03  DB2-SQLCODE                PIC S9(9).
+           03  DB2-SQLCODE-Z              PIC -ZZZZZZZZ9.
+           03  DB2-ERROR.
+               05  DB2-ERR-MSG            PIC X(50).
+               05  DB2-ERR-CODE           PIC X(20).
+      *
+       01  RESPUESTA                      PIC S9(8)  COMP.
+      *============================================================
+      * COPIAMOS AYUDAS DE BMS PARA HACER BONITO EL TERMINAL
+      *============================================================
+       COPY DFHAID.
+       COPY DFHBMSCA.
+      *
+       LINKAGE SECTION.
+      *
+       PROCEDURE DIVISION.
+      *
+      * MODSQL EXCEPCIONES SQL DB2
+      *    EXEC SQL
+      *         WHENEVER  SQLERROR    CONTINUE
+      *    END-EXEC
+      *
+      *    EXEC SQL
+      *         WHENEVER  SQLWARNING  CONTINUE
+      *    END-EXEC
+      *
+      *    EXEC SQL
+      *         WHENEVER  NOT FOUND   CONTINUE
+      *    END-EXEC
+      *
+           IF EIBCALEN = 0
+              MOVE LOW-VALUES TO HOL4MPI
+              PERFORM MANDAR-MAPONLY
+              PERFORM RETORNO-TRANS
+           END-IF.
+      *============================================================
+      * RECOGIDA DEL MAPA DEL USUARIO
+      *============================================================
+           EXEC CICS RECEIVE MAP('HOL4MP')
+                   INTO(HOL4MPI)
+                   NOHANDLE
+              END-EXEC.
+      *============================================================
+      * EVALUAMOS LA RESPUESTA DEL USUARIO
+      *============================================================
+           IF EIBAID = DFHPF3
+              PERFORM FIN-SESION
+              EXEC CICS RETURN
+              END-EXEC
+           END-IF.
+           EVALUATE EIBRESP
+                    WHEN DFHRESP(NORMAL)
+           CONTINUE
+                    WHEN DFHRESP(MAPFAIL)
+                    PERFORM FALLO-MAPA
+                    PERFORM RETORNO-TRANS
+           END-EVALUATE.
+      *===============================================================
+      * TRATAMIENTO DEL FICHERO
+      *===============================================================
+      * MODSQL YA NO SE UTILIZA VSAM - CAMBIO A DB2
+      *    EXEC CICS
+      *        READ FILE('CLIENTES')
+      *             INTO(REGISTRO-CLIENTES)
+      *             RIDFLD(DNII)
+      *             RESP(RESPUESTA)
+      *    END-EXEC.
+      *    IF RESPUESTA = DFHRESP(NORMAL)
+      *        MOVE 'REGISTRO ENCONTRADO'  TO MSGO
+      *        MOVE C-NOMBRE     TO NOMO
+      *        MOVE C-APELLIDO   TO APEO
+      *        MOVE C-DIRECCION  TO DIRO
+      *    ELSE
+      *        PERFORM FALLO-FICHERO.
+           MOVE DNII             TO CL-DNI
+           EXEC SQL
+                SELECT
+                     DNI
+                   , NOMBRE
+                   , APELLIDOS
+                   , DIRECCION
+                INTO
+                     :CL-DNI
+                   , :CL-NOMBRE
+                   , :CL-APELLIDOS
+                   , :CL-DIRECCION
+
+                FROM CLIENTES
+                WHERE DNI = :CL-DNI
+           END-EXEC
+      *
+           IF SQLCODE = 0
+               MOVE 'REGISTRO ENCONTRADO'  TO MSGO
+               MOVE CL-NOMBRE     TO NOMO
+               MOVE CL-APELLIDOS  TO APEO
+               MOVE CL-DIRECCION  TO DIRO
+           ELSE
+              PERFORM FALLO-FICHERO
+           END-IF.
+      *===============================================================
+      * RESPUESTA AL MAPA
+      *===============================================================
+              EXEC CICS SEND MAP('HOL4MP')
+                  DATAONLY
+                  FROM(HOL4MPO)
+              END-EXEC.
+      *===============================================================
+      * PROCEDIMIENTO DEL PSEUDO-CONVERSACIONAL
+      *===============================================================
+       RETORNO-TRANS.
+               EXEC CICS RETURN
+                     TRANSID(EIBTRNID)
+                     COMMAREA(MI-COMMAREA)
+                     LENGTH(8)
+               END-EXEC.
+               GOBACK.
+      *===============================================================
+      * RESTO DE PROCEDIMIENTOS
+      *===============================================================
+       MANDAR-MAPONLY.
+               EXEC CICS SEND MAP('HOL4MP')
+                     MAPONLY
+                     ERASE
+                     NOHANDLE
+               END-EXEC.
+      *
+       FALLO-MAPA.
+           MOVE DFHBLINK TO MSGH.
+           MOVE 'POR FAVOR, INTRODUZCA UN VALOR' TO MSGO.
+               EXEC CICS SEND MAP('HOL4MP')
+                     ERASE
+                     FROM(HOL4MPO)
+                     NOHANDLE
+               END-EXEC.
+           PERFORM RETORNO-TRANS.
+      *
+       FIN-SESION.
+           EXEC CICS
+               SEND TEXT FROM(MSG-FIN-SESION)
+                         ERASE
+                         FREEKB
+           END-EXEC.
+      *
+       FALLO-FICHERO.
+      *
+      * MODSQL AMBIO A CONTROL DB2
+      *    IF RESPUESTA = DFHRESP(NOTFND)
+           IF SQLCODE = +100
+               MOVE 'EL CLIENTE NO EXISTE.' TO MSGO
+               MOVE SPACE TO NOMO
+                             APEO
+                             DIRO
+           ELSE
+      * MODSQL - RECUPERAR POSIBLE ERROR DE DB2
+      *        EXEC CICS ABEND
+      *        END-EXEC.
+               PERFORM G999-ERROR-DB2
+           END-IF.
+      *
+       FIN-PGM.
+               EXEC CICS RETURN
+               END-EXEC.
+               GOBACK.
+      *
+       G999-ERROR-DB2.
+           MOVE SQLCODE        TO DB2-SQLCODE
+           MOVE DB2-SQLCODE    TO DB2-SQLCODE-Z
+           MOVE DB2-SQLCODE-Z  TO DB2-ERR-CODE
+           MOVE SQLERRMC       TO DB2-ERR-MSG
+           MOVE DB2-ERROR      TO MSGO
+           MOVE SQLSTATE       TO MSGO(54:).

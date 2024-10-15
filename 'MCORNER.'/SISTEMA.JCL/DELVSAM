@@ -1,0 +1,12 @@
+//DELVSAM  JOB MCORNER,'DELETE-VSAM',CLASS=A,MSGCLASS=A,
+//            MSGLEVEL=(1,1),NOTIFY=&SYSUID
+//DELCAT   EXEC PGM=IDCAMS
+//VOL      DD  VOL=SER=ZVOLBK,UNIT=3390,DISP=OLD
+//SYSPRINT DD  SYSOUT=A
+//SYSOUT   DD  SYSOUT=A
+//SYSIN    DD  *
+   DELETE                      -
+        SYS1.VVDS.VZVOL00                -
+        FILE(VOL)              -
+        VVR
+/*

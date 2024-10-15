@@ -1,0 +1,76 @@
+ ======================================================================
+ VERSION 1.0
+ -----------
+
+ Documentaci¢n sobre las implementaciones de cambios en HOL*
+
+=======================================================================
+  Se anotan la versi¢n V y la release R, la descripci¢n de la versi¢n
+  o modificaci¢n que ocasiona la evoluci¢n, la fecha de publicaci¢n,
+  y finalmente, la referencia al log de modificaciones de los programas
+  que se ven modificados o creados debido a la nueva version.
+
+
+=======================================================================
+V.R Descripci¢n                                        LogMd Publicado
+=======================================================================
+1.0 Funcionalidad b sica 6 opciones de men£                  2023-2024
+-----------------------------------------------------------------------
+1.1 Implementaci¢n del entorno Batch y 2 opciones HOLM CB001 2024-01-19
+-----------------------------------------------------------------------
+    Creaci¢n del dataset MCORNER.CALL.SOURCE catalogado en ZVOL00
+    Creaci¢n del dataset MCORNER.CALL.LOAD   catalogado en ZVOL00
+    Mover fuente RTCENTI de MCORNER.CICS.SOURCE a MCORNER.CALL.SOURCE
+    @CALLCIC ya no es propio de CICS. Se renombra a @COBCAL
+    Borrar m¢dulo RTCENTI de MCORNER.CICS.LOAD
+    Borrar CEDA del programa RTCENTI
+    Concatenar MCORNER.CALL.LOAD en RPL del procedimiento CICSA
+    Compilamos RTCENTI con @COBCALL
+    Comprobamos que el ejecutable va a MCORNER.CALL.LOAD
+    Creamos CEDA DEF PROG(RTCENTI) GR(HOL4) para nuevo m¢dulo
+    Parar CICS y Arrancarlo desde la consola maestra
+    CEMT S PROG(RTCENTI) New Copy
+    Probamos la aplicaci¢n. Los t¡tulos se centran. Todo OK.
+    Creaci¢n del dataset MCORNER.BATCH.SOURCE catalogado en ZVOL00
+    Creaci¢n del dataset MCORNER.BATCH.LOAD   catalogado en ZVOL00
+    Crear el programa BHOLL de tipo Batch con DB2
+    Crear el JCL @BTHDB2
+    Compilar el programa BHOLL con @BTHDB2
+    Comprobar ejecutable en MCORNER.BATCH.LOAD
+    Crear el dataset MCORNER.DB2.RUN para par metros de ejecuci¢n batch
+    Crear el miembro BHOLL en este dataset
+    Crear JCL para ejecutar BHOLL llamado RUNBHOLL - Listado OK
+    Crear transacci¢n HOLW y programa PHOLW (Lanza JCL Embebido)
+    Modificar PHOLM para nueva opci¢n JCL Embebido
+    Modificar Mapa HOLMMP Nueva opci¢n 7 y su programa START a HOLW
+    Crear CEDAS para programa PHOLW y transacci¢n HOLW
+    Implementar opci¢n 8 de men£ de listados a petici¢n y par metros
+    Crear transacci¢n HOLU y programa PHOLU tipo CICIS DB2
+    Crear mapa HOLUMP
+    Crear CEDAS pertinentes
+    Compilar componentes e instalar el grupo HOL4 (para arrancar CICS).
+    Probar
+    @INSTALL es un JCL que permite instalar toda la aplicaci¢n de golpe
+    una vez descargados y subidos todos los componentes a z/OS.
+    Para poder utilizarlo, se han convertido algunos JCL de compilaci¢n
+    a PROC. Se ha creado el DATASET MCORNER.COBOL.PROC
+    Si lo quieres utilizar hay una cosa que hacer primero:
+    Edita ADCD.Z111S.PROCLIB(JES2)
+    A¤ade la l¡nea: //          DD   DSN=MCORNER.COBOL.PROC,DISP=SHR
+    Como £ltima concatenaci¢n del paso PROC00.
+    Para y arranca JES2 para que tome los cambios, o reinicia z/OS.
+    Para instalar todo, puedes borrar todos los CEDA, incluso puedes
+    borrar la lista MCORNER. El JCL la crear  al igual que todo lo dem s
+    . No tengas nada abierto en CICS. Lo mejor, salir de CICS con
+    CESF LOGOFF
+    Lanza el JCL. Este tarde como 2 mn en mi m quina, pero podr¡a ser
+    m s. Esvribe muchas l¡nea en el spool. Puedes comprobar cada
+    ejecuci¢n en SDSF. Todo deber¡a de ir bien. Si has deja recursos
+    definidos en CICS, no pasa nada. Se ignorar n los comandos sin m s.
+    A continuaci¢n, para y rearrancar CICSA. Listo.
+    Puedes utilizar la aplicaci¢n tanto CICS como BATCH.
+-----------------------------------------------------------------------
+1.2 Implementaci¢n multiidioma y opci¢n para cambio idioma 2024-09-10
+-----------------------------------------------------------------------
+    Se implementan textos y mensajes en ingl‚s.
+

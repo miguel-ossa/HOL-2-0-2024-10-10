@@ -1,0 +1,32 @@
+ ======================================================================
+ VERSION 1.0
+ -----------
+
+ Documentaci¢n sobre problemas t‚cnicos detectados y pendientes de
+ soluci¢n.
+=======================================================================
+
+1. Problema de impresi¢n f¡sica
+-------------------------------
+   El caracter ¤ no se imprime correctamente en listados.
+   Se ha detectado por ahora en el listado CICSC del programa PHOLY.
+   El listado dirigido a la clase A donde reside el HercPRT, imprime
+   todo correctamente excepto este caracter.
+   La documentaci¢n de Hercules habla de esto y de un script como
+   posible soluci¢n.
+   https://www.jaymoseley.com/hercules/faq/mvsfaq02.htm
+
+2. Saltos de p gina en listados
+-------------------------------
+   Enla programaci¢n se imprime una l¡nea de listado con un caracter
+   de control al principio de l¡nea.
+   0 - Deber¡a de provocar un salto de p gina antes de imprimir.
+   n - Con n diferente a 0 deber¡a de saltar N l¡neas antes de imprimir.
+
+   Este m‚todo es el que se aplica tradicionalmente en Mainframes.
+   Funciona correctamente ya que el primer caracter no se visualiza
+   en el listado f¡sico. No obstante, el salto de l¡nea no se producce.
+   Por ahora se imprimen l¡neas vacias hasta completar la p gina y,
+   se cuadra manualmente para que el listado tenga la aparencia
+   deseada. Ver por ejemplo el programa PHOLL.
+

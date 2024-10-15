@@ -1,0 +1,79 @@
+//PRELOAD  JOB MCORNER,'INSTALL-PRELOAD',NOTIFY=&SYSUID,                00010001
+//            MSGCLASS=A,CLASS=A,MSGLEVEL=(1,1),REGION=0M               00020000
+//*                                                                     00021000
+//* VERSION 1.0                                                         00022000
+//*                                                                     00023000
+//*================================================================     00030000
+//*                                                                     00042000
+//*----------------------------------------------------------------     00050000
+//* PRE ALLOCAR DATASETS PARA INSTALAR DATOS DESCARGADOS                00051001
+//*----------------------------------------------------------------     00052000
+//*                                                                     00052101
+//* BORRADO DATASETS PREVIOS AYUDAS                                     00052201
+//*                                                                     00052301
+//BORRA1   EXEC PGM=IEFBR14                                             00052401
+//FICH1    DD DSN=MCORNER.DATA.AYDATA,DISP=(OLD,DELETE,DELETE),         00052501
+//            UNIT=3390,VOL=SER=ZVOL01                                  00052601
+//*                                                                     00052701
+//BORRA2   EXEC PGM=IEFBR14                                             00052801
+//FICH2    DD DSN=MCORNER.DATA.AYLOAD,DISP=(OLD,DELETE,DELETE),         00052901
+//            UNIT=3390,VOL=SER=ZVOL01                                  00053001
+//*                                                                     00053101
+//* BORRADO DATASETS PREVIOS CLIENTES                                   00053201
+//*                                                                     00053301
+//BORRA3   EXEC PGM=IEFBR14                                             00053403
+//FICH1    DD DSN=MCORNER.DATA.CLDATA,DISP=(OLD,DELETE,DELETE),         00053501
+//            UNIT=3390,VOL=SER=ZVOL01                                  00053601
+//*                                                                     00053701
+//BORRA4   EXEC PGM=IEFBR14                                             00053803
+//FICH2    DD DSN=MCORNER.DATA.CLLOAD,DISP=(OLD,DELETE,DELETE),         00053901
+//            UNIT=3390,VOL=SER=ZVOL01                                  00054001
+//*                                                                     00054101
+//* BORRADO DATASETS PREVIOS TABLAS                                     00054201
+//*                                                                     00054301
+//BORRA5   EXEC PGM=IEFBR14                                             00054403
+//FICH1    DD DSN=MCORNER.DATA.TBDATA,DISP=(OLD,DELETE,DELETE),         00054501
+//            UNIT=3390,VOL=SER=ZVOL01                                  00054601
+//*                                                                     00054701
+//BORRA6   EXEC PGM=IEFBR14                                             00054803
+//FICH2    DD DSN=MCORNER.DATA.TBLOAD,DISP=(OLD,DELETE,DELETE),         00054901
+//            UNIT=3390,VOL=SER=ZVOL01                                  00055001
+//*                                                                     00055301
+//* CREACION DATASETS VACIOS                                            00055401
+//*                                                                     00055501
+//ALLOC1   EXEC PGM=IEFBR14                                             00055601
+//DATAAY   DD DSNAME=MCORNER.DATA.AYDATA,UNIT=3390,                     00055701
+//            DISP=(NEW,CATLG,DELETE),                                  00055801
+//            DCB=(LRECL=3000,BLKSIZE=27000,RECFM=FB,DSORG=PS),         00055903
+//            VOL=SER=ZVOL01,SPACE=(TRK,(10,10),RLSE)                   00056001
+//*                                                                     00056101
+//ALLOC2   EXEC PGM=IEFBR14                                             00056201
+//LOADAY   DD DSNAME=MCORNER.DATA.AYLOAD,UNIT=3390,                     00056301
+//            DISP=(NEW,CATLG,DELETE),                                  00056401
+//            DCB=(LRECL=80,BLKSIZE=27920,RECFM=FB,DSORG=PS),           00056504
+//            VOL=SER=ZVOL01,SPACE=(TRK,(10,10),RLSE)                   00056601
+//*                                                                     00057001
+//ALLOC3   EXEC PGM=IEFBR14                                             00058001
+//DATACL   DD DSNAME=MCORNER.DATA.CLDATA,UNIT=3390,                     00058101
+//            DISP=(NEW,CATLG,DELETE),                                  00058201
+//            DCB=(LRECL=3000,BLKSIZE=27000,RECFM=FB,DSORG=PS),         00058303
+//            VOL=SER=ZVOL01,SPACE=(TRK,(10,10),RLSE)                   00058401
+//*                                                                     00058501
+//ALLOC4   EXEC PGM=IEFBR14                                             00058601
+//LOADCL   DD DSNAME=MCORNER.DATA.CLLOAD,UNIT=3390,                     00058701
+//            DISP=(NEW,CATLG,DELETE),                                  00058801
+//            DCB=(LRECL=80,BLKSIZE=27920,RECFM=FB,DSORG=PS),           00058904
+//            VOL=SER=ZVOL01,SPACE=(TRK,(10,10),RLSE)                   00059001
+//*                                                                     00059101
+//ALLOC5   EXEC PGM=IEFBR14                                             00059201
+//DATATB   DD DSNAME=MCORNER.DATA.TBDATA,UNIT=3390,                     00059301
+//            DISP=(NEW,CATLG,DELETE),                                  00059401
+//            DCB=(LRECL=3000,BLKSIZE=27000,RECFM=FB,DSORG=PS),         00059503
+//            VOL=SER=ZVOL01,SPACE=(TRK,(10,10),RLSE)                   00059601
+//*                                                                     00059701
+//ALLOC6   EXEC PGM=IEFBR14                                             00059801
+//LOADTB   DD DSNAME=MCORNER.DATA.TBLOAD,UNIT=3390,                     00059901
+//            DISP=(NEW,CATLG,DELETE),                                  00060001
+//            DCB=(LRECL=80,BLKSIZE=27920,RECFM=FB,DSORG=PS),           00060104
+//            VOL=SER=ZVOL01,SPACE=(TRK,(10,10),RLSE)                   00060201
+//*                                                                     00060301

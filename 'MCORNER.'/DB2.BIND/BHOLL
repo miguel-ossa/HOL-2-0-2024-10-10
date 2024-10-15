@@ -1,0 +1,17 @@
+DSN     SYSTEM         (DB9G)                                           00010000
+BIND    PACKAGE        (BTHPAC)      -                                  00020005
+        MEMBER         (BHOLL)       -                                  00030001
+        ENCODING       (284)         -                                  00040000
+        ISOLATION      (CS)          -                                  00041000
+        VALIDATE       (BIND)        -                                  00041100
+        RELEASE        (COMMIT)      -                                  00041200
+        EXPLAIN        (YES)         -                                  00041300
+        CURRENTDATA    (NO)          -                                  00041400
+        DEGREE         (ANY)         -                                  00041500
+        DYNAMICRULES   (BIND)        -                                  00041600
+        SQLERROR       (NOPACKAGE)   -                                  00042000
+        ACTION         (REPLACE)     -                                  00043000
+        FLAG           (I)           -                                  00043100
+        QUALIFIER      (IBMUSER)     -                                  00044003
+        OWNER          (IBMUSER)                                        00045003
+END                                                                     00046000

@@ -1,0 +1,32 @@
+//LOADCL   JOB MCORNER,'LOAD-CL',NOTIFY=&SYSUID,                        00001000
+//          MSGCLASS=A,CLASS=A,MSGLEVEL=(1,1),REGION=0M,TIME=(0,7)      00002000
+//*                                                                     00003000
+//* VERSION 1.0                                                         00004000
+//*                                                                     00009100
+//* LOAD DE LA TABLA CLIENTES <- MCORNER.DATA.CLDATA EN ZVOL01          00009200
+//*    SE UTILIZA LA INFORMACION DE LOAD GENERADA POR EL UNLOAD         00009300
+//*    MCORNER.DATA.CLLOAD                                              00009400
+//*                                                                     00009500
+//LOAD     EXEC DSNUPROC,UID='IBMUSER',                                 00009601
+//         UTPROC='RESTART',                                            00009701
+//         SYSTEM='DB9G',                                               00009801
+//         LIB=DSN910.SDSNLOAD,                                         00009901
+//         SIZE=8M                                                      00010001
+//SYSREC00 DD DSN=MCORNER.DATA.CLDATA,DISP=SHR                          00011001
+//SYSUT1   DD DSN=MCORNER.CLIENTES.SYSUT1,                              00020000
+//            DCB=(LRECL=132,RECFM=FB),                                 00021003
+//            DISP=(NEW,DELETE,CATLG),                                  00030003
+//            SPACE=(CYL,(1,1)),UNIT=3390,VOL=SER=ZVOL01                00040003
+//SORTOUT  DD DSN=MCORNER.CLIENTES.SORTOUT,                             00050000
+//            DCB=(LRECL=132,RECFM=FB),                                 00051003
+//            DISP=(NEW,DELETE,CATLG),                                  00060003
+//            SPACE=(CYL,(1,1)),UNIT=3390,VOL=SER=ZVOL01                00070003
+//SYSIN    DD DSN=MCORNER.DATA.CLLOAD,DISP=SHR                          00080000
+//*                                                                     00260000
+//* EL TABLESPACE PUEDE QUEDARSE EN ESTADO COPYPENDING                  00280000
+//*                                                                     00290000
+//REPAIR EXEC DSNUPROC,SYSTEM=DB9G,UID='IBMUSER'                        00300000
+//DSNUPROC.SYSIN  DD  *                                                 00310000
+  REPAIR SET TABLESPACE MCORNDB.CLIENTS NOCOPYPEND                      00320000
+/*                                                                      00330000
+//*                                                                     00340000

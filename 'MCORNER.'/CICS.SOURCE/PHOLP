@@ -1,0 +1,876 @@
+      *****************************************************************
+      *                 IDENTIFICATION     DIVISION                   *
+      *****************************************************************
+       IDENTIFICATION DIVISION.
+      *
+       PROGRAM-ID.      PHOLP.
+       AUTHOR.          LUIS MARTINEZ.
+      *
+      *****************************************************************
+      **  PROYECTO .........: HOL                                    **
+      **  PROGRAMA .........: PHOLP                                  **
+      **  VERSION ..........: 1.0                                    **
+      **  TITULO ...........: VISUALIZACION DE PAGINAS DE AYUDA      **
+      **                                                             **
+      **  TIPO .............:                                        **
+      **     - LENGUAJE ...............: COBOL II                    **
+      **     - ENTORNO ................: CICS                        **
+      **     - BASE DE DATOS ..........: DB2                         **
+      **                                                             **
+      **  DESCRIPCION ......:                                        **
+      **                                                             **
+      **    - Recibe el codigo de transaccion via Commarea y accede  **
+      **      a la tabla AYUDAS para ir mostrando las paginas dispo  **
+      **      nibles para esa transaccion con paginacion             **
+      **                                                             **
+      **                                                             **
+      **  LOG DE MODIFICACIONES:                                     **
+      **  FECHA----- DESCRIPCION------------------------------ BUSCA **
+      **  2024-08-21 Adaptaci¢n multiidioma (MOSSA)            TXMUL **
+      **  2024-09-24 Multiusuario (MOSSA)                      USER  **
+      **                                                             **
+      **                                                             **
+      **                                                             **
+      **                                                             **
+      **                                                             **
+      **                                                             **
+      **                                                             **
+      *****************************************************************
+       ENVIRONMENT DIVISION.
+      *
+       CONFIGURATION SECTION.
+       SPECIAL-NAMES.
+           DECIMAL-POINT IS COMMA.
+      *
+       DATA DIVISION.
+      *----------------------------------------------------------------
+       WORKING-STORAGE SECTION.
+      *
+      *--- Zona CICS --------------------------------------------------
+      *
+       COPY DFHAID.
+       COPY DFHBMSCA.
+       COPY HOLPMP.
+      *
+      *--- Zona CICS fin ----------------------------------------------
+      *
+      *--- Zona DB2 ---------------------------------------------------
+      *
+           EXEC SQL
+                INCLUDE SQLCA
+           END-EXEC
+      *
+           EXEC SQL
+                INCLUDE AYUDAS
+           END-EXEC.
+      *
+           EXEC SQL
+                INCLUDE DDDB2
+           END-EXEC
+      *--- TXMUL ->
+           EXEC SQL
+                INCLUDE TABLAS
+           END-EXEC
+      *--- TXMUL <-
+      *--- Zona DB2 fin -----------------------------------------------
+      *
+       01  FILLER                          PIC X(19)
+           VALUE '***START-WORKING***'.
+      *----------------------------------------------------------------
+      *--- AREA DE COMMAREA -------------------------------------------
+      *----------------------------------------------------------------
+       01  FILLER                          PIC X(10) VALUE 'I-COMMAREA'.
+           COPY DDCICS.
+       01  FILLER                          PIC X(10) VALUE 'F-COMMAREA'.
+      *----------------------------------------------------------------
+      *
+       01  WC-CONSTANTES.
+           03  WC-PROGRAMA                 PIC X(8)  VALUE 'PHOLP'.
+           03  WC-TRANSACCION              PIC X(4)  VALUE 'HOLP'.
+           03  WC-MAP                      PIC X(8)  VALUE 'HOLPMP'.
+           03  WC-MAPSET                   PIC X(8)  VALUE 'HOLPMP'.
+      *--- USER ->
+      *    03  WC-LONGITUD-TITULO          PIC 99    VALUE 74.
+      *--- USER <-
+      *
+           03  WC-CALL-RTCENTI             PIC X(8)  VALUE 'RTCENTI'.
+           03  WC-LINEA-VACIA              PIC X(80) VALUE
+           X'00000000000000000000000000000000000000000000000000000000000
+      -     '000000000000000000000'.
+      *
+       01  SW-SWITCHES.
+           03 SW-ENVIO-MAPA                PIC X    VALUE '1'.
+              88 ENVIO-ERASE                        VALUE '1'.
+              88 ENVIO-DATAONLY                     VALUE '2'.
+      *
+           03 SW-ERROR-VALIDACION          PIC X    VALUE '0'.
+              88 ERROR-VALIDACION                   VALUE '1'.
+      *
+       01  WL-LITERALES.
+           03  WL-FIN-SESION               PIC X(80) VALUE
+               'La transaccion HOLP ha finalizado...'.
+      *--- TXMUL ->
+       77 IND                             PIC 99 VALUE ZERO.
+      *--- TXMUL <-
+      *
+      *--- Zona para CALLs --------------------------------------------
+      *
+           COPY LKCENTI.
+      *
+       01 FILLER                           PIC X(17)
+           VALUE '***END-WORKING***'.
+      *----------------------------------------------------------------
+       LINKAGE SECTION.
+      *
+       01 DFHCOMMAREA                      PIC X(2048).
+      *
+      *================================================================
+       PROCEDURE DIVISION.
+      *----------------------------------------------------------------
+      *--- Proceso principal                                        ---
+      *----------------------------------------------------------------
+       0000-PROCESO-TAREA.
+      *
+           EXEC SQL
+                INCLUDE PDOPCIDB
+           END-EXEC
+      *
+           MOVE WC-TRANSACCION              TO WA-TRANSACCION
+      *
+           IF EIBCALEN > 0
+              MOVE DFHCOMMAREA              TO CH-COMMAREA-HOL
+           END-IF
+      *
+      *--- Evaluacion de Commarea y Teclas para identificar
+      *--- los procesos que deban de ejecutarse
+      *
+           EVALUATE TRUE
+      *
+      *--- No hay Commarea
+      *--- Se inicializa la Commarea y se envia mapa limpio
+      *
+               WHEN EIBCALEN = ZERO
+                    MOVE LOW-VALUE          TO HOLPMPO
+                    INITIALIZE CH-COMMAREA-HOL
+                    SET ENVIO-ERASE         TO TRUE
+      *--- TXMUL ->
+                    MOVE 'TRNOCICS'         TO CL-CLAVE1
+                    PERFORM 20100-OBTENER-TEXTO
+                    MOVE CL-VALOR           TO MSGO
+      *             MOVE 'La transaccion no es arrancable desde CICS'
+      *               TO MSGO
+      *--- TXMUL <-
+                    PERFORM 8000-ENVIO-MAPA
+      *
+      *--- Hay Commarea
+      *--- El programa ha podido ser arrancado por XCTL desde otro
+      *--- programa con XCTL como retorno al actual. En este caso
+      *--- el campo ch-trans-retorno contiene algun valor.
+      *--- En este caso inicializamos la Commarea y enviamos mapa erase
+      *
+               WHEN EIBCALEN > ZERO AND EIBTRNID NOT = WC-TRANSACCION
+                    MOVE LOW-VALUE          TO HOLPMPO
+                    SET ENVIO-ERASE         TO TRUE
+                    MOVE CH-TRANSACCION     TO TRANI
+                    PERFORM 1420-PRIMERA-PAG
+                    PERFORM 8000-ENVIO-MAPA
+      *
+      *--- Borrado de pantalla  - Mensaje y retorno a CICS
+      *--- F3 Tambien termina la transaccion
+      *
+               WHEN EIBAID = DFHCLEAR
+                    MOVE LOW-VALUE          TO HOLPMPO
+                    PERFORM 8100-ENVIA-MENSAJE
+                    PERFORM 8900-RETORNO-CICS
+      *
+      *--- Teclas de Att no hacemos nada
+      *
+               WHEN EIBAID = DFHPA1 OR DFHPA2 OR DFHPA3
+                    CONTINUE
+      *
+      *--- Teclas de funcion Legales
+      *--- Teclas que requieren un procesado del mapa
+      *
+              WHEN  EIBAID = DFHPF3
+                 OR EIBAID = DFHPF7
+                 OR EIBAID = DFHPF8
+                    PERFORM 1000-PROCESO-MAPA
+      *
+      *--- Teclas ilegales
+      *--- Teclas no programadas que se detectaran en proceso de mapa
+      *
+               WHEN OTHER
+                    PERFORM 1000-PROCESO-MAPA
+      *
+           END-EVALUATE
+      *
+      *--- Terminamos el proceso con Return TransId
+      *--- Volvemos a enganchar esta misma transaccion
+      *
+           PERFORM 8200-RETORNO-TRANS.
+      *
+       0000-PROCESO-TAREA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Procesa la pantalla segun tecla elegida por el usuario   ---
+      *----------------------------------------------------------------
+       1000-PROCESO-MAPA.
+      *
+      * Recuperamos el mapa desde el terminal
+      *
+           PERFORM 8400-RECIBE-MAPA
+           MOVE SPACES                     TO MSGO
+           MOVE 1                          TO CH-CURPOS
+      *
+           EVALUATE TRUE
+      *
+      *--- F8   : Validamos el mapa y si es correcto proceso F8
+      *
+              WHEN EIBAID = DFHPF8
+                   PERFORM 1100-TRATA-MAPA
+      *
+      *--- F7   : Validamos el mapa y si es correcto proceso F7
+      *
+              WHEN EIBAID = DFHPF7
+                   PERFORM 1100-TRATA-MAPA
+      *
+      *--- F3   : Validamos el mapa y si es correcto proceso F3
+      *
+              WHEN EIBAID = DFHPF3
+                   PERFORM 1100-TRATA-MAPA
+      *
+              WHEN OTHER
+                   MOVE 1                  TO CH-CURPOS
+                   MOVE DFHRED             TO MSGC
+                   MOVE 'Tecla erronea...' TO MSGO
+      *
+           END-EVALUATE
+      *
+           SET ENVIO-DATAONLY              TO TRUE
+           PERFORM 8000-ENVIO-MAPA.
+      *
+       1000-PROCESO-MAPA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Valida la Accion solo A B C M                            ---
+      *----------------------------------------------------------------
+       1100-TRATA-MAPA.
+      *
+           MOVE TRANI                      TO AY-TRANSACCION
+           MOVE PAGI                       TO AY-PAGINA
+      *
+           EVALUATE TRUE
+      *
+              WHEN EIBAID = DFHPF8
+                   PERFORM 3000-PAGINA-SIGUIENTE
+      *
+              WHEN EIBAID = DFHPF7
+                   PERFORM 3500-PAGINA-ANTERIOR
+      *
+              WHEN EIBAID = DFHPF3
+                   PERFORM 4000-VOLVER
+           END-EVALUATE.
+      *
+       1100-TRATA-MAPA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- limpia las lineas de la pantlla                          ---
+      *----------------------------------------------------------------
+       1310-LIMPIA-LINEAS.
+      *
+           MOVE SPACES                     TO L01O
+           MOVE SPACES                     TO L02O
+           MOVE SPACES                     TO L03O
+           MOVE SPACES                     TO L04O
+           MOVE SPACES                     TO L05O
+           MOVE SPACES                     TO L06O
+           MOVE SPACES                     TO L07O
+           MOVE SPACES                     TO L08O
+           MOVE SPACES                     TO L09O
+           MOVE SPACES                     TO L10O
+           MOVE SPACES                     TO L11O
+           MOVE SPACES                     TO L12O
+           MOVE SPACES                     TO L13O
+           MOVE SPACES                     TO L14O
+           MOVE SPACES                     TO L15O
+           MOVE SPACES                     TO L16O.
+      *
+       1310-LIMPIA-LINEAS-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Muestra la primera pagina disponible para la transaccion ---
+      *----------------------------------------------------------------
+       1420-PRIMERA-PAG.
+      *
+           MOVE TRANI                       TO AY-TRANSACCION
+           MOVE ZERO                        TO AY-PAGINA
+           MOVE 0                           TO PAGO
+           PERFORM 7800-CUENTA-REGISTROS
+      *
+           IF DB2-COUNT1 = 0
+      *--- TXMUL ->
+              MOVE 'NAYTRAN'             TO CL-CLAVE1
+              PERFORM 20100-OBTENER-TEXTO
+              MOVE CL-VALOR              TO MSGO
+      *       MOVE 'No hay paginas de ayuda para la transaccion'
+      *         TO MSGO
+      *--- TXMUL <-
+           ELSE
+              PERFORM 3000-PAGINA-SIGUIENTE
+              MOVE DFHGREEN              TO MSGC
+      *--- TXMUL ->
+              MOVE '1PGSHOW'             TO CL-CLAVE1
+              PERFORM 20100-OBTENER-TEXTO
+              MOVE CL-VALOR              TO MSGO
+      *       MOVE 'Primera pagina mostrada' TO MSGO
+      *--- TXMUL <-
+           END-IF.
+      *
+       1420-PRIMERA-PAG-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Mueve datos de HV a pantalla                             ---
+      *----------------------------------------------------------------
+       2000-DATOS-PANTALLA.
+      *
+           MOVE AY-TRANSACCION             TO TRANO
+           MOVE AY-PAGINA                  TO PAGO
+      *
+           IF AY-L01 = WC-LINEA-VACIA
+              MOVE SPACES                  TO AY-L01
+           END-IF
+      *    MOVE AY-L02 TO WA-TRAZA
+           IF AY-L02 = WC-LINEA-VACIA
+      *         MOVE 'LOW'  TO WA-TRAZA
+              MOVE SPACES                  TO AY-L02
+           END-IF
+           IF AY-L03 = WC-LINEA-VACIA
+              MOVE SPACES                  TO AY-L03
+           END-IF
+           IF AY-L04 = WC-LINEA-VACIA
+              MOVE SPACES                  TO AY-L04
+           END-IF
+           IF AY-L05 = WC-LINEA-VACIA
+              MOVE SPACES                  TO AY-L05
+           END-IF
+           IF AY-L06 = WC-LINEA-VACIA
+              MOVE SPACES                  TO AY-L06
+           END-IF
+           IF AY-L07 = WC-LINEA-VACIA
+              MOVE SPACES                  TO AY-L07
+           END-IF
+           IF AY-L08 = WC-LINEA-VACIA
+              MOVE SPACES                  TO AY-L08
+           END-IF
+           IF AY-L09 = WC-LINEA-VACIA
+              MOVE SPACES                  TO AY-L09
+           END-IF
+           IF AY-L10 = WC-LINEA-VACIA
+              MOVE SPACES                  TO AY-L10
+           END-IF
+           IF AY-L11 = WC-LINEA-VACIA
+              MOVE SPACES                  TO AY-L11
+           END-IF
+           IF AY-L12 = WC-LINEA-VACIA
+              MOVE SPACES                  TO AY-L12
+           END-IF
+           IF AY-L13 = WC-LINEA-VACIA
+              MOVE SPACES                  TO AY-L13
+           END-IF
+           IF AY-L14 = WC-LINEA-VACIA
+              MOVE SPACES                  TO AY-L14
+           END-IF
+           IF AY-L15 = WC-LINEA-VACIA
+              MOVE SPACES                  TO AY-L15
+           END-IF
+           IF AY-L16 = WC-LINEA-VACIA
+              MOVE SPACES                  TO AY-L16
+           END-IF
+      *
+           MOVE AY-L01                     TO L01O
+           MOVE AY-L02                     TO L02O
+           MOVE AY-L03                     TO L03O
+           MOVE AY-L04                     TO L04O
+           MOVE AY-L05                     TO L05O
+           MOVE AY-L06                     TO L06O
+           MOVE AY-L07                     TO L07O
+           MOVE AY-L08                     TO L08O
+           MOVE AY-L09                     TO L09O
+           MOVE AY-L10                     TO L10O
+           MOVE AY-L11                     TO L11O
+           MOVE AY-L12                     TO L12O
+           MOVE AY-L13                     TO L13O
+           MOVE AY-L14                     TO L14O
+           MOVE AY-L15                     TO L15O
+           MOVE AY-L16                     TO L16O.
+      *
+       2000-DATOS-PANTALLA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Muestra la pagina siguiente                              ---
+      *----------------------------------------------------------------
+       3000-PAGINA-SIGUIENTE.
+      *
+           MOVE '3000-PAGINA-SIGUIENTE'         TO WA-PARRAFO
+      *
+           MOVE TRANI                           TO AY-TRANSACCION
+           MOVE PAGI                            TO AY-PAGINA
+           MOVE 'OPEN SIGUIENTE'                TO CH-E-ACCION
+           PERFORM 7500-ABRIR-CURSIG
+      *
+           MOVE 'FETCH SIGUIENTE'               TO CH-E-ACCION
+           PERFORM 7510-FETCH-CURSIG
+           IF SQLCODE = +100
+              MOVE DFHRED                       TO MSGC
+      *--- TXMUL ->
+              MOVE 'NPGNEXT'                    TO CL-CLAVE1
+              PERFORM 20100-OBTENER-TEXTO
+              MOVE CL-VALOR                     TO MSGO
+      *       MOVE 'No hay pagina siguiente...' TO MSGO
+      *--- TXMUL <-
+           ELSE
+              PERFORM 2000-DATOS-PANTALLA
+              MOVE DFHGREEN                     TO MSGC
+      *--- TXMUL ->
+              MOVE 'REGNSHOW'                   TO CL-CLAVE1
+              PERFORM 20100-OBTENER-TEXTO
+              MOVE CL-VALOR                     TO MSGO
+      *       MOVE 'OK - Pagina siguiente mostrada' TO MSGO
+      *--- TXMUL <-
+           END-IF
+      *
+           MOVE 'CLOSE SIGUIENTE'               TO CH-E-ACCION
+           PERFORM 7590-CLOSE-CURSIG.
+      *
+       3000-PAGINA-SIGUIENTE-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Muestra la pagina anterior                               ---
+      *----------------------------------------------------------------
+       3500-PAGINA-ANTERIOR.
+      *
+           MOVE '3500-PAGINA-ANTERIOR'          TO WA-PARRAFO
+      *
+           MOVE TRANI                           TO AY-TRANSACCION
+           MOVE PAGI                            TO AY-PAGINA
+           MOVE 'OPEN ANTERIOR'                 TO CH-E-ACCION
+           PERFORM 7700-ABRIR-CURANT
+      *
+           MOVE 'FETCH ANTERIOR'                TO CH-E-ACCION
+           PERFORM 7710-FETCH-CURANT
+           IF SQLCODE = +100
+              MOVE DFHRED                       TO MSGC
+      *--- TXMUL ->
+              MOVE 'NPGANT'                     TO CL-CLAVE1
+              PERFORM 20100-OBTENER-TEXTO
+              MOVE CL-VALOR                     TO MSGO
+      *       MOVE 'No hay pagina anterior...'  TO MSGO
+      *--- TXMUL <-
+           ELSE
+              PERFORM 2000-DATOS-PANTALLA
+              MOVE DFHGREEN                        TO MSGC
+      *--- TXMUL ->
+              MOVE 'REGASHOW'            TO CL-CLAVE1
+              PERFORM 20100-OBTENER-TEXTO
+              MOVE CL-VALOR              TO MSGO
+      *       MOVE 'OK - Pagina anterior mostrada' TO MSGO
+      *--- TXMUL <-
+           END-IF
+      *
+           MOVE 'CLOSE ANTERIOR'                TO CH-E-ACCION
+           PERFORM 7790-CLOSE-CURANT.
+      *
+       3500-PAGINA-ANTERIOR-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Volvemos al programa que ha llamado a este               ---
+      *----------------------------------------------------------------
+       4000-VOLVER.
+      *
+           MOVE CH-PROGRAMA-RETORNO        TO CH-XCTL
+           MOVE CH-PROGRAMA-RETORNO TO MSGO
+           PERFORM 8700-XCTL-PROGRAMA.
+      *
+       4000-VOLVER-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Abre el cursor para pagina siguiente                     ---
+      *----------------------------------------------------------------
+       7500-ABRIR-CURSIG.
+      *
+           EXEC SQL
+                DECLARE CURSIG CURSOR FOR
+                   SELECT TRANSACCION
+                        , PAGINA
+                        , L01
+                        , L02
+                        , L03
+                        , L04
+                        , L05
+                        , L06
+                        , L07
+                        , L08
+                        , L09
+                        , L10
+                        , L11
+                        , L12
+                        , L13
+                        , L14
+                        , L15
+                        , L16
+                     FROM AYUDAS
+                     WHERE TRANSACCION = :AY-TRANSACCION
+                       AND PAGINA      > :AY-PAGINA
+                     ORDER BY PAGINA ASC
+           END-EXEC
+      *
+           EXEC SQL
+                OPEN CURSIG
+           END-EXEC
+      *
+           IF SQLCODE NOT = 0
+              PERFORM G999-ERROR-DB2
+           END-IF.
+      *
+       7500-ABRIR-CURSIG-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- leer el cursor para pagina siguiente                     ---
+      *----------------------------------------------------------------
+       7510-FETCH-CURSIG.
+      *
+           EXEC SQL
+             FETCH CURSIG
+                INTO :AY-TRANSACCION
+                   , :AY-PAGINA
+                   , :AY-L01
+                   , :AY-L02
+                   , :AY-L03
+                   , :AY-L04
+                   , :AY-L05
+                   , :AY-L06
+                   , :AY-L07
+                   , :AY-L08
+                   , :AY-L09
+                   , :AY-L10
+                   , :AY-L11
+                   , :AY-L12
+                   , :AY-L13
+                   , :AY-L14
+                   , :AY-L15
+                   , :AY-L16
+           END-EXEC
+      *
+           IF SQLCODE NOT = 0 AND SQLCODE NOT = +100
+              PERFORM 7590-CLOSE-CURSIG
+              PERFORM G999-ERROR-DB2
+           END-IF.
+      *
+       7510-FETCH-CURSIG-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Close el cursor para pagina siguiente                    ---
+      *----------------------------------------------------------------
+       7590-CLOSE-CURSIG.
+      *
+           EXEC SQL
+                CLOSE CURSIG
+           END-EXEC
+      *
+           IF SQLCODE NOT = 0
+              PERFORM G999-ERROR-DB2
+           END-IF.
+      *
+       7590-CLOSE-CURSIG-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Abre el cursor para pagina anterior                      ---
+      *----------------------------------------------------------------
+       7700-ABRIR-CURANT.
+      *
+           EXEC SQL
+                DECLARE CURANT CURSOR FOR
+                   SELECT TRANSACCION
+                        , PAGINA
+                        , L01
+                        , L02
+                        , L03
+                        , L04
+                        , L05
+                        , L06
+                        , L07
+                        , L08
+                        , L09
+                        , L10
+                        , L11
+                        , L12
+                        , L13
+                        , L14
+                        , L15
+                        , L16
+                     FROM AYUDAS
+                     WHERE TRANSACCION = :AY-TRANSACCION
+                       AND PAGINA      < :AY-PAGINA
+                     ORDER BY PAGINA DESC
+           END-EXEC
+      *
+           EXEC SQL
+                OPEN CURANT
+           END-EXEC.
+      *
+           IF SQLCODE NOT = 0
+              PERFORM G999-ERROR-DB2
+           END-IF.
+      *
+       7700-ABRIR-CURANT-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Abre el cursor para pagina anterior                      ---
+      *----------------------------------------------------------------
+       7710-FETCH-CURANT.
+      *
+           EXEC SQL
+           FETCH CURANT
+              INTO :AY-TRANSACCION
+                 , :AY-PAGINA
+                 , :AY-L01
+                 , :AY-L02
+                 , :AY-L03
+                 , :AY-L04
+                 , :AY-L05
+                 , :AY-L06
+                 , :AY-L07
+                 , :AY-L08
+                 , :AY-L09
+                 , :AY-L10
+                 , :AY-L11
+                 , :AY-L12
+                 , :AY-L13
+                 , :AY-L14
+                 , :AY-L15
+                 , :AY-L16
+           END-EXEC
+      *
+           IF SQLCODE NOT = 0 AND SQLCODE NOT = +100
+              PERFORM 7790-CLOSE-CURANT
+              PERFORM G999-ERROR-DB2
+           END-IF.
+      *
+       7710-FETCH-CURANT-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Close el cursor para pagina anterior                     ---
+      *----------------------------------------------------------------
+       7790-CLOSE-CURANT.
+      *
+           EXEC SQL
+                CLOSE CURANT
+           END-EXEC
+      *
+           IF SQLCODE NOT = 0
+              PERFORM G999-ERROR-DB2
+           END-IF.
+      *
+       7790-CLOSE-CURANT-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Cuena los registros presentes en la tabla                ---
+      *----------------------------------------------------------------
+       7800-CUENTA-REGISTROS.
+      *
+           EXEC SQL
+                SELECT COUNT(*)
+                INTO   :DB2-COUNT1
+                FROM AYUDAS
+                WHERE TRANSACCION = :AY-TRANSACCION
+           END-EXEC
+      *
+           IF SQLCODE NOT = 0
+              PERFORM G999-ERROR-DB2
+           END-IF.
+      *
+       7800-CUENTA-REGISTROS-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Errores de DB2 - Llamada a la transaccion HOLE           ---
+      *----------------------------------------------------------------
+           EXEC SQL
+                INCLUDE PDDB2
+           END-EXEC.
+      *
+      *----------------------------------------------------------------
+      *--- Envia el mapa al terminal segun modo del switch          ---
+      *----------------------------------------------------------------
+       8000-ENVIO-MAPA.
+      *
+           EVALUATE TRUE
+      *
+      *--- Envio de mapa limpio
+      *
+               WHEN ENVIO-ERASE
+      *
+      *--- TXMUL ->
+                   MOVE 50 TO RTC-CENTER-AREA
+                   PERFORM 20000-TITULO-MAPA
+      * Carga de los textos fijos del mapa
+                   MOVE WC-TRANSACCION TO TB-CLAVE1
+                   PERFORM 20200-OPEN-CURSOR-MAPS
+                   PERFORM WITH TEST AFTER UNTIL SQLCODE = 100
+                       PERFORM 20200-FETCH-CURSOR-MAPS
+                       IF SQLCODE NOT = 100 AND
+                          TB-CLAVE3 = CL-IDIOMA THEN
+                          ADD 1 TO IND
+                          EVALUATE IND
+                             WHEN 1
+                                MOVE TB-VALOR TO TX10O
+                             WHEN 2
+                                MOVE TB-VALOR TO TX80O
+                             WHEN 3
+                                MOVE TB-VALOR TO TX90O
+                          END-EVALUATE
+                       END-IF
+                   END-PERFORM
+                   PERFORM 20200-CLOSE-CURSOR-MAPS
+      *--- TXMUL <-
+      *
+                    EXEC CICS
+                        SEND MAP    ('HOLPMP')
+                             MAPSET ('HOLPMP')
+                             FROM   (HOLPMPO)
+                             ERASE
+                    END-EXEC
+      *
+      *--- Envio del mapa Solo datos
+      *
+               WHEN ENVIO-DATAONLY
+                    EXEC CICS
+                         SEND MAP     ('HOLPMP')
+                              MAPSET  ('HOLPMP')
+                              FROM    (HOLPMPO)
+                              DATAONLY
+                              CURSOR  (CH-CURPOS)
+                    END-EXEC
+      *
+           END-EVALUATE.
+      *
+       8000-ENVIO-MAPA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Envia un mensaje al terminal del usuario (fin sesion)    ---
+      *----------------------------------------------------------------
+       8100-ENVIA-MENSAJE.
+      *
+      *--- TXMUL ->
+           MOVE 'HOLPEND'                  TO CL-CLAVE1.
+           PERFORM 20100-OBTENER-TEXTO.
+           MOVE CL-VALOR                   TO WL-FIN-SESION.
+      * 'La transaccion HOLP ha finalizado...'
+      *--- TXMUL <-
+           EXEC CICS
+               SEND TEXT FROM(WL-FIN-SESION)
+                         ERASE
+                         FREEKB
+           END-EXEC.
+      *
+       8100-ENVIA-MENSAJE-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Devuelve el control a una transaccion                    ---
+      *----------------------------------------------------------------
+       8200-RETORNO-TRANS.
+      *
+           EXEC CICS
+               RETURN
+               TRANSID      (WA-TRANSACCION)
+               COMMAREA     (CH-COMMAREA-HOL)
+               LENGTH       (LENGTH OF CH-COMMAREA-HOL)
+           END-EXEC.
+      *
+       8200-RETORNO-TRANS-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Recibe el mapa de la tarea                               ---
+      *----------------------------------------------------------------
+       8400-RECIBE-MAPA.
+      *
+           EXEC CICS
+                RECEIVE
+                MAP     ('HOLPMP')
+                MAPSET  ('HOLPMP')
+                INTO    (HOLPMPI)
+           END-EXEC.
+      *
+       8400-RECIBE-MAPA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Llama a otro programa CICS por LINK con Commarea         ---
+      *----------------------------------------------------------------
+       8500-LINK-PROGRAMA.
+      *
+           EXEC CICS
+                LINK
+                PROGRAM (CH-LINK)
+                COMMAREA(CH-COMMAREA-HOL)
+                LENGTH  (LENGTH OF CH-COMMAREA-HOL)
+           END-EXEC.
+      *
+       8500-LINK-PROGRAMA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Cede el control a otro programa CICS                     ---
+      *----------------------------------------------------------------
+       8700-XCTL-PROGRAMA.
+      *
+           EXEC CICS
+                SET TERMINAL(EIBTRMID) UCTRAN
+           END-EXEC
+      *
+           EXEC CICS
+               XCTL PROGRAM  (CH-XCTL)
+                    COMMAREA (CH-COMMAREA-HOL)
+                    LENGTH   (LENGTH OF CH-COMMAREA-HOL)
+                    RESP     (WA-RESPUESTA-CICS)
+           END-EXEC.
+      *
+       8700-XCTL-PROGRAMA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- CEDF visualiza una traza - Quitar para produccion        ---
+      *----------------------------------------------------------------
+       8800-TRAZA.
+      *
+           EXEC CICS
+               ENTER       TRACEID(0)
+               FROM        (WA-TRAZA)
+           END-EXEC.
+      *
+       8800-TRAZA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Devuelve el control a CICS - Salida total                ---
+      *----------------------------------------------------------------
+       8900-RETORNO-CICS.
+      *
+           EXEC CICS
+                SET TERMINAL(EIBTRMID) UCTRAN
+           END-EXEC
+      *
+           EXEC CICS
+                RETURN
+           END-EXEC.
+      *
+       8900-RETORNO-CICS-EXIT.
+           EXIT.
+      *--- TXMUL ->
+      *
+      * Rutinas multiidioma
+      *
+           EXEC SQL
+                INCLUDE PTXMUL
+           END-EXEC.
+      *
+       999999-DB2-ERRORES SECTION.
+      *--- TXMUL <-
+      *----------------------------------------------------------------
+      *-------------------- FIN DE PROGRAMA  --------------------------
+      *----------------------------------------------------------------

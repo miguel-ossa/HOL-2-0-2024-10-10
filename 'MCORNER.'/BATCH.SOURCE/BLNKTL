@@ -1,0 +1,160 @@
+      *****************************************************************
+      *                 IDENTIFICATION     DIVISION                   *
+      *****************************************************************
+       IDENTIFICATION DIVISION.
+      *
+       PROGRAM-ID.      BLNKTL.
+       AUTHOR.          MIGUEL DE LA OSSA.
+      *
+      *****************************************************************
+      **  PROYECTO .........: HOL                                    **
+      **  PROGRAMA .........: BLNKTL                                 **
+      **  VERSION ..........: 1.1                                    **
+      **  TITULO ...........: BATCH LINK PARA LEER TEXTOS EN TABLAS  **
+      **                                                             **
+      **  TIPO .............:                                        **
+      **     - LENGUAJE ...............: COBOL II                    **
+      **     - ENTORNO ................: CICS                        **
+      **     - BASE DE DATOS ..........: DB2                         **
+      **                                                             **
+      **  DESCRIPCION ......:                                        **
+      **                                                             **
+      **    - Recibe  por Commarea los valores para acceder a la     **
+      **      tabla DB2 llamada TABLAS y recuperar los datos de un   **
+      **      registro.                                              **
+      **    - La tabla ser  'PROGRMSG'                               **
+      **    - CLAVE1 es el codigo de transaccion, nombre del mapa    **
+      **             o nulos                                         **
+      **    - CLAVE2 es nulo o mnemot‚cnico del mensaje              **
+      **    - CLAVE3 es 'ES' (Preparar las cosas para multi-idioma)  **
+      **    - Devuelve el valor encontrado en Commarea               **
+      **                                                             **
+      **  LOG DE MODIFICACIONES:                                     **
+      **  FECHA----- DESCRIPCION------------------------------ BUSCA **
+      **                                                             **
+      **                                                             **
+      **                                                             **
+      **                                                             **
+      **                                                             **
+      **                                                             **
+      **                                                             **
+      *****************************************************************
+       ENVIRONMENT DIVISION.
+      *
+       CONFIGURATION SECTION.
+       SPECIAL-NAMES.
+           DECIMAL-POINT IS COMMA.
+      *
+       DATA DIVISION.
+      *----------------------------------------------------------------
+       WORKING-STORAGE SECTION.
+      *
+      *--- Zona CICS fin ----------------------------------------------
+      *
+      *--- Zona DB2 ---------------------------------------------------
+      *
+           EXEC SQL
+                INCLUDE SQLCA
+           END-EXEC
+      *
+           EXEC SQL
+                INCLUDE TABLAS
+           END-EXEC.
+      *
+      *--- Zona DB2 fin -----------------------------------------------
+      *
+      *----------------------------------------------------------------
+       LINKAGE SECTION.
+      *
+       COPY DDCICS.
+      *
+      *================================================================
+       PROCEDURE DIVISION USING CH-COMMAREA-HOL.
+      *----------------------------------------------------------------
+      *--- Proceso principal                                        ---
+      *----------------------------------------------------------------
+      *
+       1000-PROCESO.
+           PERFORM 1100-RECUPERA-DATOS
+           PERFORM 7200-DB2-CONSULTA
+      *
+           EVALUATE TRUE
+              WHEN SQLCODE = 0
+                   MOVE TB-VALOR           TO CL-VALOR
+                   MOVE '00'               TO CL-RESULTADO
+              WHEN SQLCODE = +100
+      *--- TXMUL ->
+                   MOVE 'NO TEXTO EN TABLAS'
+      *--- TXMUL <-
+                     TO CL-VALOR
+                   MOVE '01'               TO CL-RESULTADO
+              WHEN SQLCODE NOT = 0 AND SQLCODE NOT = +100
+                   MOVE SQLERRMC           TO CL-VALOR
+                   MOVE '99'               TO CL-RESULTADO
+           END-EVALUATE.
+      *
+       1000-PROCESO-EXIT.
+           GOBACK.
+      *----------------------------------------------------------------
+      *--- Recupera los datos de la Commarea para este programa     ---
+      *----------------------------------------------------------------
+       1100-RECUPERA-DATOS.
+      *
+           PERFORM 1110-NO-ESPACIOS.
+      *
+           MOVE CL-TABLA                   TO TB-TABLA.
+           MOVE CL-CLAVE1                  TO TB-CLAVE1.
+           MOVE CL-CLAVE2                  TO TB-CLAVE2.
+           MOVE CL-CLAVE3                  TO TB-CLAVE3.
+      *
+       1100-RECUPERA-DATOS-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Protege la posibilidad de haber campos con espacios      ---
+      *--- o null. La tabla DB2 se ha declarado sin DEFAULTs        ---
+      *----------------------------------------------------------------
+       1110-NO-ESPACIOS.
+      *
+           IF CL-TABLA = SPACES OR CL-TABLA = HIGH-VALUES
+              MOVE LOW-VALUES              TO CL-TABLA
+           END-IF
+      *
+           IF CL-CLAVE1 = SPACES OR CL-CLAVE1 = HIGH-VALUES
+              MOVE LOW-VALUES              TO CL-CLAVE1
+           END-IF
+      *
+           IF CL-CLAVE2 = SPACES OR CL-CLAVE2 = HIGH-VALUES
+              MOVE LOW-VALUES              TO CL-CLAVE2
+           END-IF
+      *
+           IF CL-CLAVE3 = SPACES OR CL-CLAVE3 = HIGH-VALUES
+              MOVE LOW-VALUES              TO CL-CLAVE3
+           END-IF.
+      *
+       1110-NO-ESPACIOS-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Consulta en DB2                                          ---
+      *----------------------------------------------------------------
+       7200-DB2-CONSULTA.
+      *
+      *--- TXMUL ->
+           EXEC SQL
+                SELECT
+                     VALOR
+                   INTO
+                     :TB-VALOR
+                   FROM TABLAS
+                   WHERE
+                          TABLA   = :TB-TABLA
+                      AND CLAVE1  = :TB-CLAVE1
+                      AND CLAVE2  = :TB-CLAVE2
+                      AND CLAVE3  = :TB-CLAVE3
+           END-EXEC.
+      *--- TXMUL <-
+      *
+       7200-DB2-CONSULTA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *-------------------- FIN DE PROGRAMA  --------------------------
+      *----------------------------------------------------------------

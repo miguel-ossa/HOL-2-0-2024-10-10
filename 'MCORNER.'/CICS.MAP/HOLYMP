@@ -1,0 +1,55 @@
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*                   -----  MAP  'HOLYMP' -----                        *
+*                PANTALLA DE ENVIO DE LISTADO A IMPRESORA             *
+*                          VERSION 1.0                                *
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+HOLYMP   DFHMSD MODE=INOUT,LANG=COBOL,TIOAPFX=YES,TYPE=DSECT,TERM=ALL, X
+               CTRL=FREEKB,STORAGE=AUTO,                               X
+               MAPATTS=(COLOR,HILIGHT,OUTLINE),                        X
+               DSATTS=(COLOR,HILIGHT,OUTLINE),                         X
+               EXTATT=YES,COLOR=GREEN
+*
+HOLYMP   DFHMDI SIZE=(24,80),LINE=1,COLUMN=1
+*
+TRN1     DFHMDF POS=(01,01),LENGTH=04,INITIAL='HOLY',                  X
+               ATTRB=(PROT,BRT),COLOR=YELLOW
+*
+USER     DFHMDF POS=(01,06),LENGTH=08,                                 X
+               ATTRB=(PROT,BRT),COLOR=RED
+*
+TITLE    DFHMDF POS=(01,15),LENGTH=50,                                 X
+               INITIAL='   ENVIAR LISTADO A IMPRESORA              ',  X
+               ATTRB=(PROT,BRT),COLOR=YELLOW
+*
+         DFHMDF POS=(02,01),LENGTH=79,                                 X
+               INITIAL='===============================================*
+               ================================',                      X
+               ATTRB=(PROT,NORM),COLOR=YELLOW
+*
+TX10     DFHMDF POS=(10,05),LENGTH=75,                                 X
+               INITIAL='¨ Enviar £ltimo listado a Spool / Impresora?', X
+               ATTRB=(PROT,NORM),COLOR=TURQUOISE
+*
+CTRL     DFHMDF POS=(19,01),LENGTH=02,ATTRB=(ASKIP,FSET,DRK)
+*
+SHOW     DFHMDF POS=(20,01),LENGTH=79,                                 X
+               ATTRB=(PROT,NORM),COLOR=YELLOW
+*
+         DFHMDF POS=(21,01),LENGTH=79,                                 X
+               INITIAL='-----------------------------------------------X
+               --------------------------------',                      X
+               ATTRB=(PROT,NORM),COLOR=TURQUOISE
+TX20     DFHMDF POS=(22,02),LENGTH=29,                                 X
+               INITIAL='F1-Ayuda       F3-Volver',                     X
+               ATTRB=(PROT,NORM),COLOR=TURQUOISE
+TX30     DFHMDF POS=(22,57),LENGTH=14,                                 X
+               INITIAL='Intro-Confirma',                               X
+               ATTRB=(PROT,NORM),COLOR=TURQUOISE
+         DFHMDF POS=(23,01),LENGTH=79,                                 X
+               INITIAL='-----------------------------------------------X
+               --------------------------------',                      X
+               ATTRB=(PROT,NORM),COLOR=TURQUOISE
+MSG      DFHMDF POS=(24,01),LENGTH=79,                                 X
+               ATTRB=(PROT,BRT),COLOR=RED
+         DFHMSD TYPE=FINAL
+         END

@@ -1,0 +1,33 @@
+      *----------------------------------------------------------------
+      *--- CONTROL DE OPCIONES PARA PROGRAMAS CICS CON DB2          ---
+      *--- VERSION 1.0
+      *----------------------------------------------------------------
+      *--- INCLUIR ESTE COPY CON INCLUDE DE SQL EN TODOS LOS        ---
+      *--- PROGRAMAS COBOL CON DB2 DENTRO DE LA PROCEDURE DIVISION. ---
+      *--- AL METERLO CON INCLUDE DE SQL, EL PRE-COMPILADOR SQL     ---
+      *--- LO TRADUCE Y, POR LO TANTO, SE PUEDEN UTILIZAR COMANDOS  ---
+      *--- CICS IGUALMENTE.                                         ---
+      *----------------------------------------------------------------
+      *
+           EXEC CICS
+                SET TERMINAL(EIBTRMID) NOUCTRAN
+           END-EXEC
+      *
+           EXEC CICS
+                IGNORE CONDITION MAPFAIL
+           END-EXEC
+      *
+           EXEC SQL
+                WHENEVER  SQLERROR    GO TO  G999-ERROR-DB2
+           END-EXEC
+      *
+           EXEC SQL
+                WHENEVER  SQLWARNING  GO TO  G999-ERROR-DB2
+           END-EXEC
+      *
+           EXEC SQL
+                WHENEVER  NOT FOUND   CONTINUE
+           END-EXEC
+      *
+           CONTINUE.
+      *

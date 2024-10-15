@@ -1,0 +1,314 @@
+=======================================================================
+ VERSION 1.0
+ -----------
+
+ Documentaci¢n relacionada con la instalaci¢n de la aplicaci¢n HOL*
+ en un sistema Mainframe.
+ PC -> Hacia Z/OS V1R11
+ Leer el documento LEEME de MCORNER.DICS.HOL que contiene pasos m s
+ detallados de los procesos y sobre todo de los manuales.
+=======================================================================
+
+1. La descarga
+--------------
+   El nombre de la carpeta que hab‚is descargado es:
+   HOL-v-r-AAAA-MM-DD.zip
+   Donde:
+     HOL    - Significa que se trata de la distribuci¢n de la App HOL*
+     v      - Es el n£mero de versi¢n
+     r      - Es el n£mero de sub-versi¢n
+     AAAA   - A¤o de publicaci¢n
+     MM     - Mes de publicaci¢n
+     DD     - D¡a de publicaci¢n
+
+   En el futuro, seg£n se resuelvan problemas t‚cncios o errores, y se
+   produczcan nuevos contenidos, [v,r] podr¡an evolucionar.
+   La distribuci¢n se hace en forma de carpeta comprimida con ZIP-
+
+   Descomprimir la carpeta en alguna otra de vuestro PC.
+   La carpeta extra¡da tiene la siguiente estructura:
+
+   HOL-V-R-AAAA-MM-DD     (Ra¡z)
+     'MCORNER.'
+       BATCH.LOAD
+       BATCH.SOURCE
+       CALL.LOAD
+       CALL.SOURCE
+       CICS.COPYS
+       CICS.LOAD
+       CICS.MAP
+       CICS.SOURCE
+       COBOL.COPYS
+       COBOL.JCL
+       COBOL.PROC
+       DB2.BIND
+       DB2.DBRMLIB
+       DB2.DCLGEN
+       DB2.DSNHOUT
+       DB2.RUN
+       DB2.SPUFI
+       DB2.SPUFO
+       DOCS.HOL
+       SISTEMA.JCL
+       DATA.AYDATA
+       DATA.AYLOAD
+       DATA.CLDATA
+       DATA.CLLOAD
+       DATA.TBDATA
+       DATA.TBLOAD
+
+   Dentro de cada sub-carpeta se encuentra cada tipo de componente.
+
+   DEBEIS DE ALLOCAR Y CATALOGAR TODOS ESTOS DATASET excepto DATA.*
+
+
+
+2. FTP de componentes
+---------------------
+   Configurar vuestro cliente FTP para transfer en modo texto.
+   Configurar autenticaci¢n texto plano al puerto 21.
+
+   Si ya ten‚is todos los data sets en Z/OS proseguir al siguiente
+   paso y, si no es as¡, deb‚is de crear todos los data sets tal y
+   como se detalla en los v¡deos:
+   https://www.youtube.com/@mainframecorner/playlists
+
+3. Transfers
+------------
+   Pod‚is transferir todo de vuestro PC al z/OS o no transferir
+   algunos componentes:
+
+     CICS.LOAD    (Se volver¡an a generar en las compilaciones)
+     DB2.DBRMLIB  (Idem)
+     DB2.DCLGEN   (Idem)
+     DB2.DSNHOUT  (Idem)
+
+   Todos los dem s son obligatorios para que todo se ejecute bien.
+   Todos los data sets deben de estar al menos, creados en vuestros
+   vol£menes.
+
+   Los ficheros secuenciales con patr¢n DATA.** los he ubicado en el
+   ZVOL01, pero cada uno los puede ubicar donde desee. No obstante,
+   Si no se ubican en este volumen, se deber n de adaptar los JCL
+   de MCORNER.COBOL.JCL relativos a la descarga y carga de datos de
+   DB2.
+
+4. Objetos DB2
+--------------
+   Lanzar todos los miembros de MCORNER.DB2.SPUFI desde el panel
+   Spufi, opci¢n M.15.1 dfel ISPF.
+   Lanzar desde SPU001 al SPU008. Todos deber¡an de terminar con
+   SQLCODE 0
+   Si ya ten‚is creados objetos DB2, pod‚is omitir este paso aunque,
+   recomiendo que si es as¡, borr‚is previamente todo vuestro contenido
+   y empec‚is de nuevo.
+
+5. Generar DCLGEN
+-----------------
+   Generar todos los DCLGEN para las tablas AYUDAS, CLIENTES y TABLAS
+   No poner nada en OWNER
+
+                     ********************
+                     ***** ATENCIàN *****
+                     ********************
+
+   A ESTE NIVEL, PODEIS OBTAR POR SEGUIR LOS SIGUIENTES PASOS Y
+   HACER LAS COSAS MANUALMENTE, O BIEN, PODEIS LANZAR EL JCL
+   MCORNER.COBOL.JCL(@INSTALL) QUE HARµ:
+     . Compilar programas BATCH
+     . Compilar Mapas
+     . Compilar programas CICS
+     . Compilar programas CALL
+     . CEDA, definir Mapas
+     . CEDA, definir Programas
+     . CEDA, definir Transacciones
+     . CEDA, definir Transacciones DB2
+     . CEDA, definir Conexi¢n DB2
+     . CEDA, definir Entry a DB2
+     . CEDA, a¤adir grupos a listas
+
+   SE PUEDE LANZAR AUNQUE SE TENGAN OBJETOS DEFINIDOS EN CICS YA QUE
+   SI YA ESTµN, AVISARµ CON UN MENSAJE PERO NO DARµ ERROR.
+
+6. Compilaci¢n
+--------------
+   Compilar todos los mapas. Se utilizar  MCORNER.COBOL.JCL(@ASMMAP)
+   Mapa a mapa cambiar el nombre sel par metro SETP y submitir el JCL.
+   Todas las compilacione sdeben de terminar con RC=00
+
+   Compilar todos los programas. Se utilizar 
+   MCORNER.COBOL.JCL(@CICSDB2)
+   para todos, excepto RTCENTI, que se har  con @COBCALL
+
+7. Carga de datos DB2
+---------------------
+   Lanzar los 3 JCL de carga de datos que hay en
+   MCORNER.COBOL.JCL llamados LOADAY, LOADCL y LOADTB
+   Todos deber¡an de terminar con RC=00
+
+   Tambi‚n pod‚is omitir este paso y utilizar las diferentes
+   transacciones para crear los datos vosotros mismos y, de paso,
+   comprobar que los programas se comportan bien en vacio. Esto es
+   algo que los programadores debemos de garantizar.
+
+8. CICS y CEDAs
+---------------
+   Ejecutar estos CEDA en una consola de CICS
+
+    Mapas:
+      CEDA DEF MAP(HOLEMP) GR(HOL4)
+      CEDA DEF MAP(HOLHMP) GR(HOL4)
+      CEDA DEF MAP(HOLMMP) GR(HOL4)
+      CEDA DEF MAP(HOLPMP) GR(HOL4)
+      CEDA DEF MAP(HOLRMP) GR(HOL4)
+      CEDA DEF MAP(HOLSMP) GR(HOL4)
+      CEDA DEF MAP(HOLUMP) GR(HOL4)
+      CEDA DEF MAP(HOLXMP) GR(HOL4)
+      CEDA DEF MAP(HOLYMP) GR(HOL4)
+      CEDA DEF MAP(HOLZMP) GR(HOL4)
+      CEDA DEF MAP(HOL4MP) GR(HOL4)
+      CEDA DEF MAP(TST1MP) GR(HOL4)
+
+    Programas:
+      CEDA DEF PROG(RTCENTI) GR(HOL4)
+      CEDA DEF PROG(HOL4) GR(HOL4)
+      CEDA DEF PROG(LNKTL) GR(HOL4)
+      CEDA DEF PROG(PHOLE) GR(HOL4)
+      CEDA DEF PROG(PHOLH) GR(HOL4)
+      CEDA DEF PROG(PHOLL) GR(HOL4)
+      CEDA DEF PROG(PHOLM) GR(HOL4)
+      CEDA DEF PROG(PHOLP) GR(HOL4)
+      CEDA DEF PROG(PHOLR) GR(HOL4)
+      CEDA DEF PROG(PHOLS) GR(HOL4)
+      CEDA DEF PROG(PHOLU) GR(HOL4)
+      CEDA DEF PROG(PHOLW) GR(HOL4)
+      CEDA DEF PROG(PHOLX) GR(HOL4)
+      CEDA DEF PROG(PHOLY) GR(HOL4)
+      CEDA DEF PROG(PHOLZ) GR(HOL4)
+      CEDA DEF PROG(PTST1) GR(HOL4)
+
+    Trasacciones CICS
+      CEDA DEF TRANS(HOL4) PROGRAM(HOL4) GR(HOL4)
+      CEDA DEF TRANS(HOLE) PROGRAM(PHOLE) GR(HOL4)
+      CEDA DEF TRANS(HOLH) PROGRAM(PHOLH) GR(HOL4)
+      CEDA DEF TRANS(HOLL) PROGRAM(PHOLL) GR(HOL4)
+      CEDA DEF TRANS(HOLM) PROGRAM(PHOLM) GR(HOL4)
+      CEDA DEF TRANS(HOLP) PROGRAM(PHOLP) GR(HOL4)
+      CEDA DEF TRANS(HOLR) PROGRAM(PHOLR) GR(HOL4)
+      CEDA DEF TRANS(HOLS) PROGRAM(PHOLS) GR(HOL4)
+      CEDA DEF TRANS(HOLU) PROGRAM(PHOLU) GR(HOL4)
+      CEDA DEF TRANS(HOLW) PROGRAM(PHOLW) GR(HOL4)
+      CEDA DEF TRANS(HOLX) PROGRAM(PHOLX) GR(HOL4)
+      CEDA DEF TRANS(HOLY) PROGRAM(PHOLY) GR(HOL4)
+      CEDA DEF TRANS(HOLZ) PROGRAM(PHOLZ) GR(HOL4)
+      CEDA DEF TRANS(TST1) PROGRAM(PTST1) GR(HOL4)
+
+    Transacciones DB2:
+      CEDA DEF DB2TRAN(HOL4TRAN) GR(HOL4) ENTRY(HOL4) TRANSID(HOL4)
+      CEDA DEF DB2TRAN(HOLETRAN) GR(HOL4) ENTRY(HOL4) TRANSID(HOLE)
+      CEDA DEF DB2TRAN(HOLHTRAN) GR(HOL4) ENTRY(HOL4) TRANSID(HOLH)
+      CEDA DEF DB2TRAN(HOLLTRAN) GR(HOL4) ENTRY(HOL4) TRANSID(HOLL)
+      CEDA DEF DB2TRAN(HOLMTRAN) GR(HOL4) ENTRY(HOL4) TRANSID(HOLM)
+      CEDA DEF DB2TRAN(HOLPTRAN) GR(HOL4) ENTRY(HOL4) TRANSID(HOLP)
+      CEDA DEF DB2TRAN(HOLRTRAN) GR(HOL4) ENTRY(HOL4) TRANSID(HOLR)
+      CEDA DEF DB2TRAN(HOLSTRAN) GR(HOL4) ENTRY(HOL4) TRANSID(HOLS)
+      CEDA DEF DB2TRAN(HOLXTRAN) GR(HOL4) ENTRY(HOL4) TRANSID(HOLX)
+      CEDA DEF DB2TRAN(HOLYTRAN) GR(HOL4) ENTRY(HOL4) TRANSID(HOLY)
+      CEDA DEF DB2TRAN(HOLZTRAN) GR(HOL4) ENTRY(HOL4) TRANSID(HOLZ)
+      CEDA DEF DB2TRAN(TST1TRAN) GR(HOL4) ENTRY(HOL4) TRANSID(TST1)
+
+    Si el grupo con el que trabajamos HOL4, no est  en la lista de
+    arranque de CICS llamada MCORNER, debemos de a¤adirlo.
+
+    A¥ADIR GR(HOL4) A LIST(MCORNER) Comando:
+      CEDA ADD GROUP(HOL4) LIST(MCORNER)
+
+    INSTALAR MAPAS:
+    Opcionalmente se pueden instalar los mapas, aunque si paramos
+    y re-arrancamos CICS al final, todo se har  autom ticamente.
+    CEDA DI GR(HOL4)
+       Poner I en todos los mapas que aparecen
+
+    TEMA ESPECIAL DE MAYUSCULAS:
+
+      CEDA COPY TYPETERM(DFHCONS) GR(DFHTYPE) AS (CONSDFH) TO (HOL4)
+
+      Despu‚s de este comando, Alteramos el terminal L700 (o el que
+      cada uno tenga), para que su TYPETERM apunte al nuevo CONSDFH.
+
+8. CICS New Copy
+----------------
+   Ejecutar estos CEMT S
+
+      CEMT S PROG(PTST1)        hacer New Copy
+      CEMT S PROG(PHOLE)        hacer New Copy
+      CEMT S PROG(PHOLZ)        hacer New Copy
+      CEMT S PROG(PHOLH)        hacer New Copy
+      CEMT S PROG(PHOLP)        hacer New Copy
+      CEMT S PROG(PHOLM)        hacer New Copy
+      CEMT S PROG(PHOLX)        hacer New Copy
+      CEMT S PROG(PHOLS)        hacer New Copy
+      CEMT S PROG(PHOLR)        hacer New Copy
+      CEMT S PROG(PHOLL)        hacer New Copy
+      CEMT S PROG(PHOLY)        hacer New Copy
+      CEMT S PROG(RTCENTI)      hacer New Copy
+      CEMT S PROG(LNKTL)        hacer New Copy
+
+   Todos los comandos deber¡an de terminar bien con respuesta CICS
+   NORMAL
+
+9. Instalar en CICS
+-------------------
+   Salir del CICS del todo con CESF LOGOFF.
+
+   Para instalar los componentes en el CICS podemos simplemente pararlo
+   desde la consola maestra con el comando:
+   F CICSA,CEMT P SHUT I
+   y volverlo a arrancar con el comando:
+   S CICSA
+
+   Si nuestro CICS ha sido customizado como se ha indicado en las
+   documentaciones y v¡deos del canal, esto instalar  la lista MCORNER
+   y Todo quedar  instalado y disponible.
+
+10. Pruebas
+-----------
+   Ya podemos probar la aplicaci¢n desde una consola de CICS.
+
+   Para comenzar, arrancar la transacci¢n HOLM.
+
+   Deber¡a de salir el men£ y ya podemos comenar a utilizar la
+   aplicaci¢n. Si hab‚is cargado mis datos, deberi is de tener clientes
+   con DNI 000000001 hasta 0000000NN.
+
+
+11. Errores, Solicitudes y contacto de soporte
+----------------------------------------------
+   Os dejo aqu¡ mi email de contacto para que podais enviarme:
+   - Errores que hab‚is observado
+   - Componentes modificados que hab‚is corregido vosotros
+   - Solicitudes de mejoras
+   - Lo que consider‚is oportuno.
+
+   Yo me encargar‚ de coordinar cambios y de publicar nuevas versiones
+   de la aplicaci¢n.
+
+              --------------------------------
+              -                              -
+              -     netcobol.es@gmail.com    -
+              -                              -
+              --------------------------------
+
+
+   ­ ANÖMATE A PARTICIPAR !
+
+   No tengas miedo de meterle mano a los componentes y de cambiar
+   cosas. No aprender s si no practicas. Aqu¡ me tienes si te surgen
+   dudas o problemas. Un abrazo...
+   Nos vemos en el canal 'The Mainframe Corner' con m s cosas que ir n
+   apareciendo con el tiempo.
+   Nota: Cualquier petici¢n ser  primero aprobada por el canal y
+         planificada para su desarrollo.
+
+
+

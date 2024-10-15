@@ -1,0 +1,122 @@
+
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*                   -----  MAP  'HOLHMP' -----                        *
+*             PANTALLA PARA EL MANTENIMIENTO DE AYUDAS                *
+*                          VERSION 1.0                                *
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+HOLHMP   DFHMSD MODE=INOUT,LANG=COBOL,TIOAPFX=YES,TYPE=DSECT,TERM=ALL, X
+               CTRL=FREEKB,STORAGE=AUTO,                               X
+               MAPATTS=(COLOR,HILIGHT,OUTLINE),                        X
+               DSATTS=(COLOR,HILIGHT,OUTLINE),                         X
+               EXTATT=YES,COLOR=GREEN
+*
+HOLHMP   DFHMDI SIZE=(24,80),LINE=1,COLUMN=1
+*
+TRN1     DFHMDF POS=(01,01),LENGTH=04,INITIAL='HOLH',                  X
+               ATTRB=(PROT,BRT),COLOR=YELLOW
+*
+USER     DFHMDF POS=(01,06),LENGTH=08,                                 X
+               ATTRB=(PROT,BRT),COLOR=RED
+*
+TITLE    DFHMDF POS=(01,15),LENGTH=50,                                 X
+               INITIAL='          MANTENIMIENTO DE LAS PAGINAS DE AYUDAX
+                PASIVA',                                               X
+               ATTRB=(PROT,BRT,FSET),COLOR=YELLOW
+*
+         DFHMDF POS=(02,01),LENGTH=79,                                 X
+               INITIAL='===============================================X
+               ================================',                      X
+               ATTRB=(PROT,BRT),COLOR=YELLOW
+*
+TX10     DFHMDF POS=(03,01),LENGTH=06,INITIAL='Trans:',                X
+               ATTRB=(PROT,NORM),COLOR=TURQUOISE
+TRAN     DFHMDF POS=(03,08),LENGTH=04,HILIGHT=UNDERLINE,               X
+               ATTRB=(UNPROT,FSET,IC),COLOR=GREEN
+         DFHMDF POS=(03,13),LENGTH=01,ATTRB=ASKIP
+*
+TX20     DFHMDF POS=(03,17),LENGTH=07,INITIAL='Pagina:',               X
+               ATTRB=(PROT,NORM),COLOR=TURQUOISE
+PAG      DFHMDF POS=(03,25),LENGTH=03,                                 X
+               ATTRB=(UNPROT,NUM,FSET),COLOR=GREEN,HILIGHT=UNDERLINE,  X
+               PICIN='999',PICOUT='ZZ9'
+         DFHMDF POS=(03,29),LENGTH=01,ATTRB=ASKIP
+*
+TX30     DFHMDF POS=(03,33),LENGTH=16,INITIAL='Accion (A,B,C,M)',      X
+               ATTRB=(PROT,NORM),COLOR=TURQUOISE
+ACC      DFHMDF POS=(03,50),LENGTH=01,                                 X
+               ATTRB=(UNPROT,NORM,FSET),COLOR=GREEN,HILIGHT=UNDERLINE
+         DFHMDF POS=(03,52),LENGTH=01,ATTRB=ASKIP
+*
+         DFHMDF POS=(04,01),LENGTH=79,                                 X
+               INITIAL='-----------------------------------------------X
+               --------------------------------'
+*
+L01      DFHMDF POS=(05,01),LENGTH=79,                                 X
+               ATTRB=(UNPROT,NORM,FSET),COLOR=GREEN
+*
+L02      DFHMDF POS=(06,01),LENGTH=79,                                 X
+               ATTRB=(UNPROT,NORM,FSET),COLOR=GREEN
+*
+L03      DFHMDF POS=(07,01),LENGTH=79,                                 X
+               ATTRB=(UNPROT,NORM,FSET),COLOR=GREEN
+*
+L04      DFHMDF POS=(08,01),LENGTH=79,                                 X
+               ATTRB=(UNPROT,NORM,FSET),COLOR=GREEN
+*
+L05      DFHMDF POS=(09,01),LENGTH=79,                                 X
+               ATTRB=(UNPROT,NORM,FSET),COLOR=GREEN
+*
+L06      DFHMDF POS=(10,01),LENGTH=79,                                 X
+               ATTRB=(UNPROT,NORM,FSET),COLOR=GREEN
+*
+L07      DFHMDF POS=(11,01),LENGTH=79,                                 X
+               ATTRB=(UNPROT,NORM,FSET),COLOR=GREEN
+*
+L08      DFHMDF POS=(12,01),LENGTH=79,                                 X
+               ATTRB=(UNPROT,NORM,FSET),COLOR=GREEN
+*
+L09      DFHMDF POS=(13,01),LENGTH=79,                                 X
+               ATTRB=(UNPROT,NORM,FSET),COLOR=GREEN
+*
+L10      DFHMDF POS=(14,01),LENGTH=79,                                 X
+               ATTRB=(UNPROT,NORM,FSET),COLOR=GREEN
+*
+L11      DFHMDF POS=(15,01),LENGTH=79,                                 X
+               ATTRB=(UNPROT,NORM,FSET),COLOR=GREEN
+*
+L12      DFHMDF POS=(16,01),LENGTH=79,                                 X
+               ATTRB=(UNPROT,NORM,FSET),COLOR=GREEN
+*
+L13      DFHMDF POS=(17,01),LENGTH=79,                                 X
+               ATTRB=(UNPROT,NORM,FSET),COLOR=GREEN
+*
+L14      DFHMDF POS=(18,01),LENGTH=79,                                 X
+               ATTRB=(UNPROT,NORM,FSET),COLOR=GREEN
+*
+L15      DFHMDF POS=(19,01),LENGTH=79,                                 X
+               ATTRB=(UNPROT,NORM,FSET),COLOR=GREEN
+*
+L16      DFHMDF POS=(20,01),LENGTH=79,                                 X
+               ATTRB=(UNPROT,NORM,FSET),COLOR=GREEN
+*
+         DFHMDF POS=(21,01),LENGTH=79,                                 X
+               INITIAL='-----------------------------------------------X
+               --------------------------------',                      X
+               ATTRB=(PROT,NORM),COLOR=TURQUOISE
+*
+TX40     DFHMDF POS=(22,01),LENGTH=44,                                 X
+               INITIAL='F1-Ayuda    F3-Salir   F7-Subir   F8-Bajar',   X
+               ATTRB=(PROT,NORM),COLOR=TURQUOISE
+TX50     DFHMDF POS=(22,47),LENGTH=32,                                 X
+               INITIAL='F9-Renumerar(10)   INTRO-Proceso',             X
+               ATTRB=(PROT,NORM),COLOR=TURQUOISE
+*
+         DFHMDF POS=(23,01),LENGTH=79,                                 X
+               INITIAL='-----------------------------------------------X
+               --------------------------------',                      X
+               ATTRB=(PROT,NORM),COLOR=TURQUOISE
+*
+MSG      DFHMDF POS=(24,01),LENGTH=79,                                 X
+               ATTRB=(PROT,BRT),COLOR=RED
+         DFHMSD TYPE=FINAL
+         END

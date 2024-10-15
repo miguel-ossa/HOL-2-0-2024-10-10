@@ -1,0 +1,19 @@
+      *--- AREA DE WSS PARA LA ELABORCI‡N DE LISTADOS -----------------
+      *--- CONTROL DE LISTADO
+      *--- VERSION 1.0
+      *
+       01  RPT-CONTROL.
+           03  RPT-MAX-LINEAS-PAG          PIC 99        VALUE 58.
+           03  RPT-PAGINA                  PIC 9(4)      VALUE 1.
+           03  RPT-LINEA-PAG               PIC 9(9)      VALUE 0.
+           03  RPT-LISTADO                 PIC X(8)      VALUE SPACES.
+           03  RPT-FECHA                   PIC X(10)     VALUE SPACES.
+           03  RPT-HORA                    PIC X(8)      VALUE SPACES.
+           03  RPT-SALTO-0                 PIC X         VALUE '0'.
+           03  RPT-SALTO-1                 PIC X         VALUE '1'.
+           03  RPT-SALTO-2                 PIC X         VALUE '2'.
+           03  RPT-SALTO-3                 PIC X         VALUE '3'.
+      *
+      *----------------------------------------------------------------
+      *--- FINAL DE AREA DE WSS PARA LISTADOS -------------------------
+      *----------------------------------------------------------------

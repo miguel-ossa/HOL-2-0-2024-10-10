@@ -1,0 +1,17 @@
+DSN     SYSTEM         (DB9G)                                           00010010
+BIND    PACKAGE        (APPHOL)      -                                  00020010
+        MEMBER         (HOL4)        -                                  00030010
+        ENCODING       (284)         -                                  00040013
+        ISOLATION      (CS)          -                                  00041010
+        VALIDATE       (BIND)        -                                  00041110
+        RELEASE        (COMMIT)      -                                  00041210
+        EXPLAIN        (YES)         -                                  00041310
+        CURRENTDATA    (NO)          -                                  00041410
+        DEGREE         (ANY)         -                                  00041510
+        DYNAMICRULES   (BIND)        -                                  00041610
+        SQLERROR       (NOPACKAGE)   -                                  00042010
+        ACTION         (REPLACE)     -                                  00043010
+        FLAG           (I)           -                                  00043110
+        QUALIFIER      (IBMUSER)     -                                  00044010
+        OWNER          (IBMUSER)                                        00045010
+END                                                                     00046010

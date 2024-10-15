@@ -1,0 +1,382 @@
+      *************************************************************
+      *  PROGRAMA DE PRUEBA DE CICS-COBOL CON FICHEROS VSAM
+      *
+      *  MODIFICACIONES:
+      *-----------------------------------------------------------
+      * FECHA----- TITULO DEL CAMBIO------------------------ REF---
+      *
+      * 2023-02-25 LMA MIGRACION DE ALMACENAMIENTO           MODSQL
+      *                DE VSAM HACIA DB2
+      *-----------------------------------------------------------
+      *************************************************************
+       IDENTIFICATION DIVISION.
+      * MODSQL - CAMBIO NOMBRE DE PROGRAMA
+       PROGRAM-ID. HOL4.
+       ENVIRONMENT DIVISION.
+       DATA DIVISION.
+       WORKING-STORAGE SECTION.
+      *===============================================================
+      * LA COPY DEL MAPA GENERADO
+      *===============================================================
+      * MODSQL - CAMBIO NOMBRE DEL MAPA
+       COPY HOL4MP.
+      *===============================================================
+      * FIN DE LA COPY DEL MAPA GENERADO
+      *===============================================================
+       01 MSG-FIN-SESION  PIC X(13) VALUE 'FIN DE SESION'.
+       01 MI-COMMAREA.
+       03 CAMPOINICIO                     PIC X(8).
+      *
+      * MODSQL - SUSTITUCION DE REGISTRO POR INCLUDE DE TABLA DB2
+      *01  REGISTRO-CLIENTES.
+      *    05  C-DNI                      PIC X(9).
+      *    05  C-NOMBRE                   PIC X(20).
+      *    05  C-APELLIDO                 PIC X(20).
+      *    05  C-DIRECCION                PIC X(31).
+       01 FILLER PIC X(20) VALUE 'TABLA678901234567890'.
+      *****EXEC SQL
+      *****     INCLUDE CLIENTES
+      *****END-EXEC.
+      ******************************************************************
+      * DCLGEN TABLE(CLIENTES)                                         *
+      *        LIBRARY(MCORNER.DB2.DCLGEN(CLIENTES))                   *
+      *        ACTION(REPLACE)                                         *
+      *        LANGUAGE(COBOL)                                         *
+      *        NAMES(CL-)                                              *
+      *        STRUCTURE(CL-CLIENTES)                                  *
+      *        QUOTE                                                   *
+      *        COLSUFFIX(YES)                                          *
+      * ... IS THE DCLGEN COMMAND THAT MADE THE FOLLOWING STATEMENTS   *
+      ******************************************************************
+      *****EXEC SQL DECLARE CLIENTES TABLE
+      *****( DNI                            CHAR(9) NOT NULL,
+      *****  NOMBRE                         CHAR(20) NOT NULL,
+      *****  APELLIDOS                      CHAR(20) NOT NULL,
+      *****  DIRECCION                      CHAR(35) NOT NULL
+      *****) END-EXEC.
+      ******************************************************************
+      * COBOL DECLARATION FOR TABLE CLIENTES                           *
+      ******************************************************************
+       01  CL-CLIENTES.
+      *                       DNI
+           10 CL-DNI               PIC X(9).
+      *                       NOMBRE
+           10 CL-NOMBRE            PIC X(20).
+      *                       APELLIDOS
+           10 CL-APELLIDOS         PIC X(20).
+      *                       DIRECCION
+           10 CL-DIRECCION         PIC X(35).
+      ******************************************************************
+      * THE NUMBER OF COLUMNS DESCRIBED BY THIS DECLARATION IS 4       *
+      ******************************************************************
+      * MODSQL - SE TIENE QUE UTILIZAR SQLCA
+       01 FILLER PIC X(20) VALUE 'SQLCA678901234567890'.
+      *****EXEC SQL
+      *****     INCLUDE SQLCA
+      *****END-EXEC.
+        01 SQLCA.
+           05 SQLCAID     PIC X(8).
+           05 SQLCABC     PIC S9(9) COMP-4.
+           05 SQLCODE     PIC S9(9) COMP-4.
+           05 SQLERRM.
+              49 SQLERRML PIC S9(4) COMP-4.
+              49 SQLERRMC PIC X(70).
+           05 SQLERRP     PIC X(8).
+           05 SQLERRD     OCCURS 6 TIMES
+                          PIC S9(9) COMP-4.
+           05 SQLWARN.
+              10 SQLWARN0 PIC X.
+              10 SQLWARN1 PIC X.
+              10 SQLWARN2 PIC X.
+              10 SQLWARN3 PIC X.
+              10 SQLWARN4 PIC X.
+              10 SQLWARN5 PIC X.
+              10 SQLWARN6 PIC X.
+              10 SQLWARN7 PIC X.
+           05 SQLEXT.
+              10 SQLWARN8 PIC X.
+              10 SQLWARN9 PIC X.
+              10 SQLWARNA PIC X.
+              10 SQLSTATE PIC X(5).
+      * MODSQL CAMPOS PARA ERROR DE DB2
+       01 FILLER PIC X(20) VALUE 'SQLER678901234567890'.
+       01  DB2-ERR.
+           03  DB2-SQLCODE                PIC S9(9).
+           03  DB2-SQLCODE-Z              PIC -ZZZZZZZZ9.
+           03  DB2-ERROR.
+               05  DB2-ERR-MSG            PIC X(50).
+               05  DB2-ERR-CODE           PIC X(20).
+      *
+       01  RESPUESTA                      PIC S9(8)  COMP.
+      *============================================================
+      * COPIAMOS AYUDAS DE BMS PARA HACER BONITO EL TERMINAL
+      *============================================================
+       COPY DFHAID.
+       COPY DFHBMSCA.
+      *
+        77 SQL-TEMP      PIC X(128).
+        77 DSN-TEMP      PIC S9(9)  COMP-4.
+        77 DSN-TMP2      PIC S9(18) COMP-3.
+        77 DSNNROWS      PIC S9(9)  COMP-4.
+        77 DSNNTYPE      PIC S9(4)  COMP-4.
+        77 DSNNLEN       PIC S9(4)  COMP-4.
+        77 SQL-NULL      PIC S9(9) COMP-4 VALUE +0.
+        77 SQL-INIT-FLAG PIC S9(4) COMP-4 VALUE +0.
+           88 SQL-INIT-DONE VALUE +1.
+        77 SQL-FILE-READ      PIC S9(9) COMP-4 VALUE +2.
+        77 SQL-FILE-CREATE    PIC S9(9) COMP-4 VALUE +8.
+        77 SQL-FILE-OVERWRITE PIC S9(9) COMP-4 VALUE +16.
+        77 SQL-FILE-APPEND    PIC S9(9) COMP-4 VALUE +32.
+        01 SQL-PLIST2.
+           05 SQL-PLIST-CON   PIC S9(9) COMP-4 VALUE +4211712.
+           05 SQL-CALLTYPE    PIC S9(4) COMP-4 VALUE +30.
+           05 SQL-PROG-NAME   PIC X(8)  VALUE X'484F4C3420202020'.
+           05 SQL-TIMESTAMP-1 PIC S9(9) COMP-4 VALUE +469383373.
+           05 SQL-TIMESTAMP-2 PIC S9(9) COMP-4 VALUE +307333952.
+           05 SQL-SECTION     PIC S9(4) COMP-4 VALUE +1.
+           05 SQL-CODEPTR     PIC S9(9) COMP-4.
+           05 SQL-VPARMPTR    PIC S9(9) COMP-4 VALUE +0.
+           05 SQL-APARMPTR    PIC S9(9) COMP-4 VALUE +0.
+           05 FILLER          PIC S9(4) COMP-4 VALUE +1208.
+           05 SQL-STMT-TYPE   PIC S9(4) COMP-4 VALUE +231.
+           05 SQL-STMT-NUM    PIC S9(9) COMP-4 VALUE +156.
+           05 SQL-PLIST-FLG   PIC S9(4) COMP-4 VALUE +0.
+           05 FILLER          PIC X(18) VALUE
+              X'000000000000000000000000000000000000'.
+           05 SQL-PVAR-LIST2.
+              10 PRE-SQLDAID  PIC X(8)  VALUE 'SQLDA  Ê'.
+              10 PRE-SQLDABC  PIC S9(9) COMP-4 VALUE +60.
+              10 PRE-SQLN     PIC S9(4) COMP-4 VALUE +1.
+              10 PRE-SQLLD    PIC S9(4) COMP-4 VALUE +1.
+              10 PRE-SQLVAR.
+                12 SQLVAR-BASE1.
+                  15 SQL-PVAR-TYPE1      PIC S9(4) COMP-4 VALUE +452.
+                  15 SQL-PVAR-LEN1       PIC S9(4) COMP-4 VALUE +9.
+                  15 SQL-PVAR-ADDRS1.
+                     20 SQL-PVAR-ADDR1   PIC S9(9) COMP-4.
+                     20 SQL-PVAR-IND1    PIC S9(9) COMP-4.
+                  15 SQL-PVAR-NAME1.
+                     20 SQL-PVAR-NAMEL1  PIC S9(4) COMP-4 VALUE +0.
+                     20 SQL-PVAR-NAMEC1  PIC X(30) VALUE ' '.
+           05 SQL-AVAR-LIST2.
+              10 PRE-SQLDAID  PIC X(8)  VALUE 'SQLDA  Ê'.
+              10 PRE-SQLDABC  PIC S9(9) COMP-4 VALUE +192.
+              10 PRE-SQLN     PIC S9(4) COMP-4 VALUE +4.
+              10 PRE-SQLLD    PIC S9(4) COMP-4 VALUE +4.
+              10 PRE-SQLVAR.
+                12 SQLVAR-BASE1.
+                  15 SQL-AVAR-TYPE1      PIC S9(4) COMP-4 VALUE +452.
+                  15 SQL-AVAR-LEN1       PIC S9(4) COMP-4 VALUE +9.
+                  15 SQL-AVAR-ADDRS1.
+                     20 SQL-AVAR-ADDR1   PIC S9(9) COMP-4.
+                     20 SQL-AVAR-IND1    PIC S9(9) COMP-4.
+                  15 SQL-AVAR-NAME1.
+                     20 SQL-AVAR-NAMEL1  PIC S9(4) COMP-4 VALUE +0.
+                     20 SQL-AVAR-NAMEC1  PIC X(30) VALUE ' '.
+                12 SQLVAR-BASE2.
+                  15 SQL-AVAR-TYPE2      PIC S9(4) COMP-4 VALUE +452.
+                  15 SQL-AVAR-LEN2       PIC S9(4) COMP-4 VALUE +20.
+                  15 SQL-AVAR-ADDRS2.
+                     20 SQL-AVAR-ADDR2   PIC S9(9) COMP-4.
+                     20 SQL-AVAR-IND2    PIC S9(9) COMP-4.
+                  15 SQL-AVAR-NAME2.
+                     20 SQL-AVAR-NAMEL2  PIC S9(4) COMP-4 VALUE +0.
+                     20 SQL-AVAR-NAMEC2  PIC X(30) VALUE ' '.
+                12 SQLVAR-BASE3.
+                  15 SQL-AVAR-TYPE3      PIC S9(4) COMP-4 VALUE +452.
+                  15 SQL-AVAR-LEN3       PIC S9(4) COMP-4 VALUE +20.
+                  15 SQL-AVAR-ADDRS3.
+                     20 SQL-AVAR-ADDR3   PIC S9(9) COMP-4.
+                     20 SQL-AVAR-IND3    PIC S9(9) COMP-4.
+                  15 SQL-AVAR-NAME3.
+                     20 SQL-AVAR-NAMEL3  PIC S9(4) COMP-4 VALUE +0.
+                     20 SQL-AVAR-NAMEC3  PIC X(30) VALUE ' '.
+                12 SQLVAR-BASE4.
+                  15 SQL-AVAR-TYPE4      PIC S9(4) COMP-4 VALUE +452.
+                  15 SQL-AVAR-LEN4       PIC S9(4) COMP-4 VALUE +35.
+                  15 SQL-AVAR-ADDRS4.
+                     20 SQL-AVAR-ADDR4   PIC S9(9) COMP-4.
+                     20 SQL-AVAR-IND4    PIC S9(9) COMP-4.
+                  15 SQL-AVAR-NAME4.
+                     20 SQL-AVAR-NAMEL4  PIC S9(4) COMP-4 VALUE +0.
+                     20 SQL-AVAR-NAMEC4  PIC X(30) VALUE ' '.
+
+       LINKAGE SECTION.
+      *
+       PROCEDURE DIVISION.
+      *
+      * MODSQL EXCEPCIONES SQL DB2
+      *    EXEC SQL
+      *         WHENEVER  SQLERROR    CONTINUE
+      *    END-EXEC
+      *
+      *    EXEC SQL
+      *         WHENEVER  SQLWARNING  CONTINUE
+      *    END-EXEC
+      *
+      *    EXEC SQL
+      *         WHENEVER  NOT FOUND   CONTINUE
+      *    END-EXEC
+      *
+       DSNSQL SECTION.
+       SQL-SKIP.
+           GO TO SQL-INIT-END.
+       SQL-INITIAL.
+           MOVE 1 TO SQL-INIT-FLAG.
+           CALL 'DSNHADDR' USING SQL-VPARMPTR OF SQL-PLIST2 SQL-PVAR-LIS
+      -    T2.
+           CALL 'DSNHADD2' USING SQL-PVAR-ADDRS1 IN
+           SQL-PVAR-LIST2 CL-DNI OF CL-CLIENTES SQL-NULL
+           CALL 'DSNHADDR' USING SQL-APARMPTR OF SQL-PLIST2 SQL-AVAR-LIS
+      -    T2.
+           CALL 'DSNHADD2' USING SQL-AVAR-ADDRS1 IN
+           SQL-AVAR-LIST2 CL-DNI OF CL-CLIENTES SQL-NULL CL-NOMBRE OF CL
+      -    -CLIENTES SQL-NULL CL-APELLIDOS OF CL-CLIENTES SQL-NULL CL-DI
+      -    RECCION OF CL-CLIENTES SQL-NULL.
+           CALL 'DSNHADDR' USING SQL-CODEPTR OF SQL-PLIST2 SQLCA.
+       SQL-INIT-END.
+           CONTINUE.
+
+           IF EIBCALEN = 0
+              MOVE LOW-VALUES TO HOL4MPI
+              PERFORM MANDAR-MAPONLY
+              PERFORM RETORNO-TRANS
+           END-IF.
+      *============================================================
+      * RECOGIDA DEL MAPA DEL USUARIO
+      *============================================================
+           EXEC CICS RECEIVE MAP('HOL4MP')
+                   INTO(HOL4MPI)
+                   NOHANDLE
+              END-EXEC.
+      *============================================================
+      * EVALUAMOS LA RESPUESTA DEL USUARIO
+      *============================================================
+           IF EIBAID = DFHPF3
+              PERFORM FIN-SESION
+              EXEC CICS RETURN
+              END-EXEC
+           END-IF.
+           EVALUATE EIBRESP
+                    WHEN DFHRESP(NORMAL)
+           CONTINUE
+                    WHEN DFHRESP(MAPFAIL)
+                    PERFORM FALLO-MAPA
+                    PERFORM RETORNO-TRANS
+           END-EVALUATE.
+      *===============================================================
+      * TRATAMIENTO DEL FICHERO
+      *===============================================================
+      * MODSQL YA NO SE UTILIZA VSAM - CAMBIO A DB2
+      *    EXEC CICS
+      *        READ FILE('CLIENTES')
+      *             INTO(REGISTRO-CLIENTES)
+      *             RIDFLD(DNII)
+      *             RESP(RESPUESTA)
+      *    END-EXEC.
+      *    IF RESPUESTA = DFHRESP(NORMAL)
+      *        MOVE 'REGISTRO ENCONTRADO'  TO MSGO
+      *        MOVE C-NOMBRE     TO NOMO
+      *        MOVE C-APELLIDO   TO APEO
+      *        MOVE C-DIRECCION  TO DIRO
+      *    ELSE
+      *        PERFORM FALLO-FICHERO.
+           MOVE DNII             TO CL-DNI
+      *****EXEC SQL
+      *****     SELECT
+      *****          DNI
+      *****        , NOMBRE
+      *****        , APELLIDOS
+      *****        , DIRECCION
+      *****     INTO
+      *****          :CL-DNI
+      *****        , :CL-NOMBRE
+      *****        , :CL-APELLIDOS
+      *****        , :CL-DIRECCION
+      *****
+      *****     FROM CLIENTES
+      *****     WHERE DNI = :CL-DNI
+      *****END-EXEC
+           PERFORM SQL-INITIAL UNTIL SQL-INIT-DONE
+           CALL 'DSNHLI' USING SQL-PLIST2
+      *
+           IF SQLCODE = 0
+               MOVE 'REGISTRO ENCONTRADO'  TO MSGO
+               MOVE CL-NOMBRE     TO NOMO
+               MOVE CL-APELLIDOS  TO APEO
+               MOVE CL-DIRECCION  TO DIRO
+           ELSE
+              PERFORM FALLO-FICHERO
+           END-IF.
+      *===============================================================
+      * RESPUESTA AL MAPA
+      *===============================================================
+              EXEC CICS SEND MAP('HOL4MP')
+                  DATAONLY
+                  FROM(HOL4MPO)
+              END-EXEC.
+      *===============================================================
+      * PROCEDIMIENTO DEL PSEUDO-CONVERSACIONAL
+      *===============================================================
+       RETORNO-TRANS.
+               EXEC CICS RETURN
+                     TRANSID(EIBTRNID)
+                     COMMAREA(MI-COMMAREA)
+                     LENGTH(8)
+               END-EXEC.
+               GOBACK.
+      *===============================================================
+      * RESTO DE PROCEDIMIENTOS
+      *===============================================================
+       MANDAR-MAPONLY.
+               EXEC CICS SEND MAP('HOL4MP')
+                     MAPONLY
+                     ERASE
+                     NOHANDLE
+               END-EXEC.
+      *
+       FALLO-MAPA.
+           MOVE DFHBLINK TO MSGH.
+           MOVE 'POR FAVOR, INTRODUZCA UN VALOR' TO MSGO.
+               EXEC CICS SEND MAP('HOL4MP')
+                     ERASE
+                     FROM(HOL4MPO)
+                     NOHANDLE
+               END-EXEC.
+           PERFORM RETORNO-TRANS.
+      *
+       FIN-SESION.
+           EXEC CICS
+               SEND TEXT FROM(MSG-FIN-SESION)
+                         ERASE
+                         FREEKB
+           END-EXEC.
+      *
+       FALLO-FICHERO.
+      *
+      * MODSQL AMBIO A CONTROL DB2
+      *    IF RESPUESTA = DFHRESP(NOTFND)
+           IF SQLCODE = +100
+               MOVE 'EL CLIENTE NO EXISTE.' TO MSGO
+               MOVE SPACE TO NOMO
+                             APEO
+                             DIRO
+           ELSE
+      * MODSQL - RECUPERAR POSIBLE ERROR DE DB2
+      *        EXEC CICS ABEND
+      *        END-EXEC.
+               PERFORM G999-ERROR-DB2
+           END-IF.
+      *
+       FIN-PGM.
+               EXEC CICS RETURN
+               END-EXEC.
+               GOBACK.
+      *
+       G999-ERROR-DB2.
+           MOVE SQLCODE        TO DB2-SQLCODE
+           MOVE DB2-SQLCODE    TO DB2-SQLCODE-Z
+           MOVE DB2-SQLCODE-Z  TO DB2-ERR-CODE
+           MOVE SQLERRMC       TO DB2-ERR-MSG
+           MOVE DB2-ERROR      TO MSGO
+           MOVE SQLSTATE       TO MSGO(54:).

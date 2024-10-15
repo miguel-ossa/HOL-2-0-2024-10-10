@@ -1,0 +1,19 @@
+      *
+      * TRATAMIENTO DE LAS LINEAS DE HOLR COMO OCCURS 15
+      *
+       01  HOLRMPR REDEFINES HOLRMPO.
+      *--- TXMUL ->
+      *    02  FILLER                      PIC X(102).
+           02  FILLER                      PIC X(123).
+      *--- TXMUL <-
+           02  WT-LINEAS-MAPA.
+               03  WT-ITEM                 OCCURS 15 INDEXED BY L.
+      *
+                   05  LIN-LONG            PIC XX.
+                   05  LIN-ATTR            PIC X.
+                   05  LIN-COLOR           PIC X.
+                   05  LIN-FILL1           PIC X(4).
+                   05  LIN-VALOR           PIC X(79).
+      *
+           02  FILLER                      PIC X(172).
+      * ---------------------------------------------------------------

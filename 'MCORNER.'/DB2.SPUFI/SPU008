@@ -1,0 +1,35 @@
+-- SPUFI CREATE TABLE                                                   00010000
+-- VERSION 1.0
+                                                                        00011000
+     CREATE TABLE AYUDAS                                                00017002
+        (                                                               00018000
+          TRANSACCION       CHAR(4)     NOT NULL                        00019000
+        , PAGINA            INT         DEFAULT 0                       00020000
+        , L01             CHAR(80)    DEFAULT ' '                       00020000
+        , L02             CHAR(80)    DEFAULT ' '                       00020000
+        , L03             CHAR(80)    DEFAULT ' '                       00020000
+        , L04             CHAR(80)    DEFAULT ' '                       00020000
+        , L05             CHAR(80)    DEFAULT ' '                       00020000
+        , L06             CHAR(80)    DEFAULT ' '                       00020000
+        , L07             CHAR(80)    DEFAULT ' '                       00020000
+        , L08             CHAR(80)    DEFAULT ' '                       00020000
+        , L09             CHAR(80)    DEFAULT ' '                       00020000
+        , L10             CHAR(80)    DEFAULT ' '                       00020000
+        , L11             CHAR(80)    DEFAULT ' '                       00020000
+        , L12             CHAR(80)    DEFAULT ' '                       00020000
+        , L13             CHAR(80)    DEFAULT ' '                       00020000
+        , L14             CHAR(80)    DEFAULT ' '                       00020000
+        , L15             CHAR(80)    DEFAULT ' '                       00020000
+        , L16             CHAR(80)    DEFAULT ' '                       00020000
+        )                                                               00050000
+                                                                        00051001
+        IN MCORNDB.AYUDASTS;                                            00060000
+                                                                        00070000
+                                                                        00080000
+      CREATE UNIQUE INDEX AYUDAS_IPK ON AYUDAS                          00090000
+        (                                                               00100000
+          TRANSACCION , PAGINA                                          00110000
+        )                                                               00120001
+         CLUSTER CLOSE NO                                               00130001
+         USING STOGROUP MCORNSG
+         BUFFERPOOL BP1;

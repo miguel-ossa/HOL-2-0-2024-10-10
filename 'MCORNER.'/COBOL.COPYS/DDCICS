@@ -1,0 +1,145 @@
+      * --- CICS COMMAREA APLICACION HOL -----------------------------
+      * --- VERSION 1.0
+       01  CH-COMMAREA-HOL.
+           03  CH-HOLS.
+               05  CH-S-CODIGO-CURSOR      PIC X(2).
+               05  CH-S-BUSCAR             PIC X(35).
+               05  CH-S-COMIENZA           PIC X.
+               05  CH-S-CONTIENE           PIC X.
+               05  CH-S-DNI-SELECCION      PIC X(9).
+               05  CH-S-DNI1               PIC X(9).
+               05  CH-S-DNI4               PIC X(9).
+               05  CH-S-NOMBRE1            PIC X(25).
+               05  CH-S-NOMBRE4            PIC X(25).
+               05  CH-S-APELLIDOS1         PIC X(25).
+               05  CH-S-APELLIDOS4         PIC X(25).
+               05  CH-S-UP-MORE            PIC X(1).
+               05  CH-S-DOWN-MORE          PIC X(1).
+           03  CH-LKTITLE.
+               05  CL-RESULTADO            PIC XX.
+               05  CL-TABLA                PIC X(8).
+               05  CL-CLAVE1               PIC X(8).
+               05  CL-CLAVE2               PIC X(8).
+               05  CL-CLAVE3               PIC X(8).
+               05  CL-VALOR                PIC X(80).
+           03  CH-HOLE.
+               05  CH-E-TRANSACCION        PIC X(4).
+               05  CH-E-PROGRAMA           PIC X(8).
+               05  CH-E-PARRAFO            PIC X(30).
+               05  CH-E-ACCION             PIC X(20).
+               05  CH-E-CODIGO             PIC X(10).
+               05  CH-E-MENSAJE            PIC X(50).
+           03  CH-HOLH.
+               05  CH-H-TRANS              PIC X(4).
+               05  CH-H-PAGINA             PIC X(3).
+               05  CH-H-ACCION             PIC X.
+               05  CH-H-ADMIN              PIC X.
+           03  CH-HOLM.
+               05  CH-M-OPCION             PIC X.
+           03  CH-HOLR.
+               05  CH-R-PRIMER-ITEM        PIC S9(4) COMP.
+               05  CH-R-ULTIMO-ITEM        PIC S9(4) COMP.
+               05  CH-R-PRIMERA-COL        PIC S9(4) COMP.
+               05  CH-R-ULTIMA-COL         PIC S9(4) COMP.
+               05  CH-R-ITEMS              PIC S9(4) COMP.
+           03  CH-HOLX.
+               05  CH-X-ACCION             PIC X(1).
+               05  CH-X-DNI                PIC X(9).
+           03  CH-HOLY.
+               05  CH-Y-RETORNO            PIC X(2).
+           03  CH-COMUN.
+               05  CH-TRANSACCION          PIC X(4).
+               05  CH-TERMINAL             PIC X(4).
+               05  CH-TRANS-RETORNO        PIC X(4).
+               05  CH-PROGRAMA-RETORNO     PIC X(8).
+               05  CH-LINK                 PIC X(8).
+               05  CH-START                PIC X(4).
+               05  CH-XCTL                 PIC X(8).
+               05  CH-CURPOS               PIC S9(4) COMP.
+      *--- TXMUL ->
+           03  CL-IDIOMA                   PIC XX.
+      *--- TXMUL <-
+      *--- USER ->
+           03  US-USER                     PIC X(6) VALUE SPACES.
+      *--- USER <-
+           03  FILLER                      PIC X(6)  VALUE 'FIN-CA'.
+           03  FILLER                      PIC X(1563) VALUE ALL '#'.
+      *----------------------------------------------------------------
+      * --- FINAL DE COMMAREA DE LA APLICACION HOL
+      *----------------------------------------------------------------
+      *
+      * --- CONSTANTES Y VARIABLES DE LA APLICACION HOL --------------
+      *
+       01  CS-PROGRAMAS-HOL.
+           03  CS-PGM-PRUEBA               PIC X(8) VALUE 'PTST1   '.
+      *--- USER ->
+           03  CS-PGM-USER                 PIC X(8) VALUE 'PHOLA   '.
+      *--- USER <-
+           03  CS-PGM-AYUDA                PIC X(8) VALUE 'PHOLH   '.
+           03  CS-PGM-AYUDAOL              PIC X(8) VALUE 'PHOLP   '.
+           03  CS-PGM-ERROR                PIC X(8) VALUE 'PHOLE   '.
+           03  CS-PGM-MENU                 PIC X(8) VALUE 'PHOLM   '.
+           03  CS-PGM-VISUAL-LIST          PIC X(8) VALUE 'PHOLR   '.
+           03  CS-PGM-LISTA                PIC X(8) VALUE 'PHOLS   '.
+           03  CS-PGM-MANTENIMIENTO        PIC X(8) VALUE 'PHOLX   '.
+      *--- USER ->
+           03  CS-PGM-CLIENTES             PIC X(8) VALUE 'PHOM1   '.
+      *--- USER <-
+           03  CS-PGM-TABLAS               PIC X(8) VALUE 'PHOLZ   '.
+           03  CS-PGM-SPOOL                PIC X(8) VALUE 'PHOLY   '.
+           03  CS-PGM-CALL-RTCENTI         PIC X(8) VALUE 'RTCENTI '.
+           03  CS-PGM-TABLA-TITULO         PIC X(8) VALUE 'LNKTL   '.
+           03  CS-PGM-CICS-JCL             PIC X(8) VALUE 'PHOLW   '.
+           03  CS-PGM-LIST-PARM            PIC X(8) VALUE 'PHOLU   '.
+      *--- TXMUL USER ->
+           03  CS-PGM-ADMINISTRACION       PIC X(8) VALUE 'PHOM9   '.
+           03  CS-PGM-IDIOMA               PIC X(8) VALUE 'PHOLI   '.
+      *--- TXMUL USER <-
+      *
+       01  TH-TRANSACCIONES-HOL.
+           03  TH-TRN-PRUEBA               PIC X(4) VALUE 'TST1'.
+      *--- USER ->
+           03  TH-TRN-USER                 PIC X(4) VALUE 'HOLA'.
+      *--- USER <-
+           03  TH-TRN-AYUDA                PIC X(4) VALUE 'HOLH'.
+           03  TH-TRN-ERROR                PIC X(4) VALUE 'HOLE'.
+           03  TH-TRN-MENU                 PIC X(4) VALUE 'HOLM'.
+      *--- USER ->
+           03  TH-TRN-CLIENTES             PIC X(4) VALUE 'HOM1'.
+      *--- USER Z-
+           03  TH-TRN-VISUAL-LIST          PIC X(4) VALUE 'HOLR'.
+           03  TH-TRN-LISTA                PIC X(4) VALUE 'HOLS'.
+           03  TH-TRN-MANTENIMIENTO        PIC X(4) VALUE 'HOLX'.
+           03  TH-TRN-TABLAS               PIC X(4) VALUE 'HOLZ'.
+           03  TH-TRN-LISTADO              PIC X(4) VALUE 'HOLL'.
+           03  TH-TRN-SPOOL                PIC X(4) VALUE 'HOLY'.
+           03  TH-TRN-JCL                  PIC X(4) VALUE 'HOLW'.
+           03  TH-TRN-LIST-PARM            PIC X(4) VALUE 'HOLU'.
+      *--- TXMUL USER ->
+           03  TH-TRN-ADMINISTRACION       PIC X(4) VALUE 'HOM9'.
+           03  TH-TRN-IDIOMA               PIC X(4) VALUE 'HOLI'.
+      *--- TXMUL USER <-
+      *
+       01  VH-VARIABLES-HOL.
+           03  WA-TRANSACCION              PIC X(4)   VALUE 'XXXX'.
+           03  WA-RESPUESTA-CICS           PIC S9(8)  COMP VALUE 0.
+           03  WA-TRAZA                    PIC X(5)   VALUE ALL '%'.
+           03  WA-PARRAFO                  PIC X(30)  VALUE ALL '?'.
+           03  WA-LENGTH                   PIC S9(9)  VALUE 0.
+           03  WA-TIEMPO                   PIC S9(15) COMP-3.
+           03  WA-FECHA.
+               05  WA-DIA                  PIC X(2).
+               05  FILLER                  PIC X(1)   VALUE '-'.
+               05  WA-MES                  PIC X(2).
+               05  FILLER                  PIC X(1)   VALUE '-'.
+               05  WA-ANO                  PIC X(4).
+           03  WA-HORA.
+               05  BD-HORAS                PIC 9(2).
+               05  FILLER                  PIC X.
+               05  BD-MINUTOS              PIC 9(2).
+               05  FILLER                  PIC X.
+               05  BD-SEGUNDOS             PIC 9(2).
+           03  WA-ABEND.
+               05  FILLER                  PIC XX     VALUE 'U7'.
+               05  CODIGO-ABEND            PIC XX     VALUE '00'.
+      * --------------------------------------------------------------

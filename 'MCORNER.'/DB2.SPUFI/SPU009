@@ -1,0 +1,16 @@
+-- SPUFI CREATE TABLESPACE                                              00010000
+-- VERSION 1.0                                                          00010100
+                                                                        00011000
+   CREATE TABLESPACE USUARTS                                            00012001
+     IN MCORNDB                                                         00013000
+     USING STOGROUP MCORNSG                                             00014000
+     PRIQTY 250                                                         00015000
+     SECQTY 100                                                         00016000
+     ERASE NO                                                           00017000
+     FREEPAGE 10                                                        00018000
+     PCTFREE 10                                                         00019000
+     BUFFERPOOL BP1                                                     00019100
+     COMPRESS NO                                                        00020000
+     LOCKSIZE ANY                                                       00030000
+     LOCKMAX SYSTEM                                                     00040000
+     CLOSE YES;                                                         00050000

@@ -1,0 +1,1079 @@
+      *****************************************************************
+      *                 IDENTIFICATION     DIVISION                   *
+      *****************************************************************
+       IDENTIFICATION DIVISION.
+      *
+       PROGRAM-ID.      PHOLR.
+       AUTHOR.          LUIS MARTINEZ.
+      *
+      *****************************************************************
+      **  PROYECTO .........: HOL                                    **
+      **  PROGRAMA .........: PHOLR                                  **
+      **  VERSION ..........: 1.0                                    **
+      **  TITULO ...........: VISUALIZACION DE INFORMES              **
+      **                                                             **
+      **  TIPO .............:                                        **
+      **     - LENGUAJE ...............: COBOL II                    **
+      **     - ENTORNO ................: CICS                        **
+      **     - BASE DE DATOS ..........: DB2                         **
+      **                                                             **
+      **  DESCRIPCION ......:                                        **
+      **                                                             **
+      **    - HOLR lee las colas creadas por la transaccion HOLL     **
+      **      que a su vez es arrancada desde HOLS. La cola se crea  **
+      **      a modo delistado de todos los registros quecumplen los **
+      **      filtros y ordenacion de HOLS. La cola se llama         **
+      **      HOLLxxxx donde xxxx es el c¢digo de terminal que ha    **
+      **      lanzado la transaccion HOLL.                           **
+      **                                                             **
+      **    - HOLR muestra la cola con paginacion arriba, abajo, a   **
+      **      la izquierda y a la derecha. Con el campo M/9 se puede **
+      **      ir al tope inferior superior de la izquierda o de la   **
+      **      derecha, al igual que solo deplazar N lineas a cualqui **
+      **      er direccion (Estilo IBM).                             **
+      **                                                             **
+      **  LOG DE MODIFICACIONES:                                     **
+      **  FECHA----- DESCRIPCION------------------------------ BUSCA **
+      **  2024-08-18 Adaptaci¢n multiidioma (MOSSA)            TXMUL **
+      **  2024-09-24 Multiusuario (MOSSA)                      USER  **
+      **                                                             **
+      **                                                             **
+      **                                                             **
+      **                                                             **
+      **                                                             **
+      **                                                             **
+      **                                                             **
+      *****************************************************************
+       ENVIRONMENT DIVISION.
+      *
+       CONFIGURATION SECTION.
+       SPECIAL-NAMES.
+           DECIMAL-POINT IS COMMA.
+      *
+       DATA DIVISION.
+      *----------------------------------------------------------------
+       WORKING-STORAGE SECTION.
+      *
+      *--- Zona CICS --------------------------------------------------
+      *
+           COPY DFHAID.
+           COPY DFHBMSCA.
+           COPY CICSATTR.
+           COPY DDCICS.
+           COPY RESPCICS.
+           COPY HOLRMP.
+           COPY HOLRMPR.
+      *
+      *--- Zona CICS fin ----------------------------------------------
+      *
+      *
+      *--- Zona DB2 ---------------------------------------------------
+      *
+           EXEC SQL
+                INCLUDE SQLCA
+           END-EXEC
+      *
+           EXEC SQL
+                INCLUDE DDDB2
+           END-EXEC
+      *--- TXMUL ->
+           EXEC SQL
+                INCLUDE TABLAS
+           END-EXEC
+      *--- TXMUL <-
+      *--- Zona DB2 fin -----------------------------------------------
+      *
+       01  FILLER                          PIC X(19)
+           VALUE '***START-WORKING***'.
+      *
+       01  WC-CONSTANTES.
+           03  WC-PROGRAMA                 PIC X(8)  VALUE 'PHOLR'.
+           03  WC-TRANSACCION              PIC X(4)  VALUE 'HOLR'.
+           03  WC-RECURSO-HOL              PIC X(4)  VALUE 'HOL*'.
+      *--- USER ->
+      *    03  WC-LONGITUD-TITULO          PIC 99    VALUE 58.
+      *--- USER <-
+           03  WC-CURSOR-SCROLL            PIC S9(4) COMP  VALUE +1446.
+      *
+       01  SW-SWITCHES.
+      *
+           03 SW-ERROR-VALIDACION          PIC X    VALUE 'N'.
+              88 ERROR-VALIDACION                   VALUE 'S'.
+      *
+           03 SW-ENVIO-MAPA                PIC X    VALUE '0'.
+              88 ENVIO-ERASE                        VALUE '1'.
+              88 ENVIO-DATAONLY                     VALUE '2'.
+      *
+           03 SW-EROR-COLA                 PIC X    VALUE 'N'.
+              88 ERROR-COLA                         VALUE 'S'.
+      *
+       01  WL-LITERALES.
+           03 WL-FIN-SESION                PIC X(80) VALUE
+           'La transacci¢n HOLR ha finalizado...'.
+      *
+       01  WX-VARIABLES.
+           03  WX-CURPOS                   PIC 9999  VALUE  0.
+           03  WX-NUM                      PIC 9999  VALUE  0.
+           03  WX-N                        PIC 9999  VALUE  0.
+           03  WX-SCROLL-EDT               PIC Z9    VALUE  SPACES.
+           03  WX-FILA                     PIC S99   VALUE  0.
+           03  WX-FILAS                    PIC S99   VALUE  0.
+           03  WX-FILA-SEL                 PIC S99   VALUE  0.
+           03  WX-COLUMNA                  PIC S99   VALUE  0.
+           03  WX-POSICION                 PIC S99   VALUE  0.
+           03  WX-POSICIONES               PIC S99   VALUE  0.
+           03  WX-VALOR                    PIC 9999  VALUE  0.
+           03  WX-DIVISOR                  PIC 9999  VALUE  0.
+           03  WX-COCIENTE                 PIC 9999  VALUE  0.
+           03  WX-RESTO                    PIC 9999  VALUE  0.
+      *--- TXMUL ->
+       77 IND                             PIC 99 VALUE ZERO.
+      *--- TXMUL <-
+      *
+      *--- Zona para CALLs --------------------------------------------
+      *
+           COPY LKCENTI.
+      *
+      *--- Zona para cola TS ------------------------------------------
+      *
+           COPY TSHOLL.
+      *
+       01 FILLER                           PIC X(17)
+           VALUE '***END-WORKING***'.
+      *----------------------------------------------------------------
+       LINKAGE SECTION.
+      *
+       01 DFHCOMMAREA                      PIC X(2048).
+      *
+      *================================================================
+       PROCEDURE DIVISION.
+      *----------------------------------------------------------------
+      *--- Proceso principal                                        ---
+      *----------------------------------------------------------------
+       0000-PROCESO-TAREA.
+      *
+           MOVE WC-TRANSACCION             TO WA-TRANSACCION
+      *
+           IF EIBCALEN > 0
+              MOVE DFHCOMMAREA             TO CH-COMMAREA-HOL
+           END-IF
+      *
+      *--- Informamos el nombre de la cola TS (TRANS + TERM)
+      *
+           MOVE TH-TRN-LISTADO             TO LTS-TRANSACCION
+           MOVE TH-TRN-VISUAL-LIST         TO LTR-TRANSACCION
+           MOVE EIBTRMID                   TO LTS-TERMINAL
+           MOVE EIBTRMID                   TO LTR-TERMINAL
+      *
+      *--- Evaluacion de Commarea y Teclas para identificar
+      *--- los procesos que deban de ejecutarse
+      *
+           EVALUATE TRUE
+      *
+      *--- No hay Commarea
+      *--- Se inicializa la Commarea y se envia mapa limpio
+      *
+               WHEN EIBCALEN = ZERO
+                    MOVE LOW-VALUE         TO HOLRMPO
+                    MOVE DFHRED            TO MSGC
+      *--- TXMUL ->
+                    MOVE 'HOLRARR'         TO CL-CLAVE1
+                    PERFORM 20100-OBTENER-TEXTO
+                    MOVE CL-VALOR          TO MSGO
+      *             MOVE 'Para arrancar HOLR utiliza HOLM... F3'
+      *               TO MSGO
+      *--- TXMUL <-
+                    SET ENVIO-ERASE        TO TRUE
+                    PERFORM 8000-ENVIO-MAPA
+      *
+      *--- Artima¤a para forzar la vuelta
+      *
+               WHEN CH-R-PRIMER-ITEM = -1
+                    PERFORM 1200-PROCESO-VOLVER
+      *
+      *--- Hay Commarea
+      *--- El programa ha podido ser arrancado por XCTL desde otro
+      *--- programa. en este caso la transaccion actual ser  la del
+      *--- programa que ha llamado a este hasta que se haga un
+      *--- RETURN TRANSID
+      *
+               WHEN EIBCALEN > 0 AND EIBTRNID NOT = WC-TRANSACCION
+                    MOVE LOW-VALUE         TO HOLRMPO
+                    SET ENVIO-ERASE        TO TRUE
+                    PERFORM 6000-ENQ-RECURSO
+                    PERFORM 0100-POR-DEFECTO
+                    MOVE WC-CURSOR-SCROLL  TO CH-CURPOS
+                    PERFORM 8000-ENVIO-MAPA
+                    PERFORM 6100-DEQ-RECURSO
+      *
+      *--- Borrado de pantalla  - Mensaje y retorno a CICS
+      *--- F3 tambien puede terminar esta transaccion
+      *
+               WHEN EIBAID = DFHCLEAR
+                    MOVE LOW-VALUE         TO HOLRMPO
+                    PERFORM 8100-ENVIA-MENSAJE
+                    PERFORM 8900-RETORNO-CICS
+      *
+      *--- Teclas de Att no hacemos nada
+      *
+               WHEN EIBAID = DFHPA1 OR DFHPA2 OR DFHPA3
+                    CONTINUE
+      *
+      *--- Teclas de funcion Legales
+      *--- Teclas que requieren un procesado del mapa
+      *
+               WHEN EIBAID = DFHPF1
+                 OR EIBAID = DFHPF3
+                 OR EIBAID = DFHPF7
+                 OR EIBAID = DFHPF8
+                 OR EIBAID = DFHPF9
+                 OR EIBAID = DFHPF10
+                 OR EIBAID = DFHPF11
+                    PERFORM 1000-PROCESO-MAPA
+      *
+      *--- Teclas ilegales
+      *--- Teclas no programadas que se detectaran en proceso de mapa
+      *
+               WHEN OTHER
+                    PERFORM 1000-PROCESO-MAPA
+      *
+           END-EVALUATE
+      *
+      *--- Terminamos el proceso con Return TransId
+      *--- Volvemos a enganchar esta misma transaccion
+      *
+           PERFORM 8200-RETORNO-TRANS.
+      *
+       0000-PROCESO-TAREA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Rellenamos el mapa con datos por defecto o iniciales     ---
+      *--- Leemos la cola LTR resumen del £tlimo listado ejecutado  ---
+      *----------------------------------------------------------------
+       0100-POR-DEFECTO.
+      *
+           MOVE 0                          TO CH-R-PRIMER-ITEM
+           MOVE 0                          TO CH-R-ULTIMO-ITEM
+           MOVE 0                          TO WX-NUM
+           MOVE 1                          TO CH-R-PRIMERA-COL
+           MOVE 79                         TO CH-R-ULTIMA-COL
+           MOVE 1                          TO LTS-ITEM
+           MOVE 1                          TO LTR-ITEM
+      *
+           PERFORM 2100-LEER-ITEM-LTR
+      *
+           IF NOT ERROR-COLA
+              MOVE LTR-ITEMS-LTS        TO CH-R-ITEMS
+              PERFORM 2000-LEER-ITEM-LTS
+      *
+              IF NOT ERROR-COLA
+                 PERFORM 1400-PROCESO-SIGUIENTE
+              ELSE
+                 MOVE DFHRED               TO MSGC
+      *--- TXMUL ->
+                 MOVE 'NLISSHOW'           TO CL-CLAVE1
+                 PERFORM 20100-OBTENER-TEXTO
+                 MOVE CL-VALOR             TO MSGO
+      *          MOVE 'No hay ning£n listado para mostrar'
+      *            TO MSGO
+      *--- TXMUL <-
+              END-IF
+           ELSE
+              MOVE DFHRED                  TO MSGC
+      *--- TXMUL ->
+              MOVE 'ERRLLTR'               TO CL-CLAVE1
+              PERFORM 20100-OBTENER-TEXTO
+              MOVE CL-VALOR                TO MSGO
+      *       MOVE 'Error de lectura LTR'  TO MSGO
+      *--- TXMUL <-
+           END-IF.
+      *
+       0100-POR-DEFECTO-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Proceso de creaci¢n de la cola TS para listado de HOLR   ---
+      *----------------------------------------------------------------
+       1000-PROCESO-MAPA.
+      *
+      * Recuperamos el mapa desde el terminal
+      *
+           PERFORM 6000-ENQ-RECURSO
+           PERFORM 8400-RECIBE-MAPA
+           MOVE SPACES                     TO MSGO
+      *
+           EVALUATE TRUE
+      *
+      *--- F1 : llamamos al programa de ayuda
+      *
+              WHEN EIBAID = DFHPF1
+                  PERFORM 1100-PROCESO-AYUDA
+      *
+      *--- F3 : volvemos al menu principal
+      *
+              WHEN EIBAID = DFHPF3
+                  PERFORM 1200-PROCESO-VOLVER
+      *
+      *--- F7 : volvemos al menu principal
+      *
+              WHEN EIBAID = DFHPF7
+                  PERFORM 1300-PROCESO-ANTERIOR
+      *
+      *--- F8 : volvemos al menu principal
+      *
+              WHEN EIBAID = DFHPF8
+                  PERFORM 1400-PROCESO-SIGUIENTE
+      *
+      *--- F9 : volvemos al menu principal
+      *
+              WHEN EIBAID = DFHPF9
+                  PERFORM 1500-PROCESO-ELIMINAR
+      *
+      *--- F10: volvemos al menu principal
+      *
+              WHEN EIBAID = DFHPF10
+                  PERFORM 1600-PROCESO-IZQUIERDA
+      *
+      *--- F11: volvemos al menu principal
+      *
+              WHEN EIBAID = DFHPF11
+                  PERFORM 1700-PROCESO-DERECHA
+      *
+              WHEN OTHER
+                  MOVE DFHRED              TO MSGC
+      *--- TXMUL ->
+                  MOVE 'KEYERR'            TO CL-CLAVE1
+                  PERFORM 20100-OBTENER-TEXTO
+                  MOVE CL-VALOR            TO MSGO
+      *           MOVE 'Tecla err¢nea...'  TO MSGO
+      *--- TXMUL <-
+      *
+           END-EVALUATE
+      *
+           SET ENVIO-DATAONLY              TO TRUE
+           MOVE WC-CURSOR-SCROLL           TO CH-CURPOS
+           PERFORM 8000-ENVIO-MAPA
+           PERFORM 6100-DEQ-RECURSO.
+      *
+       1000-PROCESO-MAPA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Llamamos al programa Menu principal                      ---
+      *----------------------------------------------------------------
+       1100-PROCESO-AYUDA.
+      *
+           MOVE CS-PGM-AYUDAOL             TO CH-XCTL
+           MOVE WC-TRANSACCION             TO CH-TRANSACCION
+           MOVE WC-TRANSACCION             TO CH-TRANS-RETORNO
+           MOVE WC-PROGRAMA                TO CH-PROGRAMA-RETORNO
+           PERFORM 8700-XCTL-PROGRAMA.
+      *
+       1100-PROCESO-AYUDA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Llamamos al programa Menu principal                      ---
+      *----------------------------------------------------------------
+       1200-PROCESO-VOLVER.
+      *
+           MOVE CS-PGM-CLIENTES            TO CH-XCTL
+           MOVE WC-TRANSACCION             TO CH-TRANSACCION
+           MOVE WC-TRANSACCION             TO CH-TRANS-RETORNO
+           MOVE WC-PROGRAMA                TO CH-PROGRAMA-RETORNO
+           MOVE 0                          TO CH-R-PRIMER-ITEM
+           PERFORM 8700-XCTL-PROGRAMA.
+      *
+       1200-PROCESO-VOLVER-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Proceso de la pagina anterior                            ---
+      *----------------------------------------------------------------
+       1300-PROCESO-ANTERIOR.
+      *
+           PERFORM 4000-VALIDA-SCROLL
+           IF NOT ERROR-VALIDACION
+              PERFORM 1310-PAGINA-ANTERIOR
+           END-IF.
+      *
+       1300-PROCESO-ANTERIOR-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- P gina siguiente                                         ---
+      *----------------------------------------------------------------
+       1310-PAGINA-ANTERIOR.
+      *
+           EVALUATE TRUE
+              WHEN CH-R-PRIMER-ITEM = 1
+                   MOVE DFHYELLO           TO MSGC
+      *--- TXMUL ->
+                   MOVE 'INILIS'           TO CL-CLAVE1
+                   PERFORM 20100-OBTENER-TEXTO
+                   MOVE CL-VALOR           TO MSGO
+      *            MOVE '*** Inicio de listado ***' TO MSGO
+      *--- TXMUL <-
+              WHEN SCROLI = 'M ' OR SCROLI = ' M'
+                   MOVE 1                  TO CH-R-PRIMER-ITEM
+              WHEN WX-FILAS NOT = 0
+                   COMPUTE CH-R-ULTIMO-ITEM =
+                           CH-R-ULTIMO-ITEM - WX-FILAS
+                   COMPUTE CH-R-PRIMER-ITEM =
+                           CH-R-ULTIMO-ITEM - 14
+              WHEN WX-FILA-SEL NOT = 0
+                   COMPUTE CH-R-ULTIMO-ITEM =
+                           CH-R-PRIMER-ITEM + WX-FILA-SEL - 2
+                   COMPUTE CH-R-PRIMER-ITEM =
+                           CH-R-ULTIMO-ITEM - 14
+           END-EVALUATE
+      *
+           IF CH-R-PRIMER-ITEM < 1
+              MOVE 1                       TO CH-R-PRIMER-ITEM
+           END-IF
+      *
+           MOVE CH-R-PRIMER-ITEM           TO LTS-ITEM
+           PERFORM 1450-MOSTRAR-REGS.
+      *
+       1310-PAGINA-ANTERIOR-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Proceso de la p gina siguiente                           ---
+      *----------------------------------------------------------------
+       1400-PROCESO-SIGUIENTE.
+      *
+      *--- Proceso inicial cuando no hay nada en pantalla
+      *
+           IF CH-R-PRIMER-ITEM = 0
+              MOVE 1                       TO CH-R-PRIMER-ITEM
+              MOVE 1                       TO LTS-ITEM
+              PERFORM 1450-MOSTRAR-REGS
+      *
+      *--- Scroll normal con datos en pantalla
+      *
+           ELSE
+              PERFORM 4000-VALIDA-SCROLL
+              IF NOT ERROR-VALIDACION
+                 PERFORM 1410-PAGINA-SIGUIENTE
+           END-IF.
+      *
+       1400-PROCESO-SIGUIENTE-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- P gina siguiente                                         ---
+      *----------------------------------------------------------------
+       1410-PAGINA-SIGUIENTE.
+      *
+           EVALUATE TRUE
+              WHEN CH-R-ULTIMO-ITEM = CH-R-ITEMS
+                   MOVE DFHYELLO           TO MSGC
+      *--- TXMUL ->
+                   MOVE 'FINLIS'           TO CL-CLAVE1
+                   PERFORM 20100-OBTENER-TEXTO
+                   MOVE CL-VALOR           TO MSGO
+      *            MOVE '*** Fin de listado ***' TO MSGO
+      *--- TXMUL <-
+              WHEN SCROLI = 'M ' OR SCROLI = ' M'
+                   MOVE CH-R-ITEMS TO CH-R-ULTIMO-ITEM
+                   COMPUTE CH-R-PRIMER-ITEM = CH-R-ULTIMO-ITEM - 14
+              WHEN WX-FILAS NOT = 0
+                   COMPUTE CH-R-PRIMER-ITEM =
+                           CH-R-PRIMER-ITEM + WX-FILAS
+              WHEN WX-FILA-SEL NOT = 0
+                   COMPUTE CH-R-PRIMER-ITEM =
+                           CH-R-PRIMER-ITEM + WX-FILA-SEL - 3
+           END-EVALUATE.
+      *
+           IF CH-R-PRIMER-ITEM > CH-R-ITEMS
+              COMPUTE CH-R-PRIMER-ITEM =
+                      CH-R-ITEMS - 15
+           END-IF
+      *
+           MOVE CH-R-PRIMER-ITEM           TO LTS-ITEM
+           PERFORM 1450-MOSTRAR-REGS.
+      *
+       1410-PAGINA-SIGUIENTE-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Bucle principal para mostrar los registros de la cola    ---
+      *----------------------------------------------------------------
+       1450-MOSTRAR-REGS.
+      *
+           SET L                           TO 1
+      *
+           PERFORM 1460-LEE-MUESTRA
+             UNTIL ERROR-COLA   OR   L > 15
+      *
+           IF ERROR-COLA
+              PERFORM UNTIL L > 15
+                 MOVE SPACES               TO LIN-VALOR(L)
+                 SET L                     UP BY 1
+              END-PERFORM
+           END-IF.
+      *
+       1450-MOSTRAR-REGS-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Lee item de la cola y lo muestra en pantalla             ---
+      *----------------------------------------------------------------
+       1460-LEE-MUESTRA.
+      *
+           PERFORM 2000-LEER-ITEM-LTS
+      *
+           IF NOT ERROR-COLA
+              MOVE LTS-ITEM                TO CH-R-ULTIMO-ITEM
+      *--- TXMUL ->
+              MOVE LTS-LINEA-DETALLE(CH-R-PRIMERA-COL:)
+                   TO LIN-VALOR(L)
+      *       MOVE LTS-LINEA-DETALLE(CH-R-PRIMERA-COL:CH-R-ULTIMA-COL)
+      *            TO LIN-VALOR(L)
+      *--- TXMUL <-
+              ADD 1                        TO LTS-ITEM
+              SET L                        UP BY 1
+           END-IF.
+      *
+       1460-LEE-MUESTRA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Eliminamos la cola y volmemos al menu principal          ---
+      *----------------------------------------------------------------
+       1500-PROCESO-ELIMINAR.
+      *
+           EXEC CICS
+                DELETEQ TS QUEUE(LTR-COLA)
+           END-EXEC
+      *
+           EXEC CICS
+                DELETEQ TS QUEUE(LTS-COLA)
+           END-EXEC
+      *
+           MOVE DFHYELLO                   TO MSGC
+      *--- TXMUL ->
+           MOVE 'LISBOR'                   TO CL-CLAVE1.
+           PERFORM 20100-OBTENER-TEXTO.
+           MOVE CL-VALOR                   TO MSGO.
+      *    MOVE 'El listado ha sido eliminado del sistema'
+      *      TO MSGO.
+      *--- TXMUL <-
+      *
+       1500-PROCESO-ELIMINAR-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Proceso desplazamiento a la izquierda                    ---
+      *----------------------------------------------------------------
+       1600-PROCESO-IZQUIERDA.
+      *
+           PERFORM 4000-VALIDA-SCROLL
+           IF NOT ERROR-VALIDACION
+              PERFORM 1690-PAGINA-IZQUIERDA
+           END-IF.
+      *
+       1600-PROCESO-IZQUIERDA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Desplazamiento a la izquierda                            ---
+      *----------------------------------------------------------------
+       1690-PAGINA-IZQUIERDA.
+      *
+           EVALUATE TRUE
+              WHEN SCROLI = 'M ' OR SCROLI = ' M'
+                   MOVE 1                  TO CH-R-PRIMERA-COL
+                   COMPUTE CH-R-ULTIMA-COL =
+                           CH-R-PRIMERA-COL + 79
+              WHEN WX-POSICION NOT = 0 AND WX-POSICIONES = 0
+                COMPUTE CH-R-ULTIMA-COL =
+                        CH-R-PRIMERA-COL + WX-POSICION - 1
+                COMPUTE CH-R-PRIMERA-COL = CH-R-ULTIMA-COL - 79
+              WHEN WX-POSICIONES NOT = 0 AND WX-POSICION = 0
+                COMPUTE CH-R-ULTIMA-COL =
+                        CH-R-ULTIMA-COL - WX-POSICIONES
+                COMPUTE CH-R-PRIMERA-COL = CH-R-ULTIMA-COL - 79
+           END-EVALUATE
+      *
+           IF CH-R-PRIMERA-COL < 1
+              MOVE 1                       TO CH-R-PRIMERA-COL
+              COMPUTE CH-R-ULTIMA-COL = CH-R-PRIMERA-COL + 79
+           END-IF
+      *
+           IF CH-R-PRIMERA-COL = 1
+              MOVE DFHYELLO                TO MSGC
+      *--- TXMUL ->
+              MOVE 'IZQLIS'                TO CL-CLAVE1
+              PERFORM 20100-OBTENER-TEXTO
+              MOVE CL-VALOR                TO MSGO
+      *       MOVE '*** Borde izquierdo de listado ***'
+      *         TO MSGO
+      *--- TXMUL <-
+           END-IF
+      *
+           MOVE CH-R-PRIMER-ITEM           TO LTS-ITEM
+           PERFORM 1450-MOSTRAR-REGS.
+      *
+       1690-PAGINA-IZQUIERDA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Proceso del desplazamiento a la derecha                  ---
+      *----------------------------------------------------------------
+       1700-PROCESO-DERECHA.
+      *
+           PERFORM 4000-VALIDA-SCROLL
+           IF NOT ERROR-VALIDACION
+              PERFORM 1790-PAGINA-DERECHA
+           END-IF.
+      *
+       1700-PROCESO-DERECHA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Desplazamiento a la derecha                              ---
+      *----------------------------------------------------------------
+       1790-PAGINA-DERECHA.
+      *
+           EVALUATE TRUE
+              WHEN SCROLI = 'M ' OR SCROLI = ' M'
+                MOVE 132                   TO CH-R-ULTIMA-COL
+                COMPUTE CH-R-PRIMERA-COL = CH-R-ULTIMA-COL - 79
+              WHEN WX-POSICION NOT = 0
+                COMPUTE CH-R-PRIMERA-COL =
+                        CH-R-PRIMERA-COL + WX-POSICION - 2
+                COMPUTE CH-R-ULTIMA-COL = CH-R-PRIMERA-COL + 79
+              WHEN WX-POSICIONES NOT = 0
+                COMPUTE CH-R-PRIMERA-COL =
+                        CH-R-PRIMERA-COL + WX-POSICIONES
+                COMPUTE CH-R-ULTIMA-COL = CH-R-PRIMERA-COL + 79
+           END-EVALUATE
+      *
+           IF CH-R-ULTIMA-COL > 132
+              MOVE 132                     TO CH-R-ULTIMA-COL
+              COMPUTE CH-R-PRIMERA-COL = CH-R-ULTIMA-COL - 79
+           END-IF
+      *
+           IF CH-R-ULTIMA-COL = 132
+              MOVE DFHYELLO                TO MSGC
+      *--- TXMUL ->
+              MOVE 'DERLIS'                TO CL-CLAVE1
+              PERFORM 20100-OBTENER-TEXTO
+              MOVE CL-VALOR                TO MSGO
+      *       MOVE '*** Borde derecho de listado'
+      *         TO MSGO
+      *--- TXMUL <-
+           END-IF
+      *
+           MOVE CH-R-PRIMER-ITEM           TO LTS-ITEM
+           move ch-r-primera-col to showo(10:)
+           PERFORM 1450-MOSTRAR-REGS.
+      *
+       1790-PAGINA-DERECHA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Leer un Item de la cola LTS                              ---
+      *----------------------------------------------------------------
+       2000-LEER-ITEM-LTS.
+      *
+           IF LTS-ITEM > 0 AND LTS-ITEM NOT > CH-R-ITEMS
+              EXEC CICS
+                   READQ TS
+                     QUEUE  (LTS-COLA)
+                     INTO   (LTS-DATOS-COLA)
+                     LENGTH (LENGTH OF LTS-DATOS-COLA)
+                     ITEM   (LTS-ITEM)
+                     NOHANDLE
+              END-EXEC
+           ELSE
+              SET ERROR-COLA               TO TRUE
+           END-IF.
+      *
+       2000-LEER-ITEM-LTS-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Leer un Item de la cola LTR                              ---
+      *----------------------------------------------------------------
+       2100-LEER-ITEM-LTR.
+      *
+           IF LTR-ITEM = 1
+              EXEC CICS
+                   READQ TS
+                     QUEUE  (LTR-COLA)
+                     INTO   (LTR-DATOS-COLA)
+                     LENGTH (LENGTH OF LTR-DATOS-COLA)
+                     ITEM   (LTR-ITEM)
+                     NOHANDLE
+              END-EXEC
+           ELSE
+              SET ERROR-COLA               TO TRUE
+           END-IF.
+      *
+       2100-LEER-ITEM-LTR-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Validamos el scroll hacia arriba abajo izquiera derecha  ---
+      *----------------------------------------------------------------
+       4000-VALIDA-SCROLL.
+      *
+           MOVE 'N'                        TO SW-ERROR-VALIDACION
+           MOVE 0                          TO WX-NUM
+           MOVE 0                          TO WX-FILA-SEL
+           MOVE 0                          TO WX-FILAS
+           MOVE 0                          TO WX-POSICION
+           MOVE 0                          TO WX-POSICIONES
+           PERFORM 4100-CALCULOS-SCROLL.
+      *
+       4000-VALIDA-SCROLL-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Calculamos la fila y columna de posicion de cursor       ---
+      *----------------------------------------------------------------
+       4100-CALCULOS-SCROLL.
+      *
+      *--- Calculamos la fila y la columna que corresponden a EIBCPOSN
+      *
+           MOVE EIBCPOSN                   TO WX-VALOR
+           MOVE 80                         TO WX-DIVISOR
+           DIVIDE WX-VALOR BY WX-DIVISOR GIVING WX-COCIENTE
+                  REMAINDER WX-RESTO
+           ADD 1                           TO WX-COCIENTE
+                                              GIVING WX-FILA
+           ADD 1                           TO WX-RESTO
+                                              GIVING WX-COLUMNA
+      *
+      *--- Analizamos el campo 'M/9' Respuesta WX-NUM
+      *
+           PERFORM 4200-MANIPULA-NUM
+      *
+      *--- Evaluamos las condiciones de Scroll
+      *
+           EVALUATE TRUE
+      *
+      *--- Paginar por pos cursor (F10 y F11) o fila cursor (F7 F8)
+      *--- El cursor est  en alguna parte del area efectiva de listado
+      *
+      *
+           WHEN (WX-FILA > 2 AND WX-FILA < 18)
+      *
+              MOVE 0                       TO WX-NUM
+              MOVE LOW-VALUES              TO SCROLO
+      *
+              IF EIBAID = DFHPF7 OR EIBAID = DFHPF8
+                 MOVE WX-FILA              TO WX-FILA-SEL
+              END-IF
+      *
+              IF EIBAID = DFHPF10 OR EIBAID = DFHPF11
+                 MOVE WX-COLUMNA           TO WX-POSICION
+                 MOVE 0                    TO WX-POSICIONES
+              END-IF
+      *
+      *--- Paginar cuando el cursor se encuentra en campo 'M/9'
+      *
+           WHEN WX-FILA = 19                 AND
+              (WX-COLUMNA = 7 OR WX-COLUMNA = 8)
+      *
+              IF EIBAID = DFHPF7 OR EIBAID = DFHPF8
+                 IF WX-NUM NOT = 0
+                    MOVE WX-NUM            TO WX-FILAS
+                 ELSE
+                    MOVE 15                TO WX-FILAS
+                 END-IF
+              END-IF
+      *
+              IF EIBAID = DFHPF10 OR EIBAID = DFHPF11
+                 IF WX-NUM NOT = 0
+                    MOVE WX-NUM            TO WX-POSICIONES
+                 ELSE
+                    MOVE 79                TO WX-POSICION
+                 END-IF
+              END-IF
+      *
+           WHEN OTHER
+              SET ERROR-VALIDACION         TO TRUE
+              MOVE DFHRED                  TO MSGC
+      *--- TXMUL ->
+              MOVE 'NODESP'                TO CL-CLAVE1
+              PERFORM 20100-OBTENER-TEXTO
+              MOVE CL-VALOR                TO MSGO
+      *       MOVE 'Desplazamiento no permitido desde esta posici¢n...'
+      *         TO MSGO
+      *--- TXMUL <-
+      *
+           END-EVALUATE.
+      *
+       4100-CALCULOS-SCROLL-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Valor de Scroll num‚rico. Validamos y manipulamos        ---
+      *----------------------------------------------------------------
+       4200-MANIPULA-NUM.
+      *
+           IF SCROLI = SPACES              OR
+              SCROLI = HIGH-VALUES         OR
+              SCROLI = LOW-VALUES
+              MOVE 0                       TO WX-NUM
+              MOVE LOW-VALUES              TO SCROLO
+           ELSE
+              IF SCROLI(2:1) NOT NUMERIC AND SCROLI(1:1) NUMERIC
+                 MOVE SCROLI(1:1)          TO SCROLI(2:1)
+                 MOVE '0'                  TO SCROLI(1:1)
+              END-IF
+              IF SCROLI(2:1) NUMERIC AND SCROLI(1:1) NOT NUMERIC
+                 MOVE '0'                  TO SCROLI(1:1)
+              END-IF
+      *
+              IF SCROLI(1:1) NUMERIC AND SCROLI(2:1) NUMERIC
+                 MOVE SCROLI               TO WX-NUM
+              END-IF
+              IF SCROLI NUMERIC
+                 MOVE WX-NUM               TO WX-SCROLL-EDT
+                 MOVE WX-SCROLL-EDT        TO SCROLO
+              END-IF
+           END-IF.
+      *
+       4200-MANIPULA-NUM-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Encola recurso comun                                     ---
+      *----------------------------------------------------------------
+       6000-ENQ-RECURSO.
+      *
+           EXEC CICS
+                ENQ
+                RESOURCE   (WC-RECURSO-HOL)
+                LENGTH     (4)
+           END-EXEC.
+      *
+       6000-ENQ-RECURSO-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Desencola recurso comun                                  ---
+      *----------------------------------------------------------------
+       6100-DEQ-RECURSO.
+      *
+           EXEC CICS
+                DEQ
+                RESOURCE   (WC-RECURSO-HOL)
+                LENGTH     (4)
+           END-EXEC.
+      *
+       6100-DEQ-RECURSO-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Envia el mapa al terminal sergun modo del switch         ---
+      *----------------------------------------------------------------
+       8000-ENVIO-MAPA.
+      *
+           EVALUATE TRUE
+      *
+      *--- Envio de mapa limpio
+      *
+               WHEN ENVIO-ERASE
+      *
+      *--- TXMUL ->
+                   MOVE 46 TO RTC-CENTER-AREA
+                   PERFORM 20000-TITULO-MAPA
+      * Carga de los textos fijos del mapa
+                   MOVE WC-TRANSACCION TO TB-CLAVE1
+                   PERFORM 20200-OPEN-CURSOR-MAPS
+                   PERFORM WITH TEST AFTER UNTIL SQLCODE = 100
+                       PERFORM 20200-FETCH-CURSOR-MAPS
+                       IF SQLCODE NOT = 100 AND
+                          TB-CLAVE3 = CL-IDIOMA THEN
+                          ADD 1 TO IND
+                          EVALUATE IND
+                             WHEN 1
+                                MOVE TB-VALOR TO TX10O
+                             WHEN 2
+                                MOVE TB-VALOR TO TX60O
+                             WHEN 3
+                                MOVE TB-VALOR TO TX70O
+                             WHEN 4
+                                MOVE TB-VALOR TO TX80O
+                             WHEN 5
+                                MOVE TB-VALOR TO TX90O
+                          END-EVALUATE
+                       END-IF
+                   END-PERFORM
+                   PERFORM 20200-CLOSE-CURSOR-MAPS
+      *--- TXMUL <-
+      *
+      *--- Total clientes en la tabla
+      *
+                   EXEC SQL
+                       SELECT COUNT (*) INTO :DB2-COUNT1
+                          FROM CLIENTES
+                   END-EXEC
+      *
+                   MOVE DB2-COUNT1         TO TOTCLO
+      *--- TXMUL <-
+                   IF EIBCALEN = 0
+                      MOVE -1              TO CH-R-PRIMER-ITEM
+                   END-IF
+      *
+                   EXEC CICS
+                       SEND MAP    ('HOLRMP')
+                            MAPSET ('HOLRMP')
+                            FROM   (HOLRMPO)
+                            CURSOR (CH-CURPOS)
+                            ERASE
+                   END-EXEC
+      *
+      *--- Envio del mapa Solo datos
+      *
+               WHEN ENVIO-DATAONLY
+      *
+                   EXEC CICS
+                       SEND MAP     ('HOLRMP')
+                            MAPSET  ('HOLRMP')
+                            FROM    (HOLRMPO)
+                            CURSOR  (CH-CURPOS)
+                            DATAONLY
+                   END-EXEC
+      *
+           END-EVALUATE.
+      *
+       8000-ENVIO-MAPA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Envia un mensaje al terminal del usuario (fin sesion)    ---
+      *----------------------------------------------------------------
+       8100-ENVIA-MENSAJE.
+      *
+      *--- TXMUL ->
+           MOVE 'HOLREND'                  TO CL-CLAVE1.
+           PERFORM 20100-OBTENER-TEXTO.
+           MOVE CL-VALOR                   TO WL-FIN-SESION.
+      * 'La transaccion HOLR ha finalizado...'
+      *--- TXMUL <-
+           EXEC CICS
+               SEND TEXT FROM(WL-FIN-SESION)
+                         ERASE
+                         FREEKB
+           END-EXEC.
+      *
+       8100-ENVIA-MENSAJE-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Devuelve el control a una transaccion                    ---
+      *----------------------------------------------------------------
+       8200-RETORNO-TRANS.
+      *
+           EXEC CICS
+                SET TERMINAL(EIBTRMID) TRANIDONLY
+           END-EXEC
+      *
+           EXEC CICS
+               RETURN
+               TRANSID      (WA-TRANSACCION)
+               COMMAREA     (CH-COMMAREA-HOL)
+           END-EXEC.
+      *
+       8200-RETORNO-TRANS-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Recibe el mapa de la tarea                               ---
+      *----------------------------------------------------------------
+       8400-RECIBE-MAPA.
+      *
+           EXEC CICS
+                RECEIVE
+                MAP     ('HOLRMP')
+                MAPSET  ('HOLRMP')
+                INTO    (HOLRMPI)
+           END-EXEC
+      *
+           PERFORM 8410-MAYUSCULAS.
+      *
+       8400-RECIBE-MAPA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Paso datos sensibles a mayusuclas                        ---
+      *----------------------------------------------------------------
+       8410-MAYUSCULAS.
+      *
+           IF SCROLI = 'm ' OR SCROLI = ' m'
+              MOVE 'M'                     TO SCROLO
+           END-IF.
+      *
+       8410-MAYUSCULAS-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Llama a otro programa CICS por LINK con Commarea         ---
+      *----------------------------------------------------------------
+       8500-LINK-PROGRAMA.
+      *
+           EXEC CICS
+                LINK
+                PROGRAM (CH-LINK)
+                COMMAREA(CH-COMMAREA-HOL)
+                LENGTH  (LENGTH OF CH-COMMAREA-HOL)
+           END-EXEC.
+      *
+       8500-LINK-PROGRAMA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Cede el control a otro programa CICS                     ---
+      *----------------------------------------------------------------
+       8700-XCTL-PROGRAMA.
+      *
+           EXEC CICS
+                SET TERMINAL(EIBTRMID) UCTRAN
+           END-EXEC
+      *
+           EXEC CICS
+               XCTL PROGRAM  (CH-XCTL)
+                    COMMAREA (CH-COMMAREA-HOL)
+                    RESP     (WA-RESPUESTA-CICS)
+           END-EXEC.
+      *
+       8700-XCTL-PROGRAMA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Aborta la transaccion con un c¢digo U7xx (xx) N£mero     ---
+      *----------------------------------------------------------------
+       8750-ABORTA-CICS.
+      *
+           EXEC CICS
+                ABEND
+                ABCODE(WA-ABEND)
+                CANCEL
+           END-EXEC.
+      *
+       8750-ABORTA-CICS-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- CEDF visualiza una traza - Quitar para produccion        ---
+      *----------------------------------------------------------------
+       8800-TRAZA.
+      *
+           EXEC CICS
+               ENTER       TRACEID(0)
+               FROM        (WA-TRAZA)
+           END-EXEC.
+      *
+       8800-TRAZA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Devuelve el control a CICS - Salida total                ---
+      *----------------------------------------------------------------
+       8900-RETORNO-CICS.
+      *
+           EXEC CICS
+                SET TERMINAL(EIBTRMID) UCTRAN
+           END-EXEC
+      *
+           EXEC CICS
+                RETURN
+           END-EXEC.
+      *
+       8900-RETORNO-CICS-EXIT.
+           EXIT.
+      *--- TXMUL ->
+      *
+      * Rutinas multiidioma
+      *
+           EXEC SQL
+                INCLUDE PTXMUL
+           END-EXEC.
+      *
+       999999-DB2-ERRORES SECTION.
+      *--- TXMUL <-
+      *----------------------------------------------------------------
+      *--- DB2 Errores y otros                                      ---
+      *----------------------------------------------------------------
+           EXEC SQL
+                INCLUDE PDDB2
+           END-EXEC.
+      *----------------------------------------------------------------
+      *-------------------- FIN DE PROGRAMA  --------------------------
+      *----------------------------------------------------------------

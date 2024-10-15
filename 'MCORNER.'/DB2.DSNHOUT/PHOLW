@@ -1,0 +1,327 @@
+      *****************************************************************
+      *                 IDENTIFICATION     DIVISION                   *
+      *****************************************************************
+       IDENTIFICATION DIVISION.
+      *
+       PROGRAM-ID.      PHOLW.
+       AUTHOR.          LUIS MARTINEZ.
+      *
+      *****************************************************************
+      **  PROYECTO .........: HOL                                    **
+      **  PROGRAMA .........: PHOLW                                  **
+      **  VERSION ..........: 1.0                                    **
+      **  TITULO ...........: ARRANQUE DE JCL RUNBHOLL desde CICS    **
+      **                                                             **
+      **  TIPO .............:                                        **
+      **     - LENGUAJE ...............: COBOL II                    **
+      **     - ENTORNO ................: CICS                        **
+      **     - BASE DE DATOS ..........: NO                          **
+      **                                                             **
+      **  DESCRIPCION ......:                                        **
+      **                                                             **
+      **    - HOLW tiene un JCL embebido en Working-Storage Section  **
+      **      que puede submmit al JES2 via comandos de Spool        **
+      **                                                             **
+      **    - HOLW se arranca desde el men£ HOLM por START           **
+      **      Se informa al usuario con un mensaje de que el JCL     **
+      **      Ha sido submitido.                                     **
+      **                                                             **
+      **  LOG DE MODIFICACIONES:                                     **
+      **  FECHA----- DESCRIPCION------------------------------ BUSCA **
+      **  2024-01-19 Lanzamiento de JCL desde CICS             CB001 **
+      **                                                             **
+      **                                                             **
+      **                                                             **
+      **                                                             **
+      **                                                             **
+      **                                                             **
+      **                                                             **
+      *****************************************************************
+       ENVIRONMENT DIVISION.
+      *
+       CONFIGURATION SECTION.
+       SPECIAL-NAMES.
+           DECIMAL-POINT IS COMMA.
+      *
+       DATA DIVISION.
+      *----------------------------------------------------------------
+       WORKING-STORAGE SECTION.
+      *
+      *--- Zona CICS --------------------------------------------------
+      *
+           COPY DFHAID.
+      *
+      *--- Zona CICS fin ----------------------------------------------
+      *
+       01  FILLER                          PIC X(19)
+           VALUE '***START-WORKING***'.
+      *
+       01  WC-CONSTANTES.
+           03  WC-PROGRAMA                 PIC X(8)  VALUE 'PHOLW'.
+           03  WC-TRANSACCION              PIC X(4)  VALUE 'HOLW'.
+           03  WC-JCL-LENGTH               PIC S9(8) COMP VALUE 80.
+      *
+       01  WC-ABEND.
+           03  WC-SPOOL-OPEN               PIC X(4)   VALUE 'U701'.
+           03  WC-SPOOL-WRITE              PIC X(4)   VALUE 'U702'.
+           03  WC-SPOOL-CLOSE              PIC X(4)   VALUE 'U703'.
+       01  WX-ABEND                        PIC X(4)   VALUE SPACES.
+       01  JCL-STATEMENT                   PIC X(80)  VALUE SPACES.
+      *
+      * Zona especial para CICS -> SPOOL
+      *
+       01  RESP                            PIC 9(8)   BINARY.
+       01  RESP2                           PIC 9(8)   BINARY.
+       01  TOKEN                           PIC X(8).
+      *
+      *--- Tabla para el JCL
+      *--- OJO: Se a¤ade USER y PASSWORD para evitar problemas
+      *    de autorizaci¢n al ejecutar el JCL, ya que el usuario
+      *    que le entra al Batch ya ser¡a START2
+      *
+       01  INIT-JCL.
+           03  FILLER PIC X(80) VALUE
+           "//RUNBHOLL JOB MCORNER,'RUN-BHOLL',USER=IBMUSER,         ".
+           03  FILLER PIC X(80) VALUE
+           "//      PASSWORD=SYS1,MSGCLASS=A,CLASS=A,MSGLEVEL=(1,1)  ".
+           03  FILLER PIC X(80) VALUE
+           "//RUNPGM   EXEC PGM=IKJEFT01,DYNAMNBR=20,REGION=4096K    ".
+           03  FILLER PIC X(80) VALUE
+           "//STEPLIB  DD  DISP=SHR,DSN=DSN910.DB9G.SDSNEXIT         ".
+           03  FILLER PIC X(80) VALUE
+           "//         DD  DISP=SHR,DSN=DSN910.SDSNLOAD              ".
+           03  FILLER PIC X(80) VALUE
+           "//         DD  DISP=SHR,DSN=MCORNER.BATCH.LOAD           ".
+           03  FILLER PIC X(80) VALUE
+           "//         DD  DISP=SHR,DSN=MCORNER.CALL.LOAD            ".
+           03  FILLER PIC X(80) VALUE
+           "//LSTOUT   DD  SYSOUT=A                                  ".
+           03  FILLER PIC X(80) VALUE
+           "//SYSPRINT DD  SYSOUT=A                                  ".
+           03  FILLER PIC X(80) VALUE
+           "//SYSTSPRT DD  SYSOUT=A                                  ".
+           03  FILLER PIC X(80) VALUE
+           "//SYSOUT   DD  SYSOUT=A                                  ".
+           03  FILLER PIC X(80) VALUE
+           "//SYSTSIN  DD *                                          ".
+           03  FILLER PIC X(80) VALUE
+           "  DSN SYSTEM(DB9G)                                       ".
+           03  FILLER PIC X(80) VALUE
+           "      RUN PROGRAM (BHOLL)                   -            ".
+           03  FILLER PIC X(80) VALUE
+           "          PLAN(BTHPLAN)                     -            ".
+           03  FILLER PIC X(80) VALUE
+           "          LIBRARY('MCORNER.BATCH.LOAD')     -            ".
+           03  FILLER PIC X(80) VALUE
+           "          PARMS('DANN                                   ')".
+           03  FILLER PIC X(80) VALUE
+           "  END                                                    ".
+           03  FILLER PIC X(80) VALUE
+           "/*                                                       ".
+           03  FILLER PIC X(80) VALUE
+           "                                                         ".
+           03  FILLER PIC X(80) VALUE
+           "                                                         ".
+           03  FILLER PIC X(80) VALUE
+           "                                                         ".
+           03  FILLER PIC X(80) VALUE
+           "                                                         ".
+           03  FILLER PIC X(80) VALUE
+           "                                                         ".
+           03  FILLER PIC X(80) VALUE
+           "                                                         ".
+           03  FILLER PIC X(80) VALUE
+           "                                                         ".
+           03  FILLER PIC X(80) VALUE
+           "                                                         ".
+           03  FILLER PIC X(80) VALUE
+           "                                                         ".
+           03  FILLER PIC X(80) VALUE
+           "                                                         ".
+           03  FILLER PIC X(80) VALUE
+           "                                                         ".
+           03  FILLER PIC X(80) VALUE
+           "                                                         ".
+           03  FILLER PIC X(80) VALUE
+           "                                                         ".
+           03  FILLER PIC X(80) VALUE
+           "                                                         ".
+           03  FILLER PIC X(80) VALUE
+           "                                                         ".
+           03  FILLER PIC X(80) VALUE
+           "                                                         ".
+           03  FILLER PIC X(80) VALUE
+           "                                                         ".
+           03  FILLER PIC X(80) VALUE
+           "                                                         ".
+           03  FILLER PIC X(80) VALUE
+           "                                                         ".
+           03  FILLER PIC X(80) VALUE
+           "                                                         ".
+           03  FILLER PIC X(80) VALUE LOW-VALUES.
+      *
+       01  WT-JCL-TB REDEFINES INIT-JCL.
+           03  JCL-LINE    PIC X(80) OCCURS 40 INDEXED BY I.
+      *
+       01 FILLER                           PIC X(17)
+           VALUE '***END-WORKING***'.
+      *
+      *----------------------------------------------------------------
+      *LINKAGE SECTION.
+      *
+      *================================================================
+        77 SQL-TEMP      PIC X(128).
+        77 DSN-TEMP      PIC S9(9)  COMP-4.
+        77 DSN-TMP2      PIC S9(18) COMP-3.
+        77 DSNNROWS      PIC S9(9)  COMP-4.
+        77 DSNNTYPE      PIC S9(4)  COMP-4.
+        77 DSNNLEN       PIC S9(4)  COMP-4.
+        77 SQL-NULL      PIC S9(9) COMP-4 VALUE +0.
+        77 SQL-INIT-FLAG PIC S9(4) COMP-4 VALUE +0.
+           88 SQL-INIT-DONE VALUE +1.
+        77 SQL-FILE-READ      PIC S9(9) COMP-4 VALUE +2.
+        77 SQL-FILE-CREATE    PIC S9(9) COMP-4 VALUE +8.
+        77 SQL-FILE-OVERWRITE PIC S9(9) COMP-4 VALUE +16.
+        77 SQL-FILE-APPEND    PIC S9(9) COMP-4 VALUE +32.
+
+       PROCEDURE DIVISION.
+      *----------------------------------------------------------------
+      *--- Proceso principal                                        ---
+      *----------------------------------------------------------------
+       DSNSQL SECTION.
+       SQL-SKIP.
+           GO TO SQL-INIT-END.
+       SQL-INITIAL.
+           MOVE 1 TO SQL-INIT-FLAG.
+       SQL-INIT-END.
+           CONTINUE.
+
+       0000-PROCESO-TAREA.
+      *
+           PERFORM 3000-ABRE-SPOOL
+           SET I                           TO 1
+           PERFORM 4000-ESCRIBE-SPOOL
+              UNTIL I > 40                   OR
+                    JCL-LINE(I) = LOW-VALUES OR
+                    JCL-LINE(I) = SPACES
+           PERFORM 5000-CIERRA-SPOOL
+           PERFORM 1200-PROCESO-VOLVER
+           GOBACK.
+      *
+       0000-PROCESO-TAREA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Llamamos al programa Menu principal                      ---
+      *----------------------------------------------------------------
+       1200-PROCESO-VOLVER.
+      *
+           PERFORM 8700-XCTL-PROGRAMA.
+      *
+       1200-PROCESO-VOLVER-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Abre el archivo de escritura en el Spool                 ---
+      *----------------------------------------------------------------
+       3000-ABRE-SPOOL.
+      *
+           EXEC CICS SPOOLOPEN OUTPUT
+                TOKEN(TOKEN)
+                USERID('INTRDR')
+                NODE('N1')
+                CLASS('A')
+                NOHANDLE
+                RESP(RESP)
+                RESP2(RESP2)
+           END-EXEC
+      *
+           IF EIBRESP NOT = 0
+              MOVE WC-SPOOL-OPEN           TO WX-ABEND
+              PERFORM 8100-CICS-ABEND
+           END-IF.
+      *
+       3000-ABRE-SPOOL-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Escribe una l¡nea en el Spool                            ---
+      *----------------------------------------------------------------
+       4000-ESCRIBE-SPOOL.
+      *
+           MOVE JCL-LINE(I)                TO JCL-STATEMENT
+      *
+           EXEC CICS SPOOLWRITE
+                FROM(JCL-STATEMENT)
+                NOHANDLE
+                FLENGTH(WC-JCL-LENGTH)
+                TOKEN(TOKEN)
+           END-EXEC
+      *
+           IF EIBRESP NOT = 0
+              MOVE WC-SPOOL-WRITE          TO WX-ABEND
+              PERFORM 8100-CICS-ABEND
+           END-IF
+      *
+           SET I                           UP BY 1.
+      *
+       4000-ESCRIBE-SPOOL-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Cierra el archivo de Spool                               ---
+      *----------------------------------------------------------------
+       5000-CIERRA-SPOOL.
+      *
+           EXEC CICS SPOOLCLOSE
+                TOKEN(TOKEN)
+                NOHANDLE
+           END-EXEC
+      *
+           IF EIBRESP NOT = 0
+              MOVE WC-SPOOL-CLOSE          TO WX-ABEND
+              PERFORM 8100-CICS-ABEND
+           END-IF.
+      *
+       5000-CIERRA-SPOOL-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Terminaci¢n an¢mala de la tarea                          ---
+      *----------------------------------------------------------------
+       8100-CICS-ABEND.
+      *
+           EXEC CICS
+                ABEND
+                ABCODE(WX-ABEND)
+                NODUMP
+           END-EXEC.
+      *
+       8100-CICS-ABEND-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Cede el control a otro programa CICS                     ---
+      *----------------------------------------------------------------
+       8700-XCTL-PROGRAMA.
+      *
+      *    EXEC CICS
+      *        XCTL PROGRAM  (CH-XCTL)
+      *             COMMAREA (CH-COMMAREA-HOL)
+      *             RESP     (WA-RESPUESTA-CICS)
+      *    END-EXEC.
+      *
+           EXEC CICS
+               XCTL PROGRAM  ('PHOLM')
+           END-EXEC.
+      *
+       8700-XCTL-PROGRAMA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Devuelve el control a CICS - Salida total                ---
+      *----------------------------------------------------------------
+       8900-RETORNO-CICS.
+      *
+           EXEC CICS
+                RETURN
+           END-EXEC.
+      *
+       8900-RETORNO-CICS-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *-------------------- FIN DE PROGRAMA  --------------------------
+      *----------------------------------------------------------------

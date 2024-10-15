@@ -1,0 +1,12 @@
+//TABSREP  JOB MCORNER,'TABLASPACE-REPAIR',NOTIFY=&SYSUID,              00001001
+//          MSGCLASS=A,CLASS=A,MSGLEVEL=(1,1),REGION=0M,TIME=(0,7)      00002000
+//*                                                                     00003002
+//* VERSION 1.0                                                         00004002
+//*                                                                     00009100
+//* REPARA UN TABLESPACE QUE SE HAYA QUEDADO EN ESTADO COPY PENDING     00009201
+//*                                                                     00009500
+//REPAIR EXEC DSNUPROC,SYSTEM=DB9G,UID='IBMUSER'                        00300000
+//DSNUPROC.SYSIN  DD  *                                                 00310000
+  REPAIR SET TABLESPACE MCORNDB.CLIENTS NOCOPYPEND                      00320000
+/*                                                                      00330000
+//*                                                                     00340001

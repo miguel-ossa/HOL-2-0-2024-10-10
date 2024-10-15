@@ -1,0 +1,72 @@
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*                   -----  MAP  'TST1MP' -----                        *
+*                TESTING MAP FOR CICS AND DB2 PROGRAMS                *
+*                          VERSION 1.0                                *
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+TST1MP   DFHMSD MODE=INOUT,LANG=COBOL,TIOAPFX=YES,TYPE=DSECT,TERM=ALL, X
+               CTRL=FREEKB,STORAGE=AUTO,                               X
+               MAPATTS=(COLOR,HILIGHT,OUTLINE),                        X
+               DSATTS=(COLOR,HILIGHT,OUTLINE),                         X
+               EXTATT=YES,COLOR=GREEN
+*
+TST1MP   DFHMDI SIZE=(24,80),LINE=1,COLUMN=1
+*
+* --- Map fields ---
+*
+TRN1     DFHMDF POS=(01,01),LENGTH=04,ATTRB=(PROT,FSET,BRT),           X
+               INITIAL='TST1',COLOR=YELLOW
+*
+TITLE    DFHMDF POS=(01,06),LENGTH=70,ATTRB=(PROT,BRT),                X
+               INITIAL='Transaccion de prueba para Cobol, CICS y DB2', X
+               COLOR=YELLOW
+*
+         DFHMDF POS=(02,01),LENGTH=78,ATTRB=(PROT,NORM),               X
+               INITIAL='-----------------------------------------------X
+               -------------------------------',                       X
+               COLOR=YELLOW
+*
+TX10     DFHMDF POS=(08,05),LENGTH=14,ATTRB=(PROT,BRT),                X
+               INITIAL='Dni..........:',                               X
+               COLOR=BLUE
+*
+FDNI     DFHMDF POS=(08,20),LENGTH=09,ATTRB=(UNPROT,FSET,IC),          X
+               COLOR=GREEN,HILIGHT=UNDERLINE
+         DFHMDF POS=(08,30),LENGTH=01,ATTRB=ASKIP
+*
+TX20     DFHMDF POS=(10,05),LENGTH=14,ATTRB=(PROT,BRT),                X
+               INITIAL='Longitud.....:',                               X
+               COLOR=BLUE
+*
+FLON     DFHMDF POS=(10,20),LENGTH=09,ATTRB=(PROT,NUM,FSET),           X
+               COLOR=GREEN,PICIN='999999999',PICOUT='ZZZZZZZZ9'
+         DFHMDF POS=(10,30),LENGTH=01,ATTRB=ASKIP
+*
+         DFHMDF POS=(20,01),LENGTH=78,ATTRB=(PROT,NORM),               X
+               INITIAL='-----------------------------------------------X
+               -------------------------------',                       X
+               COLOR=YELLOW
+*
+TX30     DFHMDF POS=(21,01),LENGTH=40,ATTRB=(PROT,NORM),               X
+               INITIAL='F1-Ayuda        F2-Forzar ERR   F3-Fin',       X
+               COLOR=TURQUOISE
+TX40     DFHMDF POS=(21,48),LENGTH=22,ATTRB=(PROT,NORM),               X
+               INITIAL='F4-Longitud     F5-xxxxxxxxxxx',               X
+               COLOR=TURQUOISE
+*
+TX50     DFHMDF POS=(22,01),LENGTH=45,ATTRB=(PROT,NORM),               X
+               INITIAL='F6-yyyyyyyyyyy  F7-yyyyyyyyyyy  F8-yyyyyyyyyy',X
+               COLOR=TURQUOISE
+TX60     DFHMDF POS=(22,48),LENGTH=30,ATTRB=(PROT,NORM),               X
+               INITIAL='F9-yyyyyyyyyyy  Intro-Proceso',                X
+               COLOR=TURQUOISE
+*
+         DFHMDF POS=(23,01),LENGTH=78,ATTRB=(PROT,NORM),               X
+               INITIAL='-----------------------------------------------X
+               -------------------------------',                       X
+               COLOR=YELLOW
+*
+MSG      DFHMDF POS=(24,01),LENGTH=78,ATTRB=(PROT,BRT,FSET),           X
+               COLOR=RED
+*
+         DFHMSD TYPE=FINAL
+         END

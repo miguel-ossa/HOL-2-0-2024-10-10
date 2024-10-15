@@ -1,0 +1,2154 @@
+      *****************************************************************
+      *                 IDENTIFICATION     DIVISION                   *
+      *****************************************************************
+       IDENTIFICATION DIVISION.
+      *
+       PROGRAM-ID.      PHOLL.
+       AUTHOR.          LUIS MARTINEZ.
+      *
+      *****************************************************************
+      **  PROYECTO .........: HOL                                    **
+      **  PROGRAMA .........: PHOLL                                  **
+      **  VERSION ..........: 1.0                                    **
+      **  TITULO ...........: CREACION DE LISTADO DE HOLS            **
+      **                                                             **
+      **  TIPO .............:                                        **
+      **     - LENGUAJE ...............: COBOL II                    **
+      **     - ENTORNO ................: CICS                        **
+      **     - BASE DE DATOS ..........: DB2                         **
+      **                                                             **
+      **  DESCRIPCION ......:                                        **
+      **                                                             **
+      **    - HOLL recibe desde el listas y selecci¢n los datos      **
+      **      que debe de utilizar para realizar un listado a partir **
+      **      de la £ltima sesi¢n HOLS de un terminal determinado.   **
+      **      El programa se basa totalmente en el PHOLS.            **
+      **                                                             **
+      **    - El listado se elabora en una cola TS de CICS cuyo      **
+      **      nombre ser  transacci¢n HOLL + Terminal                **
+      **      Tambien genera una cola TS a modo de resumen de la     **
+      **      cola del listado. Nombre HOLLR y Terminal              **
+      **                                                             **
+      **    - HOLL se arranca exclusivamente desde HOLS por START    **
+      **                                                             **
+      **  LOG DE MODIFICACIONES:                                     **
+      **  FECHA----- DESCRIPCION------------------------------ BUSCA **
+      **  2024-08-20 Adaptaci¢n multiidioma (MOSSA)            TXMUL **
+      **                                                             **
+      **                                                             **
+      **                                                             **
+      **                                                             **
+      **                                                             **
+      **                                                             **
+      **                                                             **
+      *****************************************************************
+       ENVIRONMENT DIVISION.
+      *
+       CONFIGURATION SECTION.
+       SPECIAL-NAMES.
+           DECIMAL-POINT IS COMMA.
+      *
+       DATA DIVISION.
+      *----------------------------------------------------------------
+       WORKING-STORAGE SECTION.
+      *
+      *--- Zona CICS --------------------------------------------------
+      *
+           COPY DDCICS.
+           COPY RESPCICS.
+      *
+      *--- Zona CICS fin ----------------------------------------------
+      *
+      *--- Zona DB2 ---------------------------------------------------
+      *
+           EXEC SQL
+                INCLUDE SQLCA
+           END-EXEC
+      *
+           EXEC SQL
+                INCLUDE CLIENTES
+           END-EXEC
+      *
+           EXEC SQL
+                INCLUDE DDDB2
+           END-EXEC
+      *
+      *--- Zona DB2 fin -----------------------------------------------
+      *
+       01  FILLER                          PIC X(19)
+           VALUE '***START-WORKING***'.
+      *
+       01  WC-CONSTANTES.
+           03  WC-PROGRAMA                 PIC X(8)  VALUE 'PHOLL'.
+           03  WC-TRANSACCION              PIC X(4)  VALUE 'HOLL'.
+           03  WC-RECURSO-HOL              PIC X(4)  VALUE 'HOL*'.
+      *
+       01  SW-SWITCHES.
+      *
+           03 SW-HAY-FILTRO-COMIENZA       PIC X    VALUE 'N'.
+              88 HAY-FILTRO-COMIENZA                VALUE 'S'.
+      *
+           03 SW-HAY-FILTRO-CONTIENE       PIC X    VALUE 'N'.
+              88 HAY-FILTRO-CONTIENE                VALUE 'S'.
+      *
+           03 SW-ERROR-VALIDACION          PIC X    VALUE 'N'.
+              88 ERROR-VALIDACION                   VALUE 'S'.
+      *
+           03 SW-START-CODE                PIC XX   VALUE SPACES.
+              88 ENTRADA-COMMAREA                   VALUE 'SD'.
+              88 ENTRADA-CONSOLA                    VALUE 'TD'.
+      *
+       01  WL-LITERALES.
+           03 WL-TITULO                    PIC X(80) VALUE
+           '*****   L I S T A D O    D E    C L I E N T E S   *****'.
+      *
+           03 WL-CONTIENE                  PIC X(80) VALUE
+           'QUE CONTIENEN: '.
+           03 WL-COMIENZA                  PIC X(80) VALUE
+           'QUE COMIENZAN POR: '.
+           03 WL-ORDEN                     PIC X(80) VALUE
+           'ORDENADOS POR: '.
+           03 WL-ORDEN-DA                  PIC X(80) VALUE
+           'DNI ASCENDENTE               '.
+           03 WL-ORDEN-DD                  PIC X(80) VALUE
+           'DNI DESCENDENTE              '.
+           03 WL-ORDEN-NA                  PIC X(80) VALUE
+           'NOMBRE ASCENDENTE            '.
+           03 WL-ORDEN-ND                  PIC X(80) VALUE
+           'NOMBRE DESCENDENTE           '.
+           03 WL-ORDEN-AA                  PIC X(80) VALUE
+           'APELLIDOS ASCENDENTES        '.
+           03 WL-ORDEN-AD                  PIC X(80) VALUE
+           'APELLIDOS DESCENDENTES       '.
+      *
+           03 WL-COMILLAS-DOBLES           PIC X     VALUE QUOTES.
+      *
+       01  WX-VARIABLES.
+           03  WX-LIKE                     PIC X(35) VALUE  SPACES.
+           03  WX-LONG                     PIC 99    VALUE  0.
+      *
+      *--- Zona para CALLs --------------------------------------------
+      *
+           COPY LKCENTI.
+      *
+      *--- Zona para cola TS ------------------------------------------
+      *
+           COPY TSHOLL.
+      *
+      *--- Zona para el control del listado ---------------------------
+      *
+           COPY DDRPT.
+      *
+       01  LS-CABECERAS.
+           03 LS-CAB1.
+              05 LS-TIT-CODIGO             PIC X(8)   VALUE SPACES.
+              05 FILLER                    PIC X(16)  VALUE SPACES.
+              05 LS-TIT-TITULO             PIC X(80)  VALUE SPACES.
+              05 FILLER                    PIC X(8)   VALUE SPACES.
+      *--- TXMUL ->
+      *       05 FILLER                    PIC X(8)   VALUE 'Pagina.:'.
+              05 LS1-PAGINA                PIC X(8)   VALUE 'Pagina.:'.
+      *--- TXMUL <-
+              05 LS-TIT-PAGINA             PIC ZZZ9   VALUE SPACES.
+           03 LS-CAB2.
+              05 LS-TIT-TERMINAL           PIC X(8)   VALUE SPACES.
+              05 FILLER                    PIC X(16)  VALUE SPACES.
+              05 LS-TIT-ORDEN              PIC X(80)  VALUE SPACES.
+              05 FILLER                    PIC X(8)   VALUE SPACES.
+      *--- TXMUL ->
+      *       05 FILLER                    PIC X(8)   VALUE 'Fecha..:'.
+              05 LS2-FECHA                 PIC X(8)   VALUE 'Fecha..:'.
+      *--- TXMUL <-
+              05 LS-TIT-FECHA              PIC X(10)  VALUE SPACES.
+           03 LS-CAB3.
+              05 LS-TIT-TIPO               PIC X(8)   VALUE 'CICS'.
+              05 FILLER                    PIC X(16)  VALUE SPACES.
+              05 LS-TIT-FILTRO             PIC X(80)  VALUE SPACES.
+              05 FILLER                    PIC X(8)   VALUE SPACES.
+      *--- TXMUL ->
+      *       05 FILLER                    PIC X(8)   VALUE 'Hora...:'.
+              05 LS3-HORA                  PIC X(8)   VALUE 'Hora...:'.
+      *--- TXMUL <-
+              05 LS-TIT-HORA               PIC X(8)   VALUE SPACES.
+              05 FILLER                    PIC X(2)   VALUE SPACES.
+           03 LS-CAB4.
+              05 FILLER                    PIC X(132) VALUE ALL '-'.
+           03 LS-CAB-DETALLE.
+      *--- TXMUL ->
+      *       05 CAB-COL1                  PIC X(9)   VALUE 'IDENT.DNI'.
+              05 LS4-DNI                   PIC X(9)   VALUE 'IDENT.DNI'.
+      *--- TXMUL <-
+              05 FILLER                    PIC X      VALUE SPACE.
+              05 CAB-COL2                  PIC X(20)  VALUE 'NOMBRE'.
+              05 FILLER                    PIC X      VALUE SPACE.
+              05 CAB-COL3                  PIC X(20)  VALUE 'APELLIDOS'.
+              05 FILLER                    PIC X      VALUE SPACE.
+              05 CAB-COL4                  PIC X(35)  VALUE 'DIRECCION'.
+           03 LS-CAB-SUB.
+              05 FILLER                    PIC X(9)   VALUE ALL '='.
+              05 FILLER                    PIC X      VALUE SPACE.
+              05 FILLER                    PIC X(20)  VALUE ALL '='.
+              05 FILLER                    PIC X      VALUE SPACE.
+              05 FILLER                    PIC X(20)  VALUE ALL '='.
+              05 FILLER                    PIC X      VALUE SPACE.
+              05 FILLER                    PIC X(35)  VALUE ALL '='.
+      *
+       01  LS-DETALLE.
+           03 LS-DET-DNI                   PIC X(9)   VALUE SPACES.
+           03 FILLER                       PIC X      VALUE SPACE.
+           03 LS-DET-NOMBRE                PIC X(20)  VALUE SPACES.
+           03 FILLER                       PIC X      VALUE SPACE.
+           03 LS-DET-APELLIDOS             PIC X(20)  VALUE SPACES.
+           03 FILLER                       PIC X      VALUE SPACE.
+           03 LS-DET-DIRECCION             PIC X(35)  VALUE SPACES.
+      *
+       01  LS-BUFFER                       PIC X(133).
+      *
+       01 FILLER                           PIC X(17)
+           VALUE '***END-WORKING***'.
+      *----------------------------------------------------------------
+       LINKAGE SECTION.
+      *
+       01 DFHCOMMAREA                      PIC X(2048).
+      *
+      *================================================================
+       PROCEDURE DIVISION.
+      *----------------------------------------------------------------
+      *--- Proceso principal                                        ---
+      *----------------------------------------------------------------
+       0000-PROCESO-TAREA.
+      *
+           MOVE WC-TRANSACCION             TO WA-TRANSACCION
+      *
+           EXEC CICS
+              ASSIGN STARTCODE(SW-START-CODE)
+           END-EXEC
+      *
+           IF EIBRESP NOT = RESP-OK
+              MOVE '01'                    TO CODIGO-ABEND
+              PERFORM 8800-ABORTA-CICS
+           END-IF
+      *
+      *--- Para temas de depuraci¢n, si entramos desde Consola
+      *--- inicializamos un bloque CH-HOLS para poder hacer pruebas
+      *
+      *--- Entrada por consola
+           IF ENTRADA-CONSOLA
+              MOVE 'DA'                    TO CH-S-CODIGO-CURSOR
+              MOVE SPACES                  TO CH-S-BUSCAR
+              MOVE 'N'                     TO CH-S-COMIENZA
+              MOVE 'N'                     TO CH-S-CONTIENE
+              MOVE LOW-VALUES              TO CH-S-DNI1
+              MOVE LOW-VALUES              TO CH-S-DNI4
+              MOVE LOW-VALUES              TO CH-S-NOMBRE1
+              MOVE LOW-VALUES              TO CH-S-NOMBRE4
+              MOVE LOW-VALUES              TO CH-S-APELLIDOS1
+              MOVE LOW-VALUES              TO CH-S-APELLIDOS4
+              MOVE 'L703'                  TO CH-TERMINAL
+           ELSE
+      *--- Entrada por START
+              EXEC CICS
+                   RETRIEVE
+                       INTO   (CH-COMMAREA-HOL)
+                       LENGTH (LENGTH OF CH-COMMAREA-HOL)
+              END-EXEC
+           END-IF
+      *
+      *--- Encolamos un recurso comun para evitar ejecuciones paralelas
+      *--- desde el mismo terminal y transaccion
+      *
+           EXEC CICS
+                ENQ
+                RESOURCE (WC-RECURSO-HOL)
+                  LENGTH (4)
+           END-EXEC
+      *
+           IF EIBRESP NOT = RESP-OK
+              MOVE '03'                    TO CODIGO-ABEND
+              PERFORM 8800-ABORTA-CICS
+           END-IF
+      *
+      *--- PROCESO de creaci¢n de COLA TS para el Listadp
+      *
+           PERFORM 1000-PROCESO-COLA
+      *
+      *--- Desencolamos el recuro para terminar el bloqueo de las
+      *--- ejecuciones paralelas
+      *
+           EXEC CICS
+                DEQ
+                RESOURCE (WC-RECURSO-HOL)
+                  LENGTH (4)
+           END-EXEC
+      *
+           IF EIBRESP NOT = RESP-OK
+              MOVE '04'                    TO CODIGO-ABEND
+              PERFORM 8800-ABORTA-CICS
+           END-IF
+      *
+           PERFORM 8900-RETORNO-CICS.
+      *
+       0000-PROCESO-TAREA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Proceso de creaci¢n de la cola TS para listado de HOLS   ---
+      *----------------------------------------------------------------
+       1000-PROCESO-COLA.
+      *
+      *--- Lo primero ser¡a borrar la cola para volverla a crear
+      *--- por lo tanto validamos los casos en los que NO vamos a
+      *--- destruir la cola que pueda o no, existir previamente.
+      *
+           PERFORM 1100-VALIDAR-SI-COLA
+      *
+           IF NOT ERROR-VALIDACION
+              PERFORM 1200-INICIO-COLA
+              PERFORM 1300-BORRAR-COLA
+              PERFORM 1400-LLENAR-COLA
+              PERFORM 1500-FINAL-COLA
+           END-IF.
+      *
+       1000-PROCESO-COLA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Validamos si vamos a borrar y crear cola o no lo hacemos ---
+      *----------------------------------------------------------------
+       1100-VALIDAR-SI-COLA.
+      *
+           IF CH-S-CODIGO-CURSOR = SPACES         OR
+              CH-S-CODIGO-CURSOR = LOW-VALUES     OR
+              CH-S-CODIGO-CURSOR = HIGH-VALUES
+      *
+              SET ERROR-VALIDACION         TO TRUE
+      *
+           END-IF.
+      *
+       1100-VALIDAR-SI-COLA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Inicio del proceso de creaci¢n de la cola y Listado      ---
+      *----------------------------------------------------------------
+       1200-INICIO-COLA.
+      *
+           PERFORM 1210-INICIALIZAR
+           PERFORM 1220-MONTAR-CABECERAS.
+      *
+       1200-INICIO-COLA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Inicializaci¢n de las variables para controlar la Cola   ---
+      *----------------------------------------------------------------
+       1210-INICIALIZAR.
+      *
+           MOVE WC-TRANSACCION             TO LTS-TRANSACCION
+           MOVE TH-TRN-VISUAL-LIST         TO LTR-TRANSACCION
+           MOVE CH-TERMINAL                TO LTS-TERMINAL
+           MOVE CH-TERMINAL                TO LTR-TERMINAL.
+      *
+       1210-INICIALIZAR-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Montamos las cebeceras del listado                       ---
+      *----------------------------------------------------------------
+       1220-MONTAR-CABECERAS.
+      *
+           PERFORM 1221-MIRAR-FILTROS
+           PERFORM 1222-CARGAR-CABECERAS
+           PERFORM 1223-CICS-FECHA.
+      *
+      *
+       1220-MONTAR-CABECERAS-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Miramos si el listado va filtrado o no                   ---
+      *----------------------------------------------------------------
+       1221-MIRAR-FILTROS.
+      *
+           MOVE CH-S-COMIENZA              TO SW-HAY-FILTRO-COMIENZA
+           MOVE CH-S-CONTIENE              TO SW-HAY-FILTRO-CONTIENE
+      *
+      *--- Filtros
+      *--- Filtro Comienza por texto a buscar
+      *
+           IF HAY-FILTRO-COMIENZA
+              PERFORM 12211-LIKE-COMIENZA
+           END-IF
+      *
+      *--- Filtro Contiene el texto a buscar
+      *
+           IF HAY-FILTRO-CONTIENE
+              PERFORM 12212-LIKE-CONTIENE
+           END-IF.
+      *
+       1221-MIRAR-FILTROS-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Calculamos el LIKE para los cursores Comienza por        ---
+      *----------------------------------------------------------------
+       12211-LIKE-COMIENZA.
+      *
+      *--- Cargamos el t¡tulo de filtro Comienza
+      *
+           MOVE WL-COMIENZA                TO LS-TIT-FILTRO
+           MOVE CH-S-BUSCAR                TO LS-TIT-FILTRO(20:)
+           MOVE LS-TIT-FILTRO              TO LTR-TITULO3
+      *
+      *--- Centramos el titulo Comienza en 80 posiciones
+      *
+      *--- USER ->
+      *    MOVE LS-TIT-FILTRO              TO LKC-BUFFER-ENTRADA
+      *    MOVE 80                         TO LKC-LONGITUD-RESULTADO
+           MOVE LS-TIT-FILTRO              TO RTC-INPUT-STRING.
+           MOVE 80                         TO RTC-CENTER-AREA.
+      *--- USER <-
+           CALL CS-PGM-CALL-RTCENTI USING RTC-CENTI.
+      *--- USER ->
+      *    MOVE LKC-BUFFER-ENTRADA         TO LS-TIT-FILTRO
+           IF RTC-RESULT = ZERO THEN
+              MOVE RTC-OUTPUT-STRING       TO LS-TIT-FILTRO
+           ELSE
+              MOVE RTC-INPUT-STRING        TO LS-TIT-FILTRO
+           END-IF.
+      *--- USER <-
+      *
+      *--- Calculamos la variable Host para el cursor Comienza
+      *
+           MOVE 35                         TO WX-LONG
+      *
+           PERFORM
+              UNTIL WX-LONG = 0                               OR
+                    (CH-S-BUSCAR(WX-LONG:1) NOT = SPACE       AND
+                     CH-S-BUSCAR(WX-LONG:1) NOT = LOW-VALUES  AND
+                     CH-S-BUSCAR(WX-LONG:1) NOT = HIGH-VALUES)
+                    SUBTRACT 1             FROM WX-LONG
+           END-PERFORM
+      *
+           IF WX-LONG NOT = 0
+              ADD 1                        TO WX-LONG
+              MOVE CH-S-BUSCAR             TO WX-LIKE
+              MOVE '%'                     TO WX-LIKE(WX-LONG:1)
+              ADD 1                        TO WX-LONG
+              IF WX-LONG < 35
+                 MOVE ALL '%'              TO WX-LIKE(WX-LONG:)
+              END-IF
+           END-IF.
+      *
+       12211-LIKE-COMIENZA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Calculamos el LIKE para los cursores Comienza por        ---
+      *----------------------------------------------------------------
+       12212-LIKE-CONTIENE.
+      *
+      *--- Cargamos el t¡tulo de filtro Contiene
+      *
+           MOVE WL-CONTIENE                TO LS-TIT-FILTRO
+           MOVE CH-S-BUSCAR                TO LS-TIT-FILTRO(16:)
+      *
+      *--- Centramos el titulo Contiene en 80 posiciones
+      *
+      *--- USER ->
+      *    MOVE LS-TIT-FILTRO              TO LKC-BUFFER-ENTRADA
+      *    MOVE 80                         TO LKC-LONGITUD-RESULTADO
+           MOVE LS-TIT-FILTRO              TO RTC-INPUT-STRING.
+           MOVE 80                         TO RTC-CENTER-AREA.
+      *--- USER <-
+           CALL CS-PGM-CALL-RTCENTI USING RTC-CENTI.
+      *--- USER ->
+      *    MOVE LKC-BUFFER-ENTRADA         TO LS-TIT-FILTRO
+           IF RTC-RESULT = ZERO THEN
+              MOVE RTC-OUTPUT-STRING       TO LS-TIT-FILTRO
+           ELSE
+              MOVE RTC-INPUT-STRING        TO LS-TIT-FILTRO
+           END-IF.
+      *--- USER <-
+      *
+      *--- Calculamos la variable Host para el cursor Contiene
+      *
+           MOVE 35                         TO WX-LONG
+      *
+           PERFORM
+              UNTIL WX-LONG = 0                               OR
+                    (CH-S-BUSCAR(WX-LONG:1) NOT = SPACE       AND
+                     CH-S-BUSCAR(WX-LONG:1) NOT = LOW-VALUES  AND
+                     CH-S-BUSCAR(WX-LONG:1) NOT = HIGH-VALUES)
+                    SUBTRACT 1             FROM WX-LONG
+           END-PERFORM
+      *
+           IF WX-LONG NOT = 0
+              ADD 1                        TO WX-LONG
+              MOVE '%'                     TO WX-LIKE(1:1)
+              MOVE CH-S-BUSCAR(1:WX-LONG)  TO WX-LIKE(2:)
+              ADD 1                        TO WX-LONG
+              MOVE ALL '%'                 TO WX-LIKE(WX-LONG:)
+           END-IF.
+      *
+       12212-LIKE-CONTIENE-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Cargamos las l¡neas de cabeceras de listado              ---
+      *----------------------------------------------------------------
+       1222-CARGAR-CABECERAS.
+      *
+      *--- T¡tulo ordenado por
+      *
+      *--- TXMUL ->
+           MOVE 'ORDPOR' TO CL-CLAVE1
+      * 'ORDENADOS POR: '
+           PERFORM 20100-OBTENER-TEXTO
+           MOVE CL-VALOR TO WL-ORDEN
+      *--- TXMUL <-
+           MOVE WL-ORDEN                   TO LS-TIT-ORDEN
+           MOVE WL-ORDEN                   TO LTR-TITULO2
+      *
+           EVALUATE TRUE
+      *
+              WHEN CH-S-CODIGO-CURSOR = 'DA'
+                   MOVE 'HOLRDA'           TO LS-TIT-CODIGO
+                   MOVE 'HOLRDA'           TO LTR-CODIGO-LISTADO
+      *--- TXMUL ->
+                   MOVE 'HOLRDA'           TO CL-CLAVE1
+      * 'DNI ASCENDENTE'
+                   PERFORM 20100-OBTENER-TEXTO
+                   MOVE CL-VALOR           TO WL-ORDEN-DA
+      *--- TXMUL <-
+                   MOVE WL-ORDEN-DA        TO LS-TIT-ORDEN(16:)
+                   MOVE WL-ORDEN-DA        TO LTR-TITULO2(16:)
+      *
+              WHEN CH-S-CODIGO-CURSOR = 'DD'
+                   MOVE 'HOLRDD'           TO LS-TIT-CODIGO
+                   MOVE 'HOLRDD'           TO LTR-CODIGO-LISTADO
+      *--- TXMUL ->
+                   MOVE 'HOLRDD'           TO CL-CLAVE1
+      * 'DNI DESCENDENTE'
+                   PERFORM 20100-OBTENER-TEXTO
+                   MOVE CL-VALOR           TO WL-ORDEN-DD
+      *--- TXMUL <-
+                   MOVE WL-ORDEN-DD        TO LS-TIT-ORDEN(16:)
+                   MOVE WL-ORDEN-DD        TO LTR-TITULO2(16:)
+      *
+              WHEN CH-S-CODIGO-CURSOR = 'NA'
+                   MOVE 'HOLRNA'           TO LS-TIT-CODIGO
+                   MOVE 'HOLRNA'           TO LTR-CODIGO-LISTADO
+      *--- TXMUL ->
+                   MOVE 'HOLRNA'           TO CL-CLAVE1
+      * 'NOMBRE ASCENDENTE'
+                   PERFORM 20100-OBTENER-TEXTO
+                   MOVE CL-VALOR           TO WL-ORDEN-NA
+      *--- TXMUL <-
+                   MOVE WL-ORDEN-NA        TO LS-TIT-ORDEN(16:)
+                   MOVE WL-ORDEN-NA        TO LTR-TITULO2(16:)
+      *
+              WHEN CH-S-CODIGO-CURSOR = 'ND'
+                   MOVE 'HOLRND'           TO LS-TIT-CODIGO
+                   MOVE 'HOLRND'           TO LTR-CODIGO-LISTADO
+      *--- TXMUL ->
+                   MOVE 'HOLRND'           TO CL-CLAVE1
+      * 'NOMBRE DESCENDENTE'
+                   PERFORM 20100-OBTENER-TEXTO
+                   MOVE CL-VALOR           TO WL-ORDEN-ND
+      *--- TXMUL <-
+                   MOVE WL-ORDEN-ND        TO LS-TIT-ORDEN(16:)
+                   MOVE WL-ORDEN-ND        TO LTR-TITULO2(16:)
+      *
+              WHEN CH-S-CODIGO-CURSOR = 'AA'
+                   MOVE 'HOLRAA'           TO LS-TIT-CODIGO
+                   MOVE 'HOLRAA'           TO LTR-CODIGO-LISTADO
+      *--- TXMUL ->
+                   MOVE 'HOLRAA'           TO CL-CLAVE1
+      * 'APELLIDOS ASCENDENTES'
+                   PERFORM 20100-OBTENER-TEXTO
+                   MOVE CL-VALOR           TO WL-ORDEN-AA
+      *--- TXMUL <-
+                   MOVE WL-ORDEN-AA        TO LS-TIT-ORDEN(16:)
+                   MOVE WL-ORDEN-AA        TO LTR-TITULO2(16:)
+      *
+              WHEN CH-S-CODIGO-CURSOR = 'AD'
+                   MOVE 'HOLRAD'           TO LS-TIT-CODIGO
+                   MOVE 'HOLRAD'           TO LTR-CODIGO-LISTADO
+      *--- TXMUL ->
+                   MOVE 'HOLRAD'           TO CL-CLAVE1
+      * 'APELLIDOS DESCENDENTES'
+                   PERFORM 20100-OBTENER-TEXTO
+                   MOVE CL-VALOR           TO WL-ORDEN-AD
+      *--- TXMUL <-
+                   MOVE WL-ORDEN-AD        TO LS-TIT-ORDEN(16:)
+                   MOVE WL-ORDEN-AD        TO LTR-TITULO2(16:)
+      *
+           END-EVALUATE
+      *
+      *--- Centramos los t¡tulos de filtros en 80 posiciones
+      *
+      *--- USER ->
+      *    MOVE LS-TIT-ORDEN               TO LKC-BUFFER-ENTRADA
+      *    MOVE 80                         TO LKC-LONGITUD-RESULTADO
+           MOVE LS-TIT-ORDEN               TO RTC-INPUT-STRING.
+           MOVE 80                         TO RTC-CENTER-AREA.
+      *--- USER <-
+           CALL CS-PGM-CALL-RTCENTI USING RTC-CENTI,
+      *--- USER ->
+      *    MOVE LKC-BUFFER-ENTRADA         TO LS-TIT-ORDEN
+           IF RTC-RESULT = ZERO THEN
+              MOVE RTC-OUTPUT-STRING       TO LS-TIT-ORDEN
+           ELSE
+              MOVE RTC-INPUT-STRING        TO LS-TIT-ORDEN
+           END-IF.
+      *--- USER <-
+      *
+      *--- Centramos el titulo de listado en 80 posiciones
+      *
+      *--- TXMUL ->
+           MOVE 'TITCLI'                   TO CL-CLAVE1.
+      * '*****   L I S T A D O    D E    C L I E N T E S   *****'
+           PERFORM 20100-OBTENER-TEXTO.
+           MOVE CL-VALOR                   TO WL-TITULO.
+      *--- TXMUL <-
+           MOVE WL-TITULO                  TO LS-TIT-TITULO
+           MOVE WL-TITULO                  TO LTR-TITULO1
+      *
+      *--- USER ->
+      *    MOVE LS-TIT-TITULO              TO LKC-BUFFER-ENTRADA
+      *    MOVE 80                         TO LKC-LONGITUD-RESULTADO
+           MOVE LS-TIT-TITULO              TO RTC-INPUT-STRING.
+           MOVE 80                         TO RTC-CENTER-AREA.
+      *--- USER <-
+           CALL CS-PGM-CALL-RTCENTI USING RTC-CENTI.
+      *--- USER ->
+      *    MOVE LKC-BUFFER-ENTRADA         TO LS-TIT-TITULO
+           IF RTC-RESULT = ZERO THEN
+              MOVE RTC-OUTPUT-STRING       TO LS-TIT-TITULO
+           ELSE
+              MOVE RTC-INPUT-STRING        TO LS-TIT-TITULO
+           END-IF.
+      *--- USER <-
+      *
+      *
+      *--- Terminal desde el cual se lanza
+      *
+           MOVE CH-TERMINAL                TO LS-TIT-TERMINAL.
+      *
+       1222-CARGAR-CABECERAS-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Recuperramos la fecha y la Hora desde CICS               ---
+      *----------------------------------------------------------------
+       1223-CICS-FECHA.
+      *
+           EXEC CICS
+                ASKTIME ABSTIME(WA-TIEMPO)
+           END-EXEC
+      *
+           IF EIBRESP NOT = RESP-OK
+              MOVE '05'                    TO CODIGO-ABEND
+              PERFORM 8800-ABORTA-CICS
+           END-IF
+      *
+           EXEC CICS
+                FORMATTIME ABSTIME(WA-TIEMPO)
+                           DDMMYYYY(WA-FECHA)
+                           DATESEP('-')
+                           TIME(WA-HORA)
+                           TIMESEP(':')
+           END-EXEC
+      *
+           IF EIBRESP NOT = RESP-OK
+              MOVE '06'                    TO CODIGO-ABEND
+              PERFORM 8800-ABORTA-CICS
+           END-IF
+      *
+           MOVE WA-FECHA                   TO LS-TIT-FECHA
+           MOVE WA-FECHA                   TO LTR-FECHA
+           MOVE WA-HORA                    TO LS-TIT-HORA
+           MOVE WA-HORA                    TO LTR-HORA.
+      *
+       1223-CICS-FECHA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Proceso de borrado de la cola, si existe item 1 borramos ---
+      *----------------------------------------------------------------
+       1300-BORRAR-COLA.
+      *
+           MOVE 1                  TO LTS-ITEM
+      *
+           PERFORM 1310-LEER-ITEM-COLA
+      *
+           IF EIBRESP = RESP-OK
+      *
+              EXEC CICS
+                   DELETEQ TS
+                     QUEUE(LTS-COLA)
+                     NOHANDLE
+              END-EXEC
+      *
+              EXEC CICS
+                   DELETEQ TS
+                     QUEUE(LTR-COLA)
+                     NOHANDLE
+              END-EXEC
+           END-IF.
+      *
+       1300-BORRAR-COLA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Leer un Item de la cola                                  ---
+      *----------------------------------------------------------------
+       1310-LEER-ITEM-COLA.
+      *
+           EXEC CICS
+                READQ TS
+                  QUEUE  (LTS-COLA)
+                  INTO   (LTS-DATOS-COLA)
+                  LENGTH (LENGTH OF LTS-DATOS-COLA)
+                  ITEM   (LTS-ITEM)
+                  NOHANDLE
+           END-EXEC.
+      *
+       1310-LEER-ITEM-COLA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Proceso de creaci¢n de la cola                           ---
+      *----------------------------------------------------------------
+       1400-LLENAR-COLA.
+      *
+           MOVE 0                          TO LTS-ITEM
+      *
+           PERFORM 4000-RESET-CURSOR
+           PERFORM 7100-OPEN-CURSOR
+           PERFORM 1420-ESC-CABECERAS
+           IF SQLCODE = 0
+              PERFORM 7400-FETCH-CURSOR
+              IF SQLCODE = 0
+                 PERFORM 1430-PROCESO-REG
+                   UNTIL SQLCODE = +100
+              ELSE
+                 IF SQLCODE = +100
+                    PERFORM 1490-NO-DATOS
+                 ELSE
+                    MOVE '80'              TO CODIGO-ABEND
+                    PERFORM 8800-ABORTA-CICS
+                 END-IF
+              END-IF
+           ELSE
+              IF SQLCODE = +100
+                 PERFORM 1490-NO-DATOS
+              ELSE
+                 MOVE '81'                 TO CODIGO-ABEND
+                 PERFORM 8800-ABORTA-CICS
+              END-IF
+           END-IF
+           PERFORM 7900-CLOSE-CURSOR.
+      *
+       1400-LLENAR-COLA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Escribimos las cabeceras del listado en cola TS          ---
+      *----------------------------------------------------------------
+       1420-ESC-CABECERAS.
+      *
+           MOVE 0                          TO RPT-LINEA-PAG
+           MOVE RPT-PAGINA                 TO LS-TIT-PAGINA
+           MOVE '0'                        TO LTS-CONTROL-CARRO
+      *
+      *--- TXMUL ->
+           MOVE 'PAG008' TO CL-CLAVE1.
+      * 'Pagina.:'
+           PERFORM 20100-OBTENER-TEXTO.
+           MOVE CL-VALOR TO LS1-PAGINA.
+      *--- TXMUL <-
+           MOVE LS-CAB1                    TO LTS-LINEA-DETALLE
+           PERFORM 1421-ESC-DETALLE
+      *
+           MOVE '1'                        TO LTS-CONTROL-CARRO
+      *
+      *--- TXMUL ->
+           MOVE 'FEC008' TO CL-CLAVE1.
+      * 'Fecha..:'
+           PERFORM 20100-OBTENER-TEXTO.
+           MOVE CL-VALOR TO LS2-FECHA.
+      *--- TXMUL <-
+           MOVE LS-CAB2                    TO LTS-LINEA-DETALLE
+           PERFORM 1421-ESC-DETALLE
+      *--- TXMUL ->
+           MOVE 'HOR008' TO CL-CLAVE1.
+      * 'Hora...:'
+           PERFORM 20100-OBTENER-TEXTO.
+           MOVE CL-VALOR TO LS3-HORA.
+      *--- TXMUL <-
+           MOVE LS-CAB3                    TO LTS-LINEA-DETALLE
+           PERFORM 1421-ESC-DETALLE
+           MOVE LS-CAB4                    TO LTS-LINEA-DETALLE
+           PERFORM 1421-ESC-DETALLE
+      *--- TXMUL ->
+           MOVE 'IDENDNI' TO CL-CLAVE1.
+      * 'IDENT.DNI'
+           PERFORM 20100-OBTENER-TEXTO.
+           MOVE CL-VALOR TO LS4-DNI.
+      *
+           MOVE 'NOMBRE' TO CL-CLAVE1.
+      * 'NOMBRE'
+           PERFORM 20100-OBTENER-TEXTO.
+           MOVE CL-VALOR TO CAB-COL2.
+      *
+           MOVE 'APELL' TO CL-CLAVE1.
+      * 'APELLIDOS'
+           PERFORM 20100-OBTENER-TEXTO.
+           MOVE CL-VALOR TO CAB-COL3.
+      *
+           MOVE 'DIREC' TO CL-CLAVE1.
+      * 'DIRECCION'
+           PERFORM 20100-OBTENER-TEXTO.
+           MOVE CL-VALOR TO CAB-COL4.
+      *--- TXMUL <-
+           MOVE LS-CAB-DETALLE             TO LTS-LINEA-DETALLE
+           PERFORM 1421-ESC-DETALLE
+           MOVE LS-CAB-SUB                 TO LTS-LINEA-DETALLE
+           PERFORM 1421-ESC-DETALLE.
+      *
+       1420-ESC-CABECERAS-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Escribimos linea de detalle en la cola TS                ---
+      *----------------------------------------------------------------
+       1421-ESC-DETALLE.
+      *
+           ADD 1                           TO RPT-LINEA-PAG
+      *
+           IF RPT-LINEA-PAG > RPT-MAX-LINEAS-PAG
+              ADD 1                        TO RPT-PAGINA
+              IF RPT-PAGINA > 1
+                 MOVE SPACES               TO LTS-LINEA-DETALLE
+                 MOVE '1'                  TO LTS-CONTROL-CARRO
+                 PERFORM 1422-ESCRIBE-COLA 3 TIMES
+              END-IF
+              PERFORM 1420-ESC-CABECERAS
+              MOVE LS-BUFFER               TO LTS-DETALLE
+              PERFORM 1422-ESCRIBE-COLA
+           ELSE
+              PERFORM 1422-ESCRIBE-COLA
+           END-IF
+      *
+           MOVE LTS-ITEM                   TO LTR-ITEMS-LTS.
+      *
+       1421-ESC-DETALLE-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Proceso de una fila del cursor y siguiente               ---
+      *----------------------------------------------------------------
+       1422-ESCRIBE-COLA.
+      *
+           ADD 1                           TO LTS-ITEM
+      *
+           EXEC CICS
+                WRITEQ TS
+                  QUEUE    (LTS-COLA)
+                  FROM     (LTS-DATOS-COLA)
+                  LENGTH   (LENGTH OF LTS-DATOS-COLA)
+                  ITEM     (LTS-ITEM)
+           END-EXEC
+      *
+           IF EIBRESP NOT = RESP-OK
+              MOVE '08'                    TO CODIGO-ABEND
+              PERFORM 8800-ABORTA-CICS
+           END-IF.
+      *
+       1422-ESCRIBE-COLA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Proceso de una fila del cursor y siguiente               ---
+      *----------------------------------------------------------------
+       1430-PROCESO-REG.
+      *
+           MOVE CL-DNI                     TO LS-DET-DNI
+           MOVE CL-NOMBRE                  TO LS-DET-NOMBRE
+           MOVE CL-APELLIDOS               TO LS-DET-APELLIDOS
+           MOVE CL-DIRECCION               TO LS-DET-DIRECCION
+      *
+           MOVE '1'                        TO LTS-CONTROL-CARRO
+           MOVE LS-DETALLE                 TO LTS-LINEA-DETALLE
+           MOVE LTS-DETALLE                TO LS-BUFFER
+           PERFORM 1421-ESC-DETALLE
+      *
+           PERFORM 7400-FETCH-CURSOR.
+      *
+       1430-PROCESO-REG-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- No hay datos para el listado                             ---
+      *----------------------------------------------------------------
+       1490-NO-DATOS.
+      *
+           MOVE 'NO SE HAN ENCONTRADO DATOS...' TO LTS-LINEA-DETALLE
+           PERFORM 1421-ESC-DETALLE.
+      *
+       1490-NO-DATOS-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Finalizamos el procso de la cola. Escribimos Item1 de la ---
+      *--- cola resumen HOLLR+Terminal XXXX                         ---
+      *----------------------------------------------------------------
+       1500-FINAL-COLA.
+      *
+           INITIALIZE CH-HOLR
+      *
+           EXEC CICS
+                WRITEQ TS
+                  QUEUE    (LTR-COLA)
+                  FROM     (LTR-DATOS-COLA)
+                  LENGTH   (LENGTH OF LTR-DATOS-COLA)
+                  ITEM     (LTR-ITEM)
+           END-EXEC
+      *
+           IF EIBRESP NOT = RESP-OK
+              MOVE '99'                    TO CODIGO-ABEND
+              PERFORM 8800-ABORTA-CICS
+           END-IF.
+      *
+       1500-FINAL-COLA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Nos aseguramos de procesar todos los registros de Cursor ---
+      *----------------------------------------------------------------
+       4000-RESET-CURSOR.
+      *
+           IF CH-S-CODIGO-CURSOR(2:1) = 'A'
+              MOVE LOW-VALUES              TO CL-DNI
+                                              CL-NOMBRE
+                                              CL-APELLIDOS
+                                              CL-DIRECCION
+           ELSE
+              MOVE HIGH-VALUES             TO CL-DNI
+                                              CL-NOMBRE
+                                              CL-APELLIDOS
+                                              CL-DIRECCION
+           END-IF.
+      *
+       4000-RESET-CURSOR-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Declara y abre el cursor de pagina siguiente             ---
+      *----------------------------------------------------------------
+       7100-OPEN-CURSOR.
+      *
+      *--- Apertura cursores con filtro de comienzo
+      *
+           IF HAY-FILTRO-COMIENZA
+      *
+              IF CH-S-CODIGO-CURSOR = 'DA'
+                 PERFORM 7110-OPEN-DACOM
+              END-IF
+              IF CH-S-CODIGO-CURSOR = 'DD'
+                 PERFORM 7120-OPEN-DDCOM
+              END-IF
+              IF CH-S-CODIGO-CURSOR = 'NA'
+                 PERFORM 7130-OPEN-NACOM
+              END-IF
+              IF CH-S-CODIGO-CURSOR = 'ND'
+                 PERFORM 7140-OPEN-NDCOM
+              END-IF
+              IF CH-S-CODIGO-CURSOR = 'AA'
+                 PERFORM 7150-OPEN-AACOM
+              END-IF
+              IF CH-S-CODIGO-CURSOR = 'AD'
+                 PERFORM 7160-OPEN-ADCOM
+              END-IF
+           END-IF
+      *
+      *--- Apertura de cursores con filtro de contiene
+      *
+           IF HAY-FILTRO-CONTIENE
+              IF CH-S-CODIGO-CURSOR = 'DA'
+                 PERFORM 7210-OPEN-DACON
+              END-IF
+              IF CH-S-CODIGO-CURSOR = 'DD'
+                 PERFORM 7220-OPEN-DDCON
+              END-IF
+              IF CH-S-CODIGO-CURSOR = 'NA'
+                 PERFORM 7230-OPEN-NACON
+              END-IF
+              IF CH-S-CODIGO-CURSOR = 'ND'
+                 PERFORM 7240-OPEN-NDCON
+              END-IF
+              IF CH-S-CODIGO-CURSOR = 'AA'
+                 PERFORM 7250-OPEN-AACON
+              END-IF
+              IF CH-S-CODIGO-CURSOR = 'AD'
+                 PERFORM 7260-OPEN-ADCON
+              END-IF
+           END-IF
+      *
+      *--- Apertura de cursores sin ningun filtro
+      *
+           IF NOT HAY-FILTRO-COMIENZA AND NOT HAY-FILTRO-CONTIENE
+              IF CH-S-CODIGO-CURSOR = 'DA'
+                 PERFORM 7310-OPEN-DA
+              END-IF
+              IF CH-S-CODIGO-CURSOR = 'DD'
+                 PERFORM 7320-OPEN-DD
+              END-IF
+              IF CH-S-CODIGO-CURSOR = 'NA'
+                 PERFORM 7330-OPEN-NA
+              END-IF
+              IF CH-S-CODIGO-CURSOR = 'ND'
+                 PERFORM 7340-OPEN-ND
+              END-IF
+              IF CH-S-CODIGO-CURSOR = 'AA'
+                 PERFORM 7350-OPEN-AA
+              END-IF
+              IF CH-S-CODIGO-CURSOR = 'AD'
+                 PERFORM 7360-OPEN-AD
+              END-IF
+           END-IF.
+      *
+       7100-OPEN-CURSOR-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Abre cursor siguiente para DNI ascendente con comienza   ---
+      *----------------------------------------------------------------
+       7110-OPEN-DACOM.
+      *
+           EXEC SQL
+                DECLARE DACOM CURSOR FOR
+                   SELECT DNI
+                        , NOMBRE
+                        , APELLIDOS
+                        , DIRECCION
+                     FROM CLIENTES
+                     WHERE       DNI > :CL-DNI
+                       AND (     DNI LIKE :WX-LIKE
+                       OR     NOMBRE LIKE :WX-LIKE
+                       OR  APELLIDOS LIKE :WX-LIKE
+                       OR  DIRECCION LIKE :WX-LIKE)
+                     ORDER BY    DNI ASC
+           END-EXEC
+      *
+           EXEC SQL
+                OPEN DACOM
+           END-EXEC
+      *
+           IF SQLCODE NOT = 0
+              MOVE '10'                    TO CODIGO-ABEND
+              PERFORM 8800-ABORTA-CICS
+           END-IF.
+      *
+       7110-OPEN-DACOM-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Abre cursor siguiente para DNI descendiente con comienza ---
+      *----------------------------------------------------------------
+       7120-OPEN-DDCOM.
+      *
+           EXEC SQL
+                DECLARE DDCOM CURSOR FOR
+                   SELECT DNI
+                        , NOMBRE
+                        , APELLIDOS
+                        , DIRECCION
+                     FROM CLIENTES
+                     WHERE       DNI < :CL-DNI
+                       AND (     DNI LIKE :WX-LIKE
+                       OR     NOMBRE LIKE :WX-LIKE
+                       OR  APELLIDOS LIKE :WX-LIKE
+                       OR  DIRECCION LIKE :WX-LIKE)
+                     ORDER BY    DNI DESC
+           END-EXEC
+      *
+           EXEC SQL
+                OPEN DDCOM
+           END-EXEC
+      *
+           IF SQLCODE NOT = 0
+              MOVE '11'                    TO CODIGO-ABEND
+              PERFORM 8800-ABORTA-CICS
+           END-IF.
+      *
+       7120-OPEN-DDCOM-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Abre cursor siguiente para NOM ascendiente  con comienza ---
+      *----------------------------------------------------------------
+       7130-OPEN-NACOM.
+      *
+           EXEC SQL
+                DECLARE NACOM CURSOR FOR
+                   SELECT DNI
+                        , NOMBRE
+                        , APELLIDOS
+                        , DIRECCION
+                     FROM CLIENTES
+                     WHERE    NOMBRE > :CL-NOMBRE
+                       AND (     DNI LIKE :WX-LIKE
+                       OR     NOMBRE LIKE :WX-LIKE
+                       OR  APELLIDOS LIKE :WX-LIKE
+                       OR  DIRECCION LIKE :WX-LIKE)
+                     ORDER BY NOMBRE ASC
+           END-EXEC
+      *
+           EXEC SQL
+                OPEN NACOM
+           END-EXEC
+      *
+           IF SQLCODE NOT = 0
+              MOVE '12'                    TO CODIGO-ABEND
+              PERFORM 8800-ABORTA-CICS
+           END-IF.
+      *
+       7130-OPEN-NACOM-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Abre cursor siguiente para NOM descendiente con comienza ---
+      *----------------------------------------------------------------
+       7140-OPEN-NDCOM.
+      *
+           EXEC SQL
+                DECLARE NDCOM CURSOR FOR
+                   SELECT DNI
+                        , NOMBRE
+                        , APELLIDOS
+                        , DIRECCION
+                     FROM CLIENTES
+                     WHERE    NOMBRE < :CL-NOMBRE
+                       AND (     DNI LIKE :WX-LIKE
+                       OR     NOMBRE LIKE :WX-LIKE
+                       OR  APELLIDOS LIKE :WX-LIKE
+                       OR  DIRECCION LIKE :WX-LIKE)
+                     ORDER BY NOMBRE DESC
+           END-EXEC
+      *
+           EXEC SQL
+                OPEN NDCOM
+           END-EXEC
+      *
+           IF SQLCODE NOT = 0
+              MOVE '13'                    TO CODIGO-ABEND
+              PERFORM 8800-ABORTA-CICS
+           END-IF.
+      *
+       7140-OPEN-NDCOM-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Abre cursor siguiente para APE ascendiente  con comienza ---
+      *----------------------------------------------------------------
+       7150-OPEN-AACOM.
+      *
+           EXEC SQL
+                DECLARE AACOM CURSOR FOR
+                   SELECT DNI
+                        , NOMBRE
+                        , APELLIDOS
+                        , DIRECCION
+                     FROM CLIENTES
+                     WHERE APELLIDOS > :CL-APELLIDOS
+                       AND (     DNI LIKE :WX-LIKE
+                       OR     NOMBRE LIKE :WX-LIKE
+                       OR  APELLIDOS LIKE :WX-LIKE
+                       OR  DIRECCION LIKE :WX-LIKE)
+                     ORDER BY APELLIDOS ASC
+           END-EXEC
+      *
+           EXEC SQL
+                OPEN AACOM
+           END-EXEC
+      *
+           IF SQLCODE NOT = 0
+              MOVE '14'                    TO CODIGO-ABEND
+              PERFORM 8800-ABORTA-CICS
+           END-IF.
+      *
+       7150-OPEN-AACOM-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Abre cursor siguiente para APE descenciente con comienza ---
+      *----------------------------------------------------------------
+       7160-OPEN-ADCOM.
+      *
+           EXEC SQL
+                DECLARE ADCOM CURSOR FOR
+                   SELECT DNI
+                        , NOMBRE
+                        , APELLIDOS
+                        , DIRECCION
+                     FROM CLIENTES
+                     WHERE APELLIDOS < :CL-APELLIDOS
+                       AND (     DNI LIKE :WX-LIKE
+                       OR     NOMBRE LIKE :WX-LIKE
+                       OR  APELLIDOS LIKE :WX-LIKE
+                       OR  DIRECCION LIKE :WX-LIKE)
+                     ORDER BY APELLIDOS DESC
+           END-EXEC
+      *
+           EXEC SQL
+                OPEN ADCOM
+           END-EXEC
+      *
+           IF SQLCODE NOT = 0
+              MOVE '15'                    TO CODIGO-ABEND
+              PERFORM 8800-ABORTA-CICS
+           END-IF.
+      *
+       7160-OPEN-ADCOM-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Abre cursor siguiente para DNI ascendente con contiene   ---
+      *----------------------------------------------------------------
+       7210-OPEN-DACON.
+      *
+           EXEC SQL
+                DECLARE DACON CURSOR FOR
+                   SELECT DNI
+                        , NOMBRE
+                        , APELLIDOS
+                        , DIRECCION
+                     FROM CLIENTES
+                     WHERE       DNI > :CL-DNI
+                       AND (     DNI LIKE :WX-LIKE
+                       OR     NOMBRE LIKE :WX-LIKE
+                       OR  APELLIDOS LIKE :WX-LIKE
+                       OR  DIRECCION LIKE :WX-LIKE)
+                     ORDER BY    DNI ASC
+           END-EXEC
+      *
+           EXEC SQL
+                OPEN DACON
+           END-EXEC
+      *
+           IF SQLCODE NOT = 0
+              MOVE '16'                    TO CODIGO-ABEND
+              PERFORM 8800-ABORTA-CICS
+           END-IF.
+      *
+       7210-OPEN-DACON-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Abre cursor siguiente para DNI descendiente con contiene ---
+      *----------------------------------------------------------------
+       7220-OPEN-DDCON.
+      *
+           EXEC SQL
+                DECLARE DDCON CURSOR FOR
+                   SELECT DNI
+                        , NOMBRE
+                        , APELLIDOS
+                        , DIRECCION
+                     FROM CLIENTES
+                     WHERE       DNI < :CL-DNI
+                       AND (     DNI LIKE :WX-LIKE
+                       OR     NOMBRE LIKE :WX-LIKE
+                       OR  APELLIDOS LIKE :WX-LIKE
+                       OR  DIRECCION LIKE :WX-LIKE)
+                     ORDER BY    DNI DESC
+           END-EXEC
+      *
+           EXEC SQL
+                OPEN DDCON
+           END-EXEC
+      *
+           IF SQLCODE NOT = 0
+              MOVE '17'                    TO CODIGO-ABEND
+              PERFORM 8800-ABORTA-CICS
+           END-IF.
+      *
+       7220-OPEN-DDCON-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Abre cursor siguiente para NOM ascendiente  con contiene ---
+      *----------------------------------------------------------------
+       7230-OPEN-NACON.
+      *
+           EXEC SQL
+                DECLARE NACON CURSOR FOR
+                   SELECT DNI
+                        , NOMBRE
+                        , APELLIDOS
+                        , DIRECCION
+                     FROM CLIENTES
+                     WHERE    NOMBRE > :CL-NOMBRE
+                       AND (     DNI LIKE :WX-LIKE
+                       OR     NOMBRE LIKE :WX-LIKE
+                       OR  APELLIDOS LIKE :WX-LIKE
+                       OR  DIRECCION LIKE :WX-LIKE)
+                     ORDER BY NOMBRE ASC
+           END-EXEC
+      *
+           EXEC SQL
+                OPEN NACON
+           END-EXEC
+      *
+           IF SQLCODE NOT = 0
+              MOVE '18'                    TO CODIGO-ABEND
+              PERFORM 8800-ABORTA-CICS
+           END-IF.
+      *
+       7230-OPEN-NACON-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Abre cursor siguiente para NOM descendiente con contiene ---
+      *----------------------------------------------------------------
+       7240-OPEN-NDCON.
+      *
+           EXEC SQL
+                DECLARE NDCON CURSOR FOR
+                   SELECT DNI
+                        , NOMBRE
+                        , APELLIDOS
+                        , DIRECCION
+                     FROM CLIENTES
+                     WHERE    NOMBRE < :CL-NOMBRE
+                       AND (     DNI LIKE :WX-LIKE
+                       OR     NOMBRE LIKE :WX-LIKE
+                       OR  APELLIDOS LIKE :WX-LIKE
+                       OR  DIRECCION LIKE :WX-LIKE)
+                     ORDER BY NOMBRE DESC
+           END-EXEC
+      *
+           EXEC SQL
+                OPEN NDCON
+           END-EXEC
+      *
+           IF SQLCODE NOT = 0
+              MOVE '19'                    TO CODIGO-ABEND
+              PERFORM 8800-ABORTA-CICS
+           END-IF.
+      *
+       7240-OPEN-NDCON-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Abre cursor siguiente para APE ascendiente  con contiene ---
+      *----------------------------------------------------------------
+       7250-OPEN-AACON.
+      *
+           EXEC SQL
+                DECLARE AACON CURSOR FOR
+                   SELECT DNI
+                        , NOMBRE
+                        , APELLIDOS
+                        , DIRECCION
+                     FROM CLIENTES
+                     WHERE APELLIDOS > :CL-APELLIDOS
+                       AND (     DNI LIKE :WX-LIKE
+                       OR     NOMBRE LIKE :WX-LIKE
+                       OR  APELLIDOS LIKE :WX-LIKE
+                       OR  DIRECCION LIKE :WX-LIKE)
+                     ORDER BY APELLIDOS ASC
+           END-EXEC
+      *
+           EXEC SQL
+                OPEN AACON
+           END-EXEC
+      *
+           IF SQLCODE NOT = 0
+              MOVE '20'                    TO CODIGO-ABEND
+              PERFORM 8800-ABORTA-CICS
+           END-IF.
+      *
+       7250-OPEN-AACON-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Abre cursor siguiente para APE descenciente con contiene ---
+      *----------------------------------------------------------------
+       7260-OPEN-ADCON.
+      *
+           EXEC SQL
+                DECLARE ADCON CURSOR FOR
+                   SELECT DNI
+                        , NOMBRE
+                        , APELLIDOS
+                        , DIRECCION
+                     FROM CLIENTES
+                     WHERE APELLIDOS < :CL-APELLIDOS
+                       AND (     DNI LIKE :WX-LIKE
+                       OR     NOMBRE LIKE :WX-LIKE
+                       OR  APELLIDOS LIKE :WX-LIKE
+                       OR  DIRECCION LIKE :WX-LIKE)
+                     ORDER BY APELLIDOS DESC
+           END-EXEC
+      *
+           EXEC SQL
+                OPEN ADCON
+           END-EXEC
+      *
+           IF SQLCODE NOT = 0
+              MOVE '21'                    TO CODIGO-ABEND
+              PERFORM 8800-ABORTA-CICS
+           END-IF.
+      *
+       7260-OPEN-ADCON-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Abre cursor siguiente para DNI ascendente                ---
+      *----------------------------------------------------------------
+       7310-OPEN-DA.
+      *
+           EXEC SQL
+                DECLARE CURDA CURSOR FOR
+                   SELECT DNI
+                        , NOMBRE
+                        , APELLIDOS
+                        , DIRECCION
+                     FROM CLIENTES
+                     WHERE       DNI > :CL-DNI
+                     ORDER BY    DNI ASC
+           END-EXEC
+      *
+           EXEC SQL
+                OPEN CURDA
+           END-EXEC
+      *
+           IF SQLCODE NOT = 0
+              MOVE '22'                    TO CODIGO-ABEND
+              PERFORM 8800-ABORTA-CICS
+           END-IF.
+      *
+       7310-OPEN-DA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Abre cursor siguiente para DNI descendiente              ---
+      *----------------------------------------------------------------
+       7320-OPEN-DD.
+      *
+           EXEC SQL
+                DECLARE CURDD CURSOR FOR
+                   SELECT DNI
+                        , NOMBRE
+                        , APELLIDOS
+                        , DIRECCION
+                     FROM CLIENTES
+                     WHERE       DNI < :CL-DNI
+                     ORDER BY    DNI DESC
+           END-EXEC
+      *
+           EXEC SQL
+                OPEN CURDD
+           END-EXEC
+      *
+           IF SQLCODE NOT = 0
+              MOVE '23'                    TO CODIGO-ABEND
+              PERFORM 8800-ABORTA-CICS
+           END-IF.
+      *
+       7320-OPEN-DD-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Abre cursor siguiente para NOM ascendiente               ---
+      *----------------------------------------------------------------
+       7330-OPEN-NA.
+      *
+           EXEC SQL
+                DECLARE CURNA CURSOR FOR
+                   SELECT DNI
+                        , NOMBRE
+                        , APELLIDOS
+                        , DIRECCION
+                     FROM CLIENTES
+                     WHERE       NOMBRE > :CL-NOMBRE
+                     ORDER BY    NOMBRE ASC
+           END-EXEC
+      *
+           EXEC SQL
+                OPEN CURNA
+           END-EXEC
+      *
+           IF SQLCODE NOT = 0
+              MOVE '24'                    TO CODIGO-ABEND
+              PERFORM 8800-ABORTA-CICS
+           END-IF.
+      *
+       7330-OPEN-NA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Abre cursor siguiente para NOM descendiente              ---
+      *----------------------------------------------------------------
+       7340-OPEN-ND.
+      *
+           EXEC SQL
+                DECLARE CURND CURSOR FOR
+                   SELECT DNI
+                        , NOMBRE
+                        , APELLIDOS
+                        , DIRECCION
+                     FROM CLIENTES
+                     WHERE       NOMBRE < :CL-NOMBRE
+                     ORDER BY    NOMBRE DESC
+           END-EXEC
+      *
+           EXEC SQL
+                OPEN CURND
+           END-EXEC
+      *
+           IF SQLCODE NOT = 0
+              MOVE '25'                    TO CODIGO-ABEND
+              PERFORM 8800-ABORTA-CICS
+           END-IF.
+      *
+       7340-OPEN-ND-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Abre cursor siguiente para APE ascendiente               ---
+      *----------------------------------------------------------------
+       7350-OPEN-AA.
+      *
+           EXEC SQL
+                DECLARE CURAA CURSOR FOR
+                   SELECT DNI
+                        , NOMBRE
+                        , APELLIDOS
+                        , DIRECCION
+                     FROM CLIENTES
+                     WHERE       APELLIDOS > :CL-APELLIDOS
+                     ORDER BY    APELLIDOS ASC
+           END-EXEC
+      *
+           EXEC SQL
+                OPEN CURAA
+           END-EXEC
+      *
+           IF SQLCODE NOT = 0
+              MOVE '26'                    TO CODIGO-ABEND
+              PERFORM 8800-ABORTA-CICS
+           END-IF.
+      *
+       7350-OPEN-AA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Abre cursor siguiente para APE descenciente              ---
+      *----------------------------------------------------------------
+       7360-OPEN-AD.
+      *
+           EXEC SQL
+                DECLARE CURAD CURSOR FOR
+                   SELECT DNI
+                        , NOMBRE
+                        , APELLIDOS
+                        , DIRECCION
+                     FROM CLIENTES
+                     WHERE       APELLIDOS < :CL-APELLIDOS
+                     ORDER BY    APELLIDOS DESC
+           END-EXEC
+      *
+           EXEC SQL
+                OPEN CURAD
+           END-EXEC
+      *
+           IF SQLCODE NOT = 0
+              MOVE '27'                    TO CODIGO-ABEND
+              PERFORM 8800-ABORTA-CICS
+           END-IF.
+      *
+       7360-OPEN-AD-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Lee el cursor activo                                     ---
+      *----------------------------------------------------------------
+       7400-FETCH-CURSOR.
+      *
+           IF HAY-FILTRO-COMIENZA
+              IF CH-S-CODIGO-CURSOR = 'DA'
+                 PERFORM 7410-FETCH-DACOM
+              END-IF
+              IF CH-S-CODIGO-CURSOR = 'DD'
+                 PERFORM 7420-FETCH-DDCOM
+              END-IF
+              IF CH-S-CODIGO-CURSOR = 'NA'
+                 PERFORM 7430-FETCH-NACOM
+              END-IF
+              IF CH-S-CODIGO-CURSOR = 'ND'
+                 PERFORM 7440-FETCH-NDCOM
+              END-IF
+              IF CH-S-CODIGO-CURSOR = 'AA'
+                 PERFORM 7450-FETCH-AACOM
+              END-IF
+              IF CH-S-CODIGO-CURSOR = 'AD'
+                 PERFORM 7460-FETCH-ADCOM
+              END-IF
+           END-IF
+           IF HAY-FILTRO-CONTIENE
+              IF CH-S-CODIGO-CURSOR = 'DA'
+                 PERFORM 7510-FETCH-DACON
+              END-IF
+              IF CH-S-CODIGO-CURSOR = 'DD'
+                 PERFORM 7520-FETCH-DDCON
+              END-IF
+              IF CH-S-CODIGO-CURSOR = 'NA'
+                 PERFORM 7530-FETCH-NACON
+              END-IF
+              IF CH-S-CODIGO-CURSOR = 'ND'
+                 PERFORM 7540-FETCH-NDCON
+              END-IF
+              IF CH-S-CODIGO-CURSOR = 'AA'
+                 PERFORM 7550-FETCH-AACON
+              END-IF
+              IF CH-S-CODIGO-CURSOR = 'AD'
+                 PERFORM 7560-FETCH-ADCON
+              END-IF
+           END-IF
+      *
+           IF NOT HAY-FILTRO-CONTIENE AND NOT HAY-FILTRO-COMIENZA
+              IF CH-S-CODIGO-CURSOR = 'DA'
+                 PERFORM 7610-FETCH-DA
+              END-IF
+              IF CH-S-CODIGO-CURSOR = 'DD'
+                 PERFORM 7620-FETCH-DD
+              END-IF
+              IF CH-S-CODIGO-CURSOR = 'NA'
+                 PERFORM 7630-FETCH-NA
+              END-IF
+              IF CH-S-CODIGO-CURSOR = 'ND'
+                 PERFORM 7640-FETCH-ND
+              END-IF
+              IF CH-S-CODIGO-CURSOR = 'AA'
+                 PERFORM 7650-FETCH-AA
+              END-IF
+              IF CH-S-CODIGO-CURSOR = 'AD'
+                 PERFORM 7660-FETCH-AD
+              END-IF
+           END-IF.
+      *
+       7400-FETCH-CURSOR-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Lee el cursor abierto con filtro Comienza                ---
+      *----------------------------------------------------------------
+       7410-FETCH-DACOM.
+      *
+           EXEC SQL
+              FETCH DACOM
+                 INTO  :CL-DNI
+                     , :CL-NOMBRE
+                     , :CL-APELLIDOS
+                     , :CL-DIRECCION
+           END-EXEC
+      *
+           IF SQLCODE NOT = 0 AND SQLCODE NOT = +100
+              PERFORM 7900-CLOSE-CURSOR
+              MOVE '30'                    TO CODIGO-ABEND
+              PERFORM 8800-ABORTA-CICS
+           END-IF.
+      *
+       7410-FETCH-DACOM-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Lee el cursor abierto con filtro Comienza                ---
+      *----------------------------------------------------------------
+       7420-FETCH-DDCOM.
+      *
+           EXEC SQL
+              FETCH DDCOM
+                 INTO  :CL-DNI
+                     , :CL-NOMBRE
+                     , :CL-APELLIDOS
+                     , :CL-DIRECCION
+           END-EXEC
+      *
+           IF SQLCODE NOT = 0 AND SQLCODE NOT = +100
+              PERFORM 7900-CLOSE-CURSOR
+              MOVE '31'                    TO CODIGO-ABEND
+              PERFORM 8800-ABORTA-CICS
+           END-IF.
+      *
+       7420-FETCH-DDCOM-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Lee el cursor abierto con filtro Comienza                ---
+      *----------------------------------------------------------------
+       7430-FETCH-NACOM.
+      *
+           EXEC SQL
+              FETCH NACOM
+                 INTO  :CL-DNI
+                     , :CL-NOMBRE
+                     , :CL-APELLIDOS
+                     , :CL-DIRECCION
+           END-EXEC
+      *
+           IF SQLCODE NOT = 0 AND SQLCODE NOT = +100
+              PERFORM 7900-CLOSE-CURSOR
+              MOVE '32'                    TO CODIGO-ABEND
+              PERFORM 8800-ABORTA-CICS
+           END-IF.
+      *
+       7430-FETCH-NACOM-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Lee el cursor abierto con filtro Contiene                ---
+      *----------------------------------------------------------------
+       7440-FETCH-NDCOM.
+      *
+           EXEC SQL
+              FETCH NDCOM
+                 INTO  :CL-DNI
+                     , :CL-NOMBRE
+                     , :CL-APELLIDOS
+                     , :CL-DIRECCION
+           END-EXEC
+      *
+           IF SQLCODE NOT = 0 AND SQLCODE NOT = +100
+              PERFORM 7900-CLOSE-CURSOR
+              MOVE '33'                    TO CODIGO-ABEND
+              PERFORM 8800-ABORTA-CICS
+           END-IF.
+      *
+       7440-FETCH-NDCOM-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Lee el cursor abierto con filtro Contiene                ---
+      *----------------------------------------------------------------
+       7450-FETCH-AACOM.
+      *
+           EXEC SQL
+              FETCH AACOM
+                 INTO  :CL-DNI
+                     , :CL-NOMBRE
+                     , :CL-APELLIDOS
+                     , :CL-DIRECCION
+           END-EXEC
+      *
+           IF SQLCODE NOT = 0 AND SQLCODE NOT = +100
+              PERFORM 7900-CLOSE-CURSOR
+              MOVE '34'                    TO CODIGO-ABEND
+              PERFORM 8800-ABORTA-CICS
+           END-IF.
+      *
+       7450-FETCH-AACOM-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Lee el cursor abierto con filtro Contiene                ---
+      *----------------------------------------------------------------
+       7460-FETCH-ADCOM.
+      *
+           EXEC SQL
+              FETCH ADCOM
+                 INTO  :CL-DNI
+                     , :CL-NOMBRE
+                     , :CL-APELLIDOS
+                     , :CL-DIRECCION
+           END-EXEC
+      *
+           IF SQLCODE NOT = 0 AND SQLCODE NOT = +100
+              PERFORM 7900-CLOSE-CURSOR
+              MOVE '35'                    TO CODIGO-ABEND
+              PERFORM 8800-ABORTA-CICS
+           END-IF.
+      *
+       7460-FETCH-ADCOM-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Lee el cursor abierto con filtro Contiene                ---
+      *----------------------------------------------------------------
+       7510-FETCH-DACON.
+      *
+           EXEC SQL
+              FETCH DACON
+                 INTO  :CL-DNI
+                     , :CL-NOMBRE
+                     , :CL-APELLIDOS
+                     , :CL-DIRECCION
+           END-EXEC
+      *
+           IF SQLCODE NOT = 0 AND SQLCODE NOT = +100
+              PERFORM 7900-CLOSE-CURSOR
+              MOVE '36'                    TO CODIGO-ABEND
+              PERFORM 8800-ABORTA-CICS
+           END-IF.
+      *
+       7510-FETCH-DACON-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Lee el cursor abierto con filtro Contiene                ---
+      *----------------------------------------------------------------
+       7520-FETCH-DDCON.
+      *
+           EXEC SQL
+              FETCH DDCON
+                 INTO  :CL-DNI
+                     , :CL-NOMBRE
+                     , :CL-APELLIDOS
+                     , :CL-DIRECCION
+           END-EXEC
+      *
+           IF SQLCODE NOT = 0 AND SQLCODE NOT = +100
+              PERFORM 7900-CLOSE-CURSOR
+              MOVE '37'                    TO CODIGO-ABEND
+              PERFORM 8800-ABORTA-CICS
+           END-IF.
+      *
+       7520-FETCH-DDCON-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Lee el cursor abierto con filtro Contiene                ---
+      *----------------------------------------------------------------
+       7530-FETCH-NACON.
+      *
+           EXEC SQL
+              FETCH NACON
+                 INTO  :CL-DNI
+                     , :CL-NOMBRE
+                     , :CL-APELLIDOS
+                     , :CL-DIRECCION
+           END-EXEC
+      *
+           IF SQLCODE NOT = 0 AND SQLCODE NOT = +100
+              PERFORM 7900-CLOSE-CURSOR
+              MOVE '38'                    TO CODIGO-ABEND
+              PERFORM 8800-ABORTA-CICS
+           END-IF.
+      *
+       7530-FETCH-NACON-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Lee el cursor abierto con filtro Contiene                ---
+      *----------------------------------------------------------------
+       7540-FETCH-NDCON.
+      *
+           EXEC SQL
+              FETCH NDCOM
+                 INTO  :CL-DNI
+                     , :CL-NOMBRE
+                     , :CL-APELLIDOS
+                     , :CL-DIRECCION
+           END-EXEC
+      *
+           IF SQLCODE NOT = 0 AND SQLCODE NOT = +100
+              PERFORM 7900-CLOSE-CURSOR
+              MOVE '39'                    TO CODIGO-ABEND
+              PERFORM 8800-ABORTA-CICS
+           END-IF.
+      *
+       7540-FETCH-NDCON-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Lee el cursor abierto con filtro Contiene                ---
+      *----------------------------------------------------------------
+       7550-FETCH-AACON.
+      *
+           EXEC SQL
+              FETCH AACON
+                 INTO  :CL-DNI
+                     , :CL-NOMBRE
+                     , :CL-APELLIDOS
+                     , :CL-DIRECCION
+           END-EXEC
+      *
+           IF SQLCODE NOT = 0 AND SQLCODE NOT = +100
+              PERFORM 7900-CLOSE-CURSOR
+              MOVE '40'                    TO CODIGO-ABEND
+              PERFORM 8800-ABORTA-CICS
+           END-IF.
+      *
+       7550-FETCH-AACON-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Lee el cursor abierto con filtro Contiene                ---
+      *----------------------------------------------------------------
+       7560-FETCH-ADCON.
+      *
+           EXEC SQL
+              FETCH ADCON
+                 INTO  :CL-DNI
+                     , :CL-NOMBRE
+                     , :CL-APELLIDOS
+                     , :CL-DIRECCION
+           END-EXEC
+      *
+           IF SQLCODE NOT = 0 AND SQLCODE NOT = +100
+              PERFORM 7900-CLOSE-CURSOR
+              MOVE '41'                    TO CODIGO-ABEND
+              PERFORM 8800-ABORTA-CICS
+           END-IF.
+      *
+       7560-FETCH-ADCON-EXIT.
+           EXIT.
+
+      *----------------------------------------------------------------
+      *--- Lee el cursor abierto sin filtros                        ---
+      *----------------------------------------------------------------
+       7610-FETCH-DA.
+      *
+           EXEC SQL
+              FETCH CURDA
+                 INTO  :CL-DNI
+                     , :CL-NOMBRE
+                     , :CL-APELLIDOS
+                     , :CL-DIRECCION
+           END-EXEC
+      *
+           IF SQLCODE NOT = 0 AND SQLCODE NOT = +100
+              PERFORM 7900-CLOSE-CURSOR
+              MOVE '42'                    TO CODIGO-ABEND
+              PERFORM 8800-ABORTA-CICS
+           END-IF.
+      *
+       7610-FETCH-DA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Lee el cursor abierto sin filtros                        ---
+      *----------------------------------------------------------------
+       7620-FETCH-DD.
+      *
+           EXEC SQL
+              FETCH CURDD
+                 INTO  :CL-DNI
+                     , :CL-NOMBRE
+                     , :CL-APELLIDOS
+                     , :CL-DIRECCION
+           END-EXEC
+      *
+           IF SQLCODE NOT = 0 AND SQLCODE NOT = +100
+              PERFORM 7900-CLOSE-CURSOR
+              MOVE '43'                    TO CODIGO-ABEND
+              PERFORM 8800-ABORTA-CICS
+           END-IF.
+      *
+       7620-FETCH-DD-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Lee el cursor abierto sin filtros                        ---
+      *----------------------------------------------------------------
+       7630-FETCH-NA.
+      *
+           EXEC SQL
+              FETCH CURNA
+                 INTO  :CL-DNI
+                     , :CL-NOMBRE
+                     , :CL-APELLIDOS
+                     , :CL-DIRECCION
+           END-EXEC
+      *
+           IF SQLCODE NOT = 0 AND SQLCODE NOT = +100
+              PERFORM 7900-CLOSE-CURSOR
+              MOVE '44'                    TO CODIGO-ABEND
+              PERFORM 8800-ABORTA-CICS
+           END-IF.
+      *
+       7630-FETCH-NA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Lee el cursor abierto sin filtros                        ---
+      *----------------------------------------------------------------
+       7640-FETCH-ND.
+      *
+           EXEC SQL
+              FETCH CURND
+                 INTO  :CL-DNI
+                     , :CL-NOMBRE
+                     , :CL-APELLIDOS
+                     , :CL-DIRECCION
+           END-EXEC
+      *
+           IF SQLCODE NOT = 0 AND SQLCODE NOT = +100
+              PERFORM 7900-CLOSE-CURSOR
+              MOVE '45'                    TO CODIGO-ABEND
+              PERFORM 8800-ABORTA-CICS
+           END-IF.
+      *
+       7640-FETCH-ND-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Lee el cursor abierto sin filtros                        ---
+      *----------------------------------------------------------------
+       7650-FETCH-AA.
+      *
+           EXEC SQL
+              FETCH CURAA
+                 INTO  :CL-DNI
+                     , :CL-NOMBRE
+                     , :CL-APELLIDOS
+                     , :CL-DIRECCION
+           END-EXEC
+      *
+           IF SQLCODE NOT = 0 AND SQLCODE NOT = +100
+              PERFORM 7900-CLOSE-CURSOR
+              MOVE '46'                    TO CODIGO-ABEND
+              PERFORM 8800-ABORTA-CICS
+           END-IF.
+      *
+       7650-FETCH-AA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Lee el cursor abierto sin filtros                        ---
+      *----------------------------------------------------------------
+       7660-FETCH-AD.
+      *
+           EXEC SQL
+              FETCH CURAD
+                 INTO  :CL-DNI
+                     , :CL-NOMBRE
+                     , :CL-APELLIDOS
+                     , :CL-DIRECCION
+           END-EXEC
+      *
+           IF SQLCODE NOT = 0 AND SQLCODE NOT = +100
+              PERFORM 7900-CLOSE-CURSOR
+              MOVE '47'                    TO CODIGO-ABEND
+              PERFORM 8800-ABORTA-CICS
+           END-IF.
+      *
+       7660-FETCH-AD-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Cuenta los clientes existentes y los muestra en pantalla ---
+      *----------------------------------------------------------------
+       7800-CUENTA-CLIENTES.
+      *
+           EXEC SQL
+                SELECT COUNT (*) INTO :DB2-COUNT1
+                FROM CLIENTES
+           END-EXEC.
+      *
+       7800-CUENTA-CLIENTES-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Cierra el cursor que este abieerto                       ---
+      *----------------------------------------------------------------
+       7900-CLOSE-CURSOR.
+      *
+           IF HAY-FILTRO-COMIENZA
+              IF CH-S-CODIGO-CURSOR = 'DA'
+                   EXEC SQL CLOSE DACOM END-EXEC
+              END-IF
+              IF CH-S-CODIGO-CURSOR = 'DD'
+                   EXEC SQL CLOSE DDCOM END-EXEC
+              END-IF
+              IF CH-S-CODIGO-CURSOR = 'NA'
+                   EXEC SQL CLOSE NACOM END-EXEC
+              END-IF
+              IF CH-S-CODIGO-CURSOR = 'ND'
+                   EXEC SQL CLOSE NDCOM END-EXEC
+              END-IF
+              IF CH-S-CODIGO-CURSOR = 'AA'
+                   EXEC SQL CLOSE AACOM END-EXEC
+              END-IF
+              IF CH-S-CODIGO-CURSOR = 'AD'
+                   EXEC SQL CLOSE ADCOM END-EXEC
+              END-IF
+           END-IF
+      *
+           IF HAY-FILTRO-CONTIENE
+              IF CH-S-CODIGO-CURSOR = 'DA'
+                   EXEC SQL CLOSE DACON END-EXEC
+              END-IF
+              IF CH-S-CODIGO-CURSOR = 'DD'
+                   EXEC SQL CLOSE DDCON END-EXEC
+              END-IF
+              IF CH-S-CODIGO-CURSOR = 'NA'
+                   EXEC SQL CLOSE NACON END-EXEC
+              END-IF
+              IF CH-S-CODIGO-CURSOR = 'ND'
+                   EXEC SQL CLOSE NDCON END-EXEC
+              END-IF
+              IF CH-S-CODIGO-CURSOR = 'AA'
+                   EXEC SQL CLOSE AACON END-EXEC
+              END-IF
+              IF CH-S-CODIGO-CURSOR = 'AD'
+                   EXEC SQL CLOSE ADCON END-EXEC
+              END-IF
+           END-IF
+      *
+           IF NOT HAY-FILTRO-CONTIENE AND NOT HAY-FILTRO-COMIENZA
+              IF CH-S-CODIGO-CURSOR = 'DA'
+                   EXEC SQL CLOSE CURDA END-EXEC
+              END-IF
+              IF CH-S-CODIGO-CURSOR = 'DD'
+                   EXEC SQL CLOSE CURDD END-EXEC
+              END-IF
+              IF CH-S-CODIGO-CURSOR = 'NA'
+                   EXEC SQL CLOSE CURNA END-EXEC
+              END-IF
+              IF CH-S-CODIGO-CURSOR = 'ND'
+                   EXEC SQL CLOSE CURND END-EXEC
+              END-IF
+              IF CH-S-CODIGO-CURSOR = 'AA'
+                   EXEC SQL CLOSE CURAA END-EXEC
+              END-IF
+              IF CH-S-CODIGO-CURSOR = 'AD'
+                   EXEC SQL CLOSE CURAD END-EXEC
+              END-IF
+           END-IF.
+      *
+       7900-CLOSE-CURSOR-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Borrado de cola TS                                       ---
+      *----------------------------------------------------------------
+       8000-DELETE-QUEUE.
+      *
+           EXEC CICS
+                DELETEQ TS
+                QUEUE  (LTS-COLA)
+                NOHANDLE
+           END-EXEC
+      *
+           IF EIBRESP NOT = RESP-QIDERR    AND
+              EIBRESP NOT = RESP-OK
+              MOVE '50'                    TO CODIGO-ABEND
+              PERFORM 8800-ABORTA-CICS
+           END-IF.
+      *
+       8000-DELETE-QUEUE-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- CEDF vicualiza una traza - Quitar para produccion        ---
+      *----------------------------------------------------------------
+       8100-TRAZA.
+      *
+           EXEC CICS
+               ENTER       TRACEID(0)
+               FROM        (WA-TRAZA)
+           END-EXEC.
+      *
+       8100-TRAZA-EXIT.
+           EXIT.
+      *--- TXMUL ->
+      *----------------------------------------------------------------
+      *--- Llama a otro programa CICS por LINK con Commarea         ---
+      *----------------------------------------------------------------
+       8500-LINK-PROGRAMA.
+      *
+           EXEC CICS
+                LINK
+                PROGRAM (CH-LINK)
+                COMMAREA(CH-COMMAREA-HOL)
+                LENGTH  (LENGTH OF CH-COMMAREA-HOL)
+           END-EXEC.
+      *
+       8500-LINK-PROGRAMA-EXIT.
+           EXIT.
+      *--- TXMUL <-
+      *----------------------------------------------------------------
+      *--- Aborta la transaccion con un c¢digo U7xx (xx) N£mero     ---
+      *----------------------------------------------------------------
+       8800-ABORTA-CICS.
+      *
+           EXEC CICS
+                ABEND
+                ABCODE(WA-ABEND)
+                CANCEL
+           END-EXEC.
+      *
+       8800-ABORTA-CICS-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Devuelve el control a CICS - Salida total                ---
+      *----------------------------------------------------------------
+       8900-RETORNO-CICS.
+      *
+           EXEC CICS
+                RETURN
+           END-EXEC.
+      *
+       8900-RETORNO-CICS-EXIT.
+           EXIT.
+      *--- TXMUL ->
+      *----------------------------------------------------------------
+      *--- Obtener texto fijo con prog LNKTL     de tabla: TABLAS   ---
+      *----------------------------------------------------------------
+       20100-OBTENER-TEXTO.
+      *
+           MOVE '20100-OBTENER-TEXTO'        TO WA-PARRAFO.
+           MOVE DB2-TABLA-PROGRMSG           TO CL-TABLA.
+           MOVE LOW-VALUES                   TO CL-CLAVE2.
+           MOVE CL-IDIOMA                    TO CL-CLAVE3.
+           MOVE CS-PGM-TABLA-TITULO          TO CH-LINK.
+           PERFORM 8500-LINK-PROGRAMA.
+      *
+       20100-OBTENER-TEXTO-EXIT.
+           EXIT.
+      *--- TXMUL <-

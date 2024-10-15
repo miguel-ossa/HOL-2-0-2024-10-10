@@ -1,0 +1,63 @@
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*                   -----  MAP  'HOLIMP' -----                        *
+*                 CAMBIO DE IDIOMA EN APLICACI‡N                      *
+*                          VERSION 1.0                                *
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+HOLIMP   DFHMSD MODE=INOUT,LANG=COBOL,TIOAPFX=YES,TYPE=DSECT,TERM=ALL, X
+               CTRL=FREEKB,STORAGE=AUTO,                               X
+               MAPATTS=(COLOR,HILIGHT,OUTLINE),                        X
+               DSATTS=(COLOR,HILIGHT,OUTLINE),                         X
+               EXTATT=YES,COLOR=GREEN
+*
+HOLIMP   DFHMDI SIZE=(24,80),LINE=1,COLUMN=1
+*
+* --- Map fields ---
+*
+TRN1     DFHMDF POS=(01,01),LENGTH=04,ATTRB=(PROT,FSET,BRT),           X
+               INITIAL='HOLI',COLOR=YELLOW
+*
+USER     DFHMDF POS=(01,06),LENGTH=08,                                 X
+               ATTRB=(PROT,BRT),COLOR=RED
+*
+TITLE    DFHMDF POS=(01,15),LENGTH=50,ATTRB=(PROT,BRT),                X
+               INITIAL='Cambio de Idioma en Aplicacion',               X
+               COLOR=YELLOW
+*
+         DFHMDF POS=(02,01),LENGTH=78,ATTRB=(PROT,NORM),               X
+               INITIAL='===============================================X
+               ===============================',                       X
+               COLOR=YELLOW
+*
+TX10     DFHMDF POS=(11,20),LENGTH=26,ATTRB=(PROT,NORM),               X
+               INITIAL='Indique Idioma (ES,EN)...:',                   X
+               COLOR=TURQUOISE
+*
+IDI      DFHMDF POS=(11,47),LENGTH=02,ATTRB=(UNPROT,FSET,IC),          X
+               COLOR=GREEN,HILIGHT=UNDERLINE
+         DFHMDF POS=(11,50),LENGTH=01,ATTRB=PROT
+*
+TX20     DFHMDF POS=(11,52),LENGTH=10,ATTRB=(PROT,NORM),               X
+               COLOR=RED
+*
+         DFHMDF POS=(21,01),LENGTH=78,ATTRB=(PROT,NORM),               X
+               INITIAL='-----------------------------------------------X
+               -------------------------------',                       X
+               COLOR=YELLOW
+*
+TX100    DFHMDF POS=(22,01),LENGTH=40,ATTRB=(PROT,NORM),               X
+               INITIAL='F1-Ayuda        F3-Volver',                    X
+               COLOR=TURQUOISE
+TX110    DFHMDF POS=(22,64),LENGTH=13,ATTRB=(PROT,NORM),               X
+               INITIAL='Intro-Proceso',                                X
+               COLOR=TURQUOISE
+*
+         DFHMDF POS=(23,01),LENGTH=78,ATTRB=(PROT,NORM),               X
+               INITIAL='-----------------------------------------------X
+               -------------------------------',                       X
+               COLOR=YELLOW
+*
+MSG      DFHMDF POS=(24,01),LENGTH=78,ATTRB=(PROT,BRT,FSET),           X
+               COLOR=RED
+*
+         DFHMSD TYPE=FINAL
+         END

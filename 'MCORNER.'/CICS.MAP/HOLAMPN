@@ -1,0 +1,100 @@
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*                   -----  MAP  'HOLAMP' -----                        *
+*                 LOGIN DE USUARIO EN APLICACI‡N                      *
+*                          VERSION 1.0                                *
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+HOLAMP   DFHMSD MODE=INOUT,LANG=COBOL,TIOAPFX=YES,TYPE=DSECT,TERM=ALL, X
+               CTRL=FREEKB,STORAGE=AUTO,                               X
+               MAPATTS=(COLOR,HILIGHT,OUTLINE),                        X
+               DSATTS=(COLOR,HILIGHT,OUTLINE),                         X
+               EXTATT=YES,COLOR=GREEN
+*
+HOLAMP   DFHMDI SIZE=(24,80),LINE=1,COLUMN=1
+*
+* --- Map fields ---
+*
+TX010    DFHMDF POS=(01,01),LENGTH=20,ATTRB=(PROT,NORM),               X
+               COLOR=YELLOW,INITIAL='Aplicaci¢n HOL*'
+*
+DATE     DFHMDF POS=(01,70),LENGTH=10,ATTRB=(PROT,NORM),               X
+               COLOR=YELLOW
+*
+         DFHMDF POS=(02,01),LENGTH=04,ATTRB=(PROT,NORM),               X
+               COLOR=YELLOW,INITIAL='HOLA'
+*
+TX020    DFHMDF POS=(03,29),LENGTH=20,ATTRB=(PROT,NORM),               X
+               COLOR=YELLOW,INITIAL='CONTROL DE ACCESO'
+*
+TX030    DFHMDF POS=(05,01),LENGTH=40,ATTRB=(PROT,NORM),               X
+               COLOR=NEUTRAL,INITIAL='ESCRIBA SU USUARIO Y PASSWORD'
+*
+         DFHMDF POS=(06,01),LENGTH=79,ATTRB=(PROT,NORM),               X
+               COLOR=YELLOW,                                           X
+               INITIAL='-----------------------------------------------X
+               --------------------------------'
+*
+TX040    DFHMDF POS=(08,21),LENGTH=12,ATTRB=(PROT,NORM),               X
+               COLOR=NEUTRAL,INITIAL='USUARIO....:'
+*
+USU      DFHMDF POS=(08,34),LENGTH=06,ATTRB=(UNPROT,FSET,IC),          X
+               COLOR=RED,HILIGHT=UNDERLINE
+         DFHMDF POS=(08,41),LENGTH=01,ATTRB=ASKIP
+*
+TX050    DFHMDF POS=(09,21),LENGTH=12,ATTRB=(PROT,NORM),               X
+               COLOR=NEUTRAL,INITIAL='PASSWORD...:'
+*
+PSW      DFHMDF POS=(09,34),LENGTH=15,ATTRB=(UNPROT,DRK),              X
+               COLOR=RED
+         DFHMDF POS=(09,50),LENGTH=01,ATTRB=ASKIP
+*
+TX060    DFHMDF POS=(11,21),LENGTH=28,ATTRB=(PROT,NORM),               X
+               COLOR=NEUTRAL,INITIAL='NUEVA PASSWORD.............:'
+*
+NEW      DFHMDF POS=(11,50),LENGTH=15,ATTRB=(UNPROT,FSET),             X
+               COLOR=RED,HILIGHT=UNDERLINE
+         DFHMDF POS=(11,66),LENGTH=01,ATTRB=ASKIP
+*
+TX070    DFHMDF POS=(12,21),LENGTH=28,ATTRB=(PROT,NORM),               X
+               COLOR=NEUTRAL,INITIAL='CONFIRMAR NUEVA PASSWORD...:'
+*
+CNF      DFHMDF POS=(12,50),LENGTH=15,ATTRB=(UNPROT,FSET),             X
+               COLOR=RED,HILIGHT=UNDERLINE
+         DFHMDF POS=(12,66),LENGTH=01,ATTRB=PROT
+*
+         DFHMDF POS=(14,01),LENGTH=79,ATTRB=(PROT,NORM),               X
+               COLOR=YELLOW,                                           X
+               INITIAL='-----------------------------------------------X
+               --------------------------------'
+*
+TX080    DFHMDF POS=(16,01),LENGTH=78,ATTRB=(PROT,NORM),               X
+               COLOR=NEUTRAL,                                          X
+               INITIAL='Validar: entrar USUARIO y PASSWORD'
+*
+TX090    DFHMDF POS=(17,01),LENGTH=78,ATTRB=(PROT,NORM),               X
+               COLOR=NEUTRAL,                                          X
+               INITIAL='Nuevo Usuario: entrar USUARIO, NUEVA PASSWORD y*
+                CONFIRMAR'
+*
+TX100    DFHMDF POS=(18,01),LENGTH=78,ATTRB=(PROT,NORM),               X
+               COLOR=NEUTRAL,                                          X
+               INITIAL='Cambiar Password: entrar USUARIO, PASSWORD, NUE*
+               VA PASSWORD y CONFIRMAR'
+*
+         DFHMDF POS=(21,01),LENGTH=79,ATTRB=(PROT,NORM),               X
+               COLOR=YELLOW,                                           X
+               INITIAL='-----------------------------------------------X
+               --------------------------------'
+*
+TX110    DFHMDF POS=(22,01),LENGTH=79,ATTRB=(PROT,NORM),               X
+               COLOR=YELLOW,                                           X
+               INITIAL='Enter-Validar       F3-Salir       F4-Nuevo Usu*
+               ario        F5-Cambiar Password'
+         DFHMDF POS=(23,01),LENGTH=79,ATTRB=(PROT,NORM),               X
+               COLOR=YELLOW,                                           X
+               INITIAL='-----------------------------------------------X
+               --------------------------------'
+MSG      DFHMDF POS=(24,01),LENGTH=79,ATTRB=(PROT,BRT,FSET),           X
+               COLOR=RED
+*
+         DFHMSD TYPE=FINAL
+         END

@@ -1,0 +1,12 @@
+//DELETCAT JOB MCORNER,'DELETE-CATALOG',CLASS=A,MSGCLASS=A,
+//            MSGLEVEL=(1,1),NOTIFY=&SYSUID
+//DELCAT   EXEC PGM=IDCAMS
+//SYSPRINT DD  SYSOUT=A
+//SYSOUT   DD  SYSOUT=A
+//SYSIN    DD  *
+   DELETE                      -
+        USERCAT.Z111S.MCORNER  -
+        PURGE                  -
+        FORCE                  -
+        USERCATALOG
+/*

@@ -1,0 +1,136 @@
+      *
+      * --- POSIBLES VALORES DEL CAMPO EIBRESP
+      * --- VERSION 1.0
+      *
+       01  RESPCICS.
+           03  RESP-OK                 PIC S9(8) COMP VALUE +0.
+      *
+           03  RESP-ERROR              PIC S9(8) COMP VALUE +1.
+           03  RESP-RDATT              PIC S9(8) COMP VALUE +2.
+           03  RESP-WRBRK              PIC S9(8) COMP VALUE +3.
+           03  RESP-EOF                PIC S9(8) COMP VALUE +4.
+           03  RESP-EODS               PIC S9(8) COMP VALUE +5.
+           03  RESP-EOC                PIC S9(8) COMP VALUE +6.
+           03  RESP-INBFMH             PIC S9(8) COMP VALUE +7.
+           03  RESP-ENDINPT            PIC S9(8) COMP VALUE +8.
+           03  RESP-NOVAL              PIC S9(8) COMP VALUE +9.
+      *
+           03  RESP-NOSTART            PIC S9(8) COMP VALUE +10.
+           03  RESP-TERMIDERR          PIC S9(8) COMP VALUE +11.
+           03  RESP-FILENOTFOUND       PIC S9(8) COMP VALUE +12.
+           03  RESP-NOTFND             PIC S9(8) COMP VALUE +13.
+           03  RESP-DUPREC             PIC S9(8) COMP VALUE +14.
+           03  RESP-DUPKEY             PIC S9(8) COMP VALUE +15.
+           03  RESP-INVREQ             PIC S9(8) COMP VALUE +16.
+           03  RESP-IOERR              PIC S9(8) COMP VALUE +17.
+           03  RESP-NOSPACE            PIC S9(8) COMP VALUE +18.
+           03  RESP-NOTOPEN            PIC S9(8) COMP VALUE +19.
+      *
+           03  RESP-ENDFILE            PIC S9(8) COMP VALUE +20.
+           03  RESP-ILLOGIC            PIC S9(8) COMP VALUE +21.
+           03  RESP-LENGERR            PIC S9(8) COMP VALUE +22.
+           03  RESP-QZERO              PIC S9(8) COMP VALUE +23.
+           03  RESP-SIGNAL             PIC S9(8) COMP VALUE +24.
+           03  RESP-QBUSY              PIC S9(8) COMP VALUE +25.
+           03  RESP-ITEMERR            PIC S9(8) COMP VALUE +26.
+           03  RESP-PGMIDERR           PIC S9(8) COMP VALUE +27.
+           03  RESP-TRANSIDERR         PIC S9(8) COMP VALUE +28.
+           03  RESP-ENDDATA            PIC S9(8) COMP VALUE +29.
+      *
+           03  RESP-INVTSREQ           PIC S9(8) COMP VALUE +30.
+           03  RESP-EXPIRED            PIC S9(8) COMP VALUE +31.
+           03  RESP-RETPAGE            PIC S9(8) COMP VALUE +32.
+           03  RESP-RTEFAIL            PIC S9(8) COMP VALUE +33.
+           03  RESP-RTESOME            PIC S9(8) COMP VALUE +34.
+           03  RESP-TSIOERR            PIC S9(8) COMP VALUE +35.
+           03  RESP-MAPFAIL            PIC S9(8) COMP VALUE +36.
+           03  RESP-INVERRTERM         PIC S9(8) COMP VALUE +37.
+           03  RESP-INVMPSZ            PIC S9(8) COMP VALUE +38.
+           03  RESP-IGREQID            PIC S9(8) COMP VALUE +39.
+      *
+           03  RESP-OVERFLOW           PIC S9(8) COMP VALUE +40.
+           03  RESP-INVLDC             PIC S9(8) COMP VALUE +41.
+           03  RESP-NOSTG              PIC S9(8) COMP VALUE +42.
+           03  RESP-JIDERR             PIC S9(8) COMP VALUE +43.
+           03  RESP-QIDERR             PIC S9(8) COMP VALUE +44.
+           03  RESP-NOJBUFSP           PIC S9(8) COMP VALUE +45.
+           03  RESP-DSSTAT             PIC S9(8) COMP VALUE +46.
+           03  RESP-SELNERR            PIC S9(8) COMP VALUE +47.
+           03  RESP-FUNCERR            PIC S9(8) COMP VALUE +48.
+           03  RESP-UNEXPIN            PIC S9(8) COMP VALUE +49.
+      *
+           03  RESP-NOPASSBKRD         PIC S9(8) COMP VALUE +50.
+           03  RESP-NOPASSBKWR         PIC S9(8) COMP VALUE +51.
+      *                                                     +52
+           03  RESP-SYSIDERR           PIC S9(8) COMP VALUE +53.
+           03  RESP-ISCINVREQ          PIC S9(8) COMP VALUE +54.
+           03  RESP-ENQBUSY            PIC S9(8) COMP VALUE +55.
+           03  RESP-ENVDEFERR          PIC S9(8) COMP VALUE +56.
+           03  RESP-IGREQCD            PIC S9(8) COMP VALUE +57.
+           03  RESP-SESSIONERR         PIC S9(8) COMP VALUE +58.
+           03  RESP-SYSBUSY            PIC S9(8) COMP VALUE +59.
+      *
+           03  RESP-SESSBUSY           PIC S9(8) COMP VALUE +60.
+           03  RESP-NOTALLOC           PIC S9(8) COMP VALUE +61.
+           03  RESP-CBIDERR            PIC S9(8) COMP VALUE +62.
+           03  RESP-INVEXITREQ         PIC S9(8) COMP VALUE +63.
+           03  RESP-INVPARTNSET        PIC S9(8) COMP VALUE +64.
+           03  RESP-INVPARTN           PIC S9(8) COMP VALUE +65.
+           03  RESP-PARTNFAIL          PIC S9(8) COMP VALUE +66.
+      *                                                     +67
+      *                                                     +68
+           03  RESP-USERIDERR          PIC S9(8) COMP VALUE +69.
+      *
+           03  RESP-NOTAUTH            PIC S9(8) COMP VALUE +70.
+           03  RESP-VOLIDERR           PIC S9(8) COMP VALUE +71.
+           03  RESP-SUPPRESSED         PIC S9(8) COMP VALUE +72.
+      *                                                     +73
+      *                                                     +74
+           03  RESP-RESIDERR           PIC S9(8) COMP VALUE +75.
+      *                                                     +76
+      *                                                     +77
+      *                                                     +78
+      *                                                     +79
+      *
+           03  RESP-NOSPOOL            PIC S9(8) COMP VALUE +80.
+           03  RESP-TERMERR            PIC S9(8) COMP VALUE +81.
+           03  RESP-ROLLEDBACK         PIC S9(8) COMP VALUE +82.
+           03  RESP-END                PIC S9(8) COMP VALUE +83.
+           03  RESP-DISABLED           PIC S9(8) COMP VALUE +84.
+           03  RESP-ALLOCERR           PIC S9(8) COMP VALUE +85.
+           03  RESP-STRELERR           PIC S9(8) COMP VALUE +86.
+           03  RESP-OPENERR            PIC S9(8) COMP VALUE +87.
+           03  RESP-SPOLBUSY           PIC S9(8) COMP VALUE +88.
+           03  RESP-SPOLERR            PIC S9(8) COMP VALUE +89.
+      *
+           03  RESP-NODEIDER           PIC S9(8) COMP VALUE +90.
+           03  RESP-TASKIDERR          PIC S9(8) COMP VALUE +91.
+           03  RESP-TCIDERR            PIC S9(8) COMP VALUE +92.
+           03  RESP-DSNNOTFOUND        PIC S9(8) COMP VALUE +93.
+           03  RESP-LOADING            PIC S9(8) COMP VALUE +94.
+           03  RESP-MODELIDERR         PIC S9(8) COMP VALUE +95.
+           03  RESP-OUTDESCERR         PIC S9(8) COMP VALUE +96.
+           03  RESP-PARTNERIDERR       PIC S9(8) COMP VALUE +97.
+           03  RESP-PROFILEIDERR       PIC S9(8) COMP VALUE +98.
+           03  RESP-NETNAMEIDERR       PIC S9(8) COMP VALUE +99.
+      *
+           03  RESP-LOCKED             PIC S9(8) COMP VALUE +100.
+           03  RESP-RECORDBUSY         PIC S9(8) COMP VALUE +101.
+           03  RESP-UOWNOTFOUND        PIC S9(8) COMP VALUE +102.
+           03  RESP-UOWLNOTFOUND       PIC S9(8) COMP VALUE +103.
+           03  RESP-LINKABEND          PIC S9(8) COMP VALUE +104.
+           03  RESP-CHANGED            PIC S9(8) COMP VALUE +105.
+           03  RESP-PROCESSBUSY        PIC S9(8) COMP VALUE +106.
+           03  RESP-ACTIVITYBUSY       PIC S9(8) COMP VALUE +107.
+           03  RESP-PROCESSERR         PIC S9(8) COMP VALUE +108.
+           03  RESP-ACTIVITYERR        PIC S9(8) COMP VALUE +109.
+      *
+           03  RESP-CONTAINERERR       PIC S9(8) COMP VALUE +110.
+           03  RESP-EVENTERR           PIC S9(8) COMP VALUE +111.
+           03  RESP-TOKENERR           PIC S9(8) COMP VALUE +112.
+           03  RESP-NOTFINISHED        PIC S9(8) COMP VALUE +113.
+           03  RESP-POOLERR            PIC S9(8) COMP VALUE +114.
+           03  RESP-TIMERERR           PIC S9(8) COMP VALUE +115.
+           03  RESP-SYMBOLERR          PIC S9(8) COMP VALUE +116.
+           03  RESP-TEMPLATERR         PIC S9(8) COMP VALUE +117.
+      *

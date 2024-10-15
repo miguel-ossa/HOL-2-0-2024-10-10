@@ -1,0 +1,17 @@
+DSN     SYSTEM         (DB9G)                                           00010000
+BIND    PACKAGE        (APPHOL)      -                                  00020000
+        MEMBER         (PHOLX)       -                                  00030000
+        ENCODING       (284)         -                                  00040001
+        ISOLATION      (CS)          -                                  00041000
+        VALIDATE       (BIND)        -                                  00041100
+        RELEASE        (COMMIT)      -                                  00041200
+        EXPLAIN        (YES)         -                                  00041300
+        CURRENTDATA    (NO)          -                                  00041400
+        DEGREE         (ANY)         -                                  00041500
+        DYNAMICRULES   (BIND)        -                                  00041600
+        SQLERROR       (NOPACKAGE)   -                                  00042000
+        ACTION         (REPLACE)     -                                  00043000
+        FLAG           (I)           -                                  00043100
+        QUALIFIER      (IBMUSER)     -                                  00044000
+        OWNER          (IBMUSER)                                        00045000
+END                                                                     00046000

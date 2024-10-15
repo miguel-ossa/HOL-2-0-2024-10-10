@@ -1,0 +1,224 @@
+//INSTALL  JOB MCORNER,'INSTALL-LAUNCHER',NOTIFY=&SYSUID,               00010000
+//            MSGCLASS=A,CLASS=A,MSGLEVEL=(1,1),REGION=0M               00020000
+//*                                                                     00021000
+//* VERSION 1.0                                                         00022000
+//*                                                                     00023000
+//*================================================================     00030000
+//*                                                                     00042000
+//*----------------------------------------------------------------     00050000
+//* COMPILATION OF ALL THE BATCH PROGRAMS                               00051000
+//*----------------------------------------------------------------     00052000
+//*                                                                     00053000
+//BHOLL     EXEC PROC=PBTHDB2,PRG='BHOLL',PLN='BTHPLAN'                 00060000
+//BLNKTL    EXEC PROC=PBTHDB2,PRG='BLNKTL',PLN='BTHPLAN'                00060102
+//*                                                                     00060300
+//*----------------------------------------------------------------     00060400
+//* COMPILATION OF ALL THE CICS MAP                                     00060500
+//*----------------------------------------------------------------     00060600
+//*                                                                     00060700
+//HOLAMP    EXEC PROC=PASMMAP,MAP='HOLAMP'                              00060804
+//HOLEMP    EXEC PROC=PASMMAP,MAP='HOLEMP'                              00060904
+//HOLHMP    EXEC PROC=PASMMAP,MAP='HOLHMP'                              00061004
+//HOLIMP    EXEC PROC=PASMMAP,MAP='HOLIMP'                              00061104
+//HOM1MP    EXEC PROC=PASMMAP,MAP='HOM1MP'                              00061205
+//HOM9MP    EXEC PROC=PASMMAP,MAP='HOM9MP'                              00061305
+//HOLMMP    EXEC PROC=PASMMAP,MAP='HOLMMP'                              00061405
+//HOLPMP    EXEC PROC=PASMMAP,MAP='HOLPMP'                              00061505
+//HOLRMP    EXEC PROC=PASMMAP,MAP='HOLRMP'                              00061605
+//HOLSMP    EXEC PROC=PASMMAP,MAP='HOLSMP'                              00061705
+//HOLUMP    EXEC PROC=PASMMAP,MAP='HOLUMP'                              00061805
+//HOLXMP    EXEC PROC=PASMMAP,MAP='HOLXMP'                              00061905
+//HOLYMP    EXEC PROC=PASMMAP,MAP='HOLYMP'                              00062005
+//HOLZMP    EXEC PROC=PASMMAP,MAP='HOLZMP'                              00062105
+//HOL4MP    EXEC PROC=PASMMAP,MAP='HOL4MP'                              00062205
+//TST1MP    EXEC PROC=PASMMAP,MAP='TST1MP'                              00062305
+//*                                                                     00062405
+//*----------------------------------------------------------------     00062505
+//* COMPILATION OF ALL THE CICS DB2 PROGRAMS                            00062605
+//*----------------------------------------------------------------     00062705
+//*                                                                     00062805
+//HOL4      EXEC PROC=PCICSDB2,PRG='HOL4',PLN='HOLPLAN'                 00062905
+//LNKTL     EXEC PROC=PCICSDB2,PRG='LNKTL',PLN='HOLPLAN'                00063005
+//PHOLA     EXEC PROC=PCICSDB2,PRG='PHOLA',PLN='HOLPLAN'                00063105
+//PHOLE     EXEC PROC=PCICSDB2,PRG='PHOLE',PLN='HOLPLAN'                00063205
+//PHOLH     EXEC PROC=PCICSDB2,PRG='PHOLH',PLN='HOLPLAN'                00063305
+//PHOLI     EXEC PROC=PCICSDB2,PRG='PHOLI',PLN='HOLPLAN'                00063405
+//PHOLL     EXEC PROC=PCICSDB2,PRG='PHOLL',PLN='HOLPLAN'                00063505
+//PHOLM     EXEC PROC=PCICSDB2,PRG='PHOLM',PLN='HOLPLAN'                00063605
+//PHOM1     EXEC PROC=PCICSDB2,PRG='PHOM1',PLN='HOLPLAN'                00063705
+//PHOM9     EXEC PROC=PCICSDB2,PRG='PHOM9',PLN='HOLPLAN'                00063805
+//PHOLP     EXEC PROC=PCICSDB2,PRG='PHOLP',PLN='HOLPLAN'                00063905
+//PHOLR     EXEC PROC=PCICSDB2,PRG='PHOLR',PLN='HOLPLAN'                00064005
+//PHOLS     EXEC PROC=PCICSDB2,PRG='PHOLS',PLN='HOLPLAN'                00064105
+//PHOLU     EXEC PROC=PCICSDB2,PRG='PHOLU',PLN='HOLPLAN'                00064205
+//PHOLX     EXEC PROC=PCICSDB2,PRG='PHOLX',PLN='HOLPLAN'                00064305
+//PHOLY     EXEC PROC=PCICSDB2,PRG='PHOLY',PLN='HOLPLAN'                00064405
+//PHOLZ     EXEC PROC=PCICSDB2,PRG='PHOLZ',PLN='HOLPLAN'                00064505
+//PTST1     EXEC PROC=PCICSDB2,PRG='PTST1',PLN='HOLPLAN'                00064605
+//*                                                                     00065000
+//*----------------------------------------------------------------     00066000
+//* COMPILATION OF ALL COBOL CICS PROGRAMS (NO DB2)                     00067000
+//*----------------------------------------------------------------     00068000
+//*                                                                     00069000
+//PHOLW     EXEC PROC=PCOBCICS,PRG='PHOLW'                              00069100
+//*                                                                     00069200
+//*----------------------------------------------------------------     00069300
+//* COMPILATION OF ALL COBOL ROUTINES NO CICS NO DB2                    00069400
+//*----------------------------------------------------------------     00069500
+//*                                                                     00069600
+//RTCENTI   EXEC PROC=PCOBCALL,PRG='RTCENTI'                            00070000
+//*                                                                     00080000
+//*----------------------------------------------------------------     00082000
+//* CEDA DEFINE DB2 CONNECTION                                          00083000
+//*----------------------------------------------------------------     00084000
+//DEFDB2C  EXEC PGM=DFHCSDUP                                            00085000
+//STEPLIB  DD DSN=DFH410.CICS.SDFHLOAD,DISP=SHR                         00086000
+//DFHCSD   DD DSN=DFH410.CICS.DFHCSD,DISP=SHR                           00087000
+//SYSPRINT DD SYSOUT=A                                                  00088000
+//SYSOUT   DD SYSOUT=A                                                  00089000
+//SYSIN    DD *                                                         00089100
+   DEF DB2CONN(CICSDB2) GR(HOL4) DB2ID(DB9G)                            00089200
+/*                                                                      00089300
+//*                                                                     00089400
+//*----------------------------------------------------------------     00089500
+//* CEDA DEFINE DB2 ENTRY                                               00089600
+//*----------------------------------------------------------------     00089700
+//LSTCICS  EXEC PGM=DFHCSDUP                                            00089800
+//STEPLIB  DD DSN=DFH410.CICS.SDFHLOAD,DISP=SHR                         00089900
+//DFHCSD   DD DSN=DFH410.CICS.DFHCSD,DISP=SHR                           00090000
+//SYSPRINT DD SYSOUT=A                                                  00090100
+//SYSOUT   DD SYSOUT=A                                                  00090200
+//SYSIN    DD *                                                         00090300
+   DEF DB2ENTRY(HOL4) GR(HOL4) TRANSID(*) PLAN(HOL4PL)                  00090400
+/*                                                                      00090500
+//*----------------------------------------------------------------     00091000
+//* CEDA DEFINITIONS FOR MAPS                                           00100000
+//*----------------------------------------------------------------     00110000
+//*                                                                     00120000
+//DEFMAPS  EXEC PGM=DFHCSDUP                                            00130000
+//STEPLIB  DD DSN=DFH410.CICS.SDFHLOAD,DISP=SHR                         00140000
+//DFHCSD   DD DSN=DFH410.CICS.DFHCSD,DISP=SHR                           00150000
+//SYSPRINT DD SYSOUT=A                                                  00160000
+//SYSOUT   DD SYSOUT=A                                                  00161000
+//SYSIN    DD *                                                         00170000
+    DEF MAP(HOLAMP) GR(HOL4)                                            00171003
+    DEF MAP(HOLEMP) GR(HOL4)                                            00171103
+    DEF MAP(HOLHMP) GR(HOL4)                                            00172000
+    DEF MAP(HOLIMP) GR(HOL4)                                            00172100
+    DEF MAP(HOLMMP) GR(HOL4)                                            00173000
+    DEF MAP(HOM1MP) GR(HOL4)                                            00173106
+    DEF MAP(HOM9MP) GR(HOL4)                                            00173206
+    DEF MAP(HOLPMP) GR(HOL4)                                            00174000
+    DEF MAP(HOLRMP) GR(HOL4)                                            00175000
+    DEF MAP(HOLSMP) GR(HOL4)                                            00176000
+    DEF MAP(HOLUMP) GR(HOL4)                                            00177000
+    DEF MAP(HOLXMP) GR(HOL4)                                            00178000
+    DEF MAP(HOLZMP) GR(HOL4)                                            00182000
+    DEF MAP(HOLYMP) GR(HOL4)                                            00189000
+    DEF MAP(HOL4MP) GR(HOL4)                                            00189100
+    DEF MAP(TST1MP) GR(HOL4)                                            00189200
+/*                                                                      00190000
+//*                                                                     00250000
+//*----------------------------------------------------------------     00260000
+//* CEDA DEFINITIONS FOR PROGRAMS                                       00270000
+//*----------------------------------------------------------------     00280000
+//*                                                                     00290000
+//DEFPRGS  EXEC PGM=DFHCSDUP                                            00292000
+//STEPLIB  DD DSN=DFH410.CICS.SDFHLOAD,DISP=SHR                         00293000
+//DFHCSD   DD DSN=DFH410.CICS.DFHCSD,DISP=SHR                           00294000
+//SYSPRINT DD SYSOUT=A                                                  00295000
+//SYSOUT   DD SYSOUT=A                                                  00295100
+//SYSIN    DD *                                                         00296000
+    DEF PROG(HOL4) GR(HOL4)                                             00297000
+    DEF PROG(LNKTL) GR(HOL4)                                            00298000
+    DEF PROG(PHOLA) GR(HOL4)                                            00320003
+    DEF PROG(PHOLE) GR(HOL4)                                            00320103
+    DEF PROG(PHOLH) GR(HOL4)                                            00321000
+    DEF PROG(PHOLI) GR(HOL4)                                            00321100
+    DEF PROG(PHOLL) GR(HOL4)                                            00322000
+    DEF PROG(PHOLM) GR(HOL4)                                            00323000
+    DEF PROG(PHOM1) GR(HOL4)                                            00323106
+    DEF PROG(PHOM9) GR(HOL4)                                            00323206
+    DEF PROG(PHOLP) GR(HOL4)                                            00324000
+    DEF PROG(PHOLR) GR(HOL4)                                            00325000
+    DEF PROG(PHOLS) GR(HOL4)                                            00326000
+    DEF PROG(PHOLU) GR(HOL4)                                            00327000
+    DEF PROG(PHOLW) GR(HOL4)                                            00328000
+    DEF PROG(PHOLX) GR(HOL4)                                            00329000
+    DEF PROG(PHOLY) GR(HOL4)                                            00329100
+    DEF PROG(PHOLZ) GR(HOL4)                                            00330000
+    DEF PROG(PTST1) GR(HOL4)                                            00350000
+    DEF PROG(RTCENTI) GR(HOL4)                                          00360000
+/*                                                                      00440000
+//*                                                                     00441000
+//*----------------------------------------------------------------     00450000
+//* CEDA DEFINITIONS FOR TRANSACTIONS                                   00460000
+//*----------------------------------------------------------------     00470000
+//*                                                                     00480000
+//DEFTRAN  EXEC PGM=DFHCSDUP                                            00481000
+//STEPLIB  DD DSN=DFH410.CICS.SDFHLOAD,DISP=SHR                         00482000
+//DFHCSD   DD DSN=DFH410.CICS.DFHCSD,DISP=SHR                           00483000
+//SYSPRINT DD SYSOUT=A                                                  00484000
+//SYSOUT   DD SYSOUT=A                                                  00484100
+//SYSIN    DD *                                                         00485000
+    DEF TRANS(HOL4) PROGRAM(HOL4) GR(HOL4)                              00486000
+    DEF TRANS(HOLA) PROGRAM(PHOLA) GR(HOL4)                             00487003
+    DEF TRANS(HOLE) PROGRAM(PHOLE) GR(HOL4)                             00487103
+    DEF TRANS(HOLH) PROGRAM(PHOLH) GR(HOL4)                             00488000
+    DEF TRANS(HOLI) PROGRAM(PHOLI) GR(HOL4)                             00488100
+    DEF TRANS(HOLL) PROGRAM(PHOLL) GR(HOL4)                             00489000
+    DEF TRANS(HOLM) PROGRAM(PHOLM) GR(HOL4)                             00490000
+    DEF TRANS(HOM1) PROGRAM(PHOM1) GR(HOL4)                             00491006
+    DEF TRANS(HOM9) PROGRAM(PHOM9) GR(HOL4)                             00492006
+    DEF TRANS(HOLP) PROGRAM(PHOLP) GR(HOL4)                             00500000
+    DEF TRANS(HOLR) PROGRAM(PHOLR) GR(HOL4)                             00510000
+    DEF TRANS(HOLS) PROGRAM(PHOLS) GR(HOL4)                             00511000
+    DEF TRANS(HOLU) PROGRAM(PHOLU) GR(HOL4)                             00512000
+    DEF TRANS(HOLW) PROGRAM(PHOLW) GR(HOL4)                             00513000
+    DEF TRANS(HOLX) PROGRAM(PHOLX) GR(HOL4)                             00514000
+    DEF TRANS(HOLY) PROGRAM(PHOLY) GR(HOL4)                             00515000
+    DEF TRANS(HOLZ) PROGRAM(PHOLZ) GR(HOL4)                             00520000
+    DEF TRANS(TST1) PROGRAM(PTST1) GR(HOL4)                             00585000
+/*                                                                      00620000
+//*                                                                     00630000
+//*----------------------------------------------------------------     00640000
+//* CEDA DEFINITIONS FOR DB2 TRANSACTIONS                               00650000
+//*----------------------------------------------------------------     00660000
+//*                                                                     00670000
+//DEFDB2T  EXEC PGM=DFHCSDUP                                            00681000
+//STEPLIB  DD DSN=DFH410.CICS.SDFHLOAD,DISP=SHR                         00682000
+//DFHCSD   DD DSN=DFH410.CICS.DFHCSD,DISP=SHR                           00683000
+//SYSPRINT DD SYSOUT=A                                                  00684000
+//SYSOUT   DD SYSOUT=A                                                  00684100
+//SYSIN    DD *                                                         00685000
+    DEF DB2TRAN(HOL4TRAN) GR(HOL4) ENTRY(HOL4) TRANSID(HOL4)            00686000
+    DEF DB2TRAN(HOLATRAN) GR(HOL4) ENTRY(HOL4) TRANSID(HOLA)            00700003
+    DEF DB2TRAN(HOLETRAN) GR(HOL4) ENTRY(HOL4) TRANSID(HOLE)            00700103
+    DEF DB2TRAN(HOLHTRAN) GR(HOL4) ENTRY(HOL4) TRANSID(HOLH)            00701000
+    DEF DB2TRAN(HOLITRAN) GR(HOL4) ENTRY(HOL4) TRANSID(HOLI)            00701100
+    DEF DB2TRAN(HOLLTRAN) GR(HOL4) ENTRY(HOL4) TRANSID(HOLL)            00702000
+    DEF DB2TRAN(HOLMTRAN) GR(HOL4) ENTRY(HOL4) TRANSID(HOLM)            00703000
+    DEF DB2TRAN(HOM1TRAN) GR(HOL4) ENTRY(HOL4) TRANSID(HOM1)            00703106
+    DEF DB2TRAN(HOM9TRAN) GR(HOL4) ENTRY(HOL4) TRANSID(HOM9)            00703206
+    DEF DB2TRAN(HOLPTRAN) GR(HOL4) ENTRY(HOL4) TRANSID(HOLP)            00704000
+    DEF DB2TRAN(HOLRTRAN) GR(HOL4) ENTRY(HOL4) TRANSID(HOLR)            00704100
+    DEF DB2TRAN(HOLSTRAN) GR(HOL4) ENTRY(HOL4) TRANSID(HOLS)            00704200
+    DEF DB2TRAN(HOLUTRAN) GR(HOL4) ENTRY(HOL4) TRANSID(HOLU)            00704300
+    DEF DB2TRAN(HOLWTRAN) GR(HOL4) ENTRY(HOL4) TRANSID(HOLW)            00704400
+    DEF DB2TRAN(HOLXTRAN) GR(HOL4) ENTRY(HOL4) TRANSID(HOLX)            00704500
+    DEF DB2TRAN(HOLYTRAN) GR(HOL4) ENTRY(HOL4) TRANSID(HOLY)            00704600
+    DEF DB2TRAN(HOLZTRAN) GR(HOL4) ENTRY(HOL4) TRANSID(HOLZ)            00710000
+    DEF DB2TRAN(TST1TRAN) GR(HOL4) ENTRY(HOL4) TRANSID(TST1)            00820000
+/*                                                                      00880000
+//*                                                                     01500000
+//*----------------------------------------------------------------     01510000
+//* CEDA ADD GROUPS TO LISTS                                            01520000
+//*----------------------------------------------------------------     01530000
+//ADDGRPS  EXEC PGM=DFHCSDUP                                            01540000
+//STEPLIB  DD DSN=DFH410.CICS.SDFHLOAD,DISP=SHR                         01550000
+//DFHCSD   DD DSN=DFH410.CICS.DFHCSD,DISP=SHR                           01560000
+//SYSPRINT DD SYSOUT=A                                                  01570000
+//SYSOUT   DD SYSOUT=A                                                  01571000
+//SYSIN    DD *                                                         01580000
+   ADD GR(HOL4) LIST(MCORNER)                                           01600000
+/*                                                                      01610000

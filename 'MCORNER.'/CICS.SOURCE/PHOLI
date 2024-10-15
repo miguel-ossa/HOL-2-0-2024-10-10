@@ -1,0 +1,624 @@
+      *****************************************************************
+      *                 IDENTIFICATION     DIVISION                   *
+      *****************************************************************
+       IDENTIFICATION DIVISION.
+      *
+       PROGRAM-ID.      PHOLI.
+       AUTHOR.          MIGUEL DE LA OSSA.
+      *
+      *****************************************************************
+      **  PROYECTO .........: HOL                                    **
+      **  PROGRAMA .........: PHOLI                                  **
+      **  VERSION ..........: 1.0                                    **
+      **  TITULO ...........: CAMBIO IDIOMA EN LA APLICACIàN         **
+      **                                                             **
+      **  TIPO .............:                                        **
+      **     - LENGUAJE ...............: COBOL II                    **
+      **     - ENTORNO ................: CICS                        **
+      **     - BASE DE DATOS ..........: DB2                         **
+      **                                                             **
+      **  DESCRIPCION ......:                                        **
+      **                                                             **
+      **    - Permite cambiar el idioma utilizado en la aplicaci¢n.  **
+      **                                                             **
+      **                                                             **
+      **  LOG DE MODIFICACIONES:                                     **
+      **  FECHA----- DESCRIPCION------------------------------ BUSCA **
+      **  2024-09-24 Multiusuario (MOSSA)                      USER  **
+      **                                                             **
+      **                                                             **
+      **                                                             **
+      **                                                             **
+      **                                                             **
+      **                                                             **
+      **                                                             **
+      *****************************************************************
+       ENVIRONMENT DIVISION.
+      *
+       CONFIGURATION SECTION.
+       SPECIAL-NAMES.
+           DECIMAL-POINT IS COMMA.
+      *
+       DATA DIVISION.
+      *----------------------------------------------------------------
+       WORKING-STORAGE SECTION.
+      *
+      *--- Zona CICS --------------------------------------------------
+      *
+           COPY DFHAID.
+           COPY DFHBMSCA.
+           COPY CICSATTR.
+           COPY HOLIMP.
+           COPY DDCICS.
+      *
+      *--- Zona CICS fin ----------------------------------------------
+      *
+      *--- Zona DB2 ---------------------------------------------------
+      *
+           EXEC SQL
+                INCLUDE SQLCA
+           END-EXEC
+      *
+           EXEC SQL
+                INCLUDE DDDB2
+           END-EXEC
+      *
+           EXEC SQL
+                INCLUDE TABLAS
+           END-EXEC
+      *--- Zona DB2 fin -----------------------------------------------
+       01  FILLER                          PIC X(19)
+           VALUE '***START-WORKING***'.
+       01  WC-CONSTANTES.
+           03  WC-PROGRAMA                 PIC X(8)  VALUE 'PHOLI'.
+           03  WC-TRANSACCION              PIC X(4)  VALUE 'HOLI'.
+           03  WC-MAP                      PIC X(8)  VALUE 'HOLIMP'.
+           03  WC-MAPSET                   PIC X(8)  VALUE 'HOLIMP'.
+      *    03  WC-CURPOS                   PIC S9(4) VALUE +1141.
+      *--- USER ->
+      *    03  WC-LONGITUD-TITULO          PIC 99    VALUE 74.
+      *--- USER <-
+      *
+           03  WC-CUR-IDI                  PIC S9(4) COMP VALUE +847.
+      *
+       01  SW-SWITCHES.
+           03 SW-ENVIO-MAPA                PIC X    VALUE '0'.
+              88 ENVIO-ERASE                        VALUE '1'.
+              88 ENVIO-DATAONLY                     VALUE '2'.
+              88 ENVIO-REFRESH                      VALUE '3'.
+      *
+           03 SW-ERROR-VALIDACION          PIC 999  VALUE 0.
+              88 ERROR-VALIDACION                   VALUE 1.
+      *
+       01  WL-LITERALES.
+           03  WL-FIN-SESION               PIC X(80) VALUE
+               'La transaccion HOLI ha finalizado...'.
+      *
+       01  WX-VARIABLES.
+           03  WX-NOMI                     PIC X(20).
+           03  WX-APEI                     PIC X(20).
+           03  WX-DIRI                     PIC X(35).
+      *
+       77 IND                             PIC 99 VALUE ZERO.
+      *
+      *--- Zona para CALLs --------------------------------------------
+      *
+           COPY LKCENTI.
+      *
+       01 FILLER                           PIC X(17)
+           VALUE '***END-WORKING***'.
+      *----------------------------------------------------------------
+       LINKAGE SECTION.
+      *
+       01 DFHCOMMAREA                      PIC X(2048).
+      *
+      *================================================================
+       PROCEDURE DIVISION.
+      *----------------------------------------------------------------
+      *--- Proceso principal                                        ---
+      *----------------------------------------------------------------
+       0000-PROCESO-TAREA.
+      *TEMPORAL
+      *    MOVE 'INI' TO WA-TRAZA.
+      *    PERFORM 8800-TRAZA.
+      *
+      *
+           EXEC SQL
+                INCLUDE PDOPCIDB
+           END-EXEC
+      *
+           MOVE WC-TRANSACCION              TO WA-TRANSACCION
+      *
+           IF EIBCALEN > 0
+              MOVE DFHCOMMAREA              TO CH-COMMAREA-HOL
+           END-IF
+      *
+      *--- Evaluacion de Commarea y Teclas para identificar
+      *--- los procesos que deban de ejecutarse
+      *
+           EVALUATE TRUE
+      *
+      *--- No hay Commarea
+      *--- Se inicializa la Commarea y se envia mapa limpio
+               WHEN EIBCALEN = ZERO
+                    PERFORM 2700-READ-LANGUAGE
+                    MOVE LOW-VALUE          TO HOLIMPO
+                    SET ENVIO-ERASE         TO TRUE
+                    MOVE DFHRED             TO MSGC
+                    MOVE 'HOLIARR'          TO CL-CLAVE1
+                    PERFORM 20100-OBTENER-TEXTO
+                    MOVE CL-VALOR           TO MSGO
+      * "Para arrancar HOLI utiliza HOLM... Pulsa F3'
+                    PERFORM 8000-ENVIO-MAPA
+      *
+      *
+      *--- Hay Commarea
+      *--- Se inicializa la Commarea y se envia mapa limpio
+      *--- El programa ha podido ser arrancado por XCTL desde otro
+      *--- programa. En este caso la transaccion actual ser  la del
+      *--- programa que ha llamado a ‚ste hasta que se haga un
+      *--- RETURN TRANSID
+      *
+               WHEN EIBCALEN > ZERO AND EIBTRNID NOT = WC-TRANSACCION
+                    MOVE LOW-VALUE          TO HOLIMPO
+                    SET ENVIO-ERASE         TO TRUE
+                    PERFORM 8000-ENVIO-MAPA
+      *
+      *--- Borrado de pantalla  - Mensaje y retorno a CICS
+      *--- F3 tambien puede terminar esta transaccion
+      *
+               WHEN EIBAID = DFHCLEAR
+                    MOVE LOW-VALUE          TO HOLIMPO
+                    PERFORM 8100-ENVIA-MENSAJE
+                    PERFORM 8900-RETORNO-CICS
+      *
+      *--- Teclas de Att no hacemos nada
+      *
+               WHEN EIBAID = DFHPA1 OR DFHPA2 OR DFHPA3
+                    CONTINUE
+      *
+      *--- Teclas de funcion Legales
+      *--- Teclas que requieren un procesado del mapa
+      *
+               WHEN EIBAID = DFHENTER
+                 OR EIBAID = DFHPF1
+                 OR EIBAID = DFHPF3
+                 OR EIBAID = DFHPF12
+                    PERFORM 1000-PROCESO-MAPA
+      *
+      *--- Teclas ilegales
+      *--- Teclas no programadas que se detectaran en proceso de mapa
+      *
+               WHEN OTHER
+                    PERFORM 1000-PROCESO-MAPA
+      *
+           END-EVALUATE
+      *
+      *--- Terminamos el proceso con Return TransId
+      *--- Volvemos a enganchar esta misma transaccion
+      *
+           PERFORM 8200-RETORNO-TRANS.
+      *
+       0000-PROCESO-TAREA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Lectura valor idioma por PK                              ---
+      *----------------------------------------------------------------
+       110-LANGUAGE-PK.
+      *
+           EXEC SQL
+                SELECT  VALOR
+                   INTO
+                        :TB-VALOR
+                   FROM TABLAS
+                   WHERE
+                        TABLA  = 'LANGUAGE'
+                    AND CLAVE1 = :TB-CLAVE1
+           END-EXEC.
+      *
+       110-LANGUAGE-PK-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Muestra la variables host en pantalla                    ---
+      *----------------------------------------------------------------
+       0210-HOST-PANTALLA.
+            MOVE TB-CLAVE1     TO CL-IDIOMA, IDIO.
+            MOVE TB-VALOR      TO TX20O.
+      *
+       0210-HOST-PANTALLA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Procesa la pantalla segun opcion elegida en menu         ---
+      *----------------------------------------------------------------
+       1000-PROCESO-MAPA.
+      *
+      * Recuperamos el mapa desde el terminal
+      *
+           PERFORM 8400-RECIBE-MAPA
+      *
+           EVALUATE TRUE
+      *
+      *--- Enter: Validamos el mapa y si es correcto proceso Enter
+      *
+              WHEN EIBAID = DFHENTER
+                  PERFORM 2000-ACCION-MAPA
+      *
+      *--- F3: Se llama al programa de MENU (Volver)
+      *
+              WHEN EIBAID = DFHPF3
+                   PERFORM 3000-PROCESO-VOLVER
+      *
+      *--- F1: Se llama al programa de ayuda online
+      *
+              WHEN EIBAID = DFHPF1
+                   PERFORM 5000-PROCESO-AYUDA
+      *
+      *-- Otras teclas: Se avisa con mensaje en pantalla y mapa limpio
+      *
+              WHEN OTHER
+      *--- TXMUL ->
+                   MOVE 'KEYERR'           TO CL-CLAVE1
+                   PERFORM 20100-OBTENER-TEXTO
+                   MOVE CL-VALOR           TO MSGO
+      *            MOVE 'Tecla erronea...' TO MSGO
+      *--- TXMUL <-
+      *
+           END-EVALUATE.
+      *
+           IF NOT ENVIO-REFRESH THEN
+              SET ENVIO-DATAONLY TO TRUE
+              PERFORM 8000-ENVIO-MAPA
+           ELSE
+              MOVE ZERO TO SW-ENVIO-MAPA
+           END-IF.
+      *
+       1000-PROCESO-MAPA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Validamos y procesamos el mapa segun la accion de CA     ---
+      *----------------------------------------------------------------
+       2000-ACCION-MAPA.
+      *
+           PERFORM 2100-VALIDA-CAMPOS.
+      *
+           IF NOT ERROR-VALIDACION
+              PERFORM 2500-EJECUTA-ACCION
+           END-IF.
+      *
+       2000-ACCION-MAPA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Validamos campos obligatorios segun accion               ---
+      *----------------------------------------------------------------
+       2100-VALIDA-CAMPOS.
+      *
+           IF NOT ERROR-VALIDACION
+              IF IDIO = LOW-VALUES  OR
+                 IDIO = HIGH-VALUES OR
+                 IDIO = SPACES THEN
+                 SET ERROR-VALIDACION TO TRUE
+                 MOVE WC-CUR-IDI      TO CH-CURPOS
+                 MOVE DFHRED          TO MSGC
+                 MOVE 'INTIDI'        TO CL-CLAVE1
+                 PERFORM 20100-OBTENER-TEXTO
+                 MOVE CL-VALOR        TO MSGO
+      *    MOVE 'Introducir IDIOMA y pulsar Intro...' TO MSGO.
+              END-IF
+           END-IF.
+      *
+       2100-VALIDA-CAMPOS-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Ejecutamos la accion segun opcion de CA                  ---
+      *----------------------------------------------------------------
+       2500-EJECUTA-ACCION.
+           MOVE IDII TO TB-CLAVE1.
+           PERFORM 110-LANGUAGE-PK.
+           IF SQLCODE = +100 THEN
+              MOVE 'ERRIDI'                   TO CL-CLAVE1
+              PERFORM 20100-OBTENER-TEXTO
+              MOVE CL-VALOR                   TO MSGO
+      *       MOVE 'Idioma no valido...' TO MSGO
+           ELSE
+              PERFORM 0210-HOST-PANTALLA
+              MOVE CL-IDIOMA TO TB-VALOR
+              PERFORM 2600-UPDATE-LANGUAGE
+              MOVE SPACES TO MSGO
+              SET ENVIO-ERASE TO TRUE
+              PERFORM 8000-ENVIO-MAPA
+              SET ENVIO-REFRESH TO TRUE
+           END-IF.
+      *
+       2500-EJECUTA-ACCION-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Establecemos el idioma en tablas                         ---
+      *----------------------------------------------------------------
+       2600-UPDATE-LANGUAGE.
+      *
+           EXEC SQL
+                UPDATE TABLAS
+                   SET VALOR       = :TB-VALOR
+                WHERE
+                    TABLA       = 'LANGUAGE'
+                AND CLAVE1      = 'X'
+                AND CLAVE2      = 'X'
+                AND CLAVE3      = 'X'
+           END-EXEC
+           IF SQLCODE NOT = ZERO THEN
+              PERFORM G999-ERROR-DB2
+           ELSE
+              PERFORM 8600-COMMIT
+           END-IF.
+      *
+       2600-UPDATE-LANGUAGE-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Leemos el idioma actual de la tabla                      ---
+      *----------------------------------------------------------------
+       2700-READ-LANGUAGE.
+      *
+      *TEMPORAL
+      *    MOVE 'LAN' TO WA-TRAZA.
+      *    PERFORM 8800-TRAZA.
+      *
+           EXEC SQL
+                SELECT VALOR
+                  INTO :TB-VALOR
+                  FROM TABLAS
+                       WHERE TABLA  = 'LANGUAGE'
+                         AND CLAVE1 = 'X'
+                         AND CLAVE2 = 'X'
+                         AND CLAVE3 = 'X'
+           END-EXEC.
+      *
+           IF SQLCODE NOT = ZERO THEN
+              PERFORM G999-ERROR-DB2
+           ELSE
+              MOVE TB-VALOR TO CL-IDIOMA
+           END-IF.
+      *
+       2700-READ-LANGUAGE-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Llamamos al programa de MENU (Volver)                    ---
+      *----------------------------------------------------------------
+       3000-PROCESO-VOLVER.
+      *
+           MOVE CS-PGM-ADMINISTRACION      TO CH-XCTL
+           MOVE WC-TRANSACCION             TO CH-TRANSACCION
+           MOVE WC-TRANSACCION             TO CH-TRANS-RETORNO
+           MOVE WC-PROGRAMA                TO CH-PROGRAMA-RETORNO
+           PERFORM 8700-XCTL-PROGRAMA.
+      *
+       3000-PROCESO-VOLVER-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Procesa la tecla F1                                      ---
+      *---    Llamamos al programa de visualizacion de ayuda        ---
+      *----------------------------------------------------------------
+       5000-PROCESO-AYUDA.
+      *
+           MOVE CS-PGM-AYUDAOL             TO CH-XCTL
+           MOVE WC-TRANSACCION             TO CH-TRANSACCION
+           MOVE WC-TRANSACCION             TO CH-TRANS-RETORNO
+           MOVE WC-PROGRAMA                TO CH-PROGRAMA-RETORNO
+           PERFORM 8700-XCTL-PROGRAMA.
+      *
+       5000-PROCESO-AYUDA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Envia el mapa al terminal segun modo del switch          ---
+      *----------------------------------------------------------------
+       8000-ENVIO-MAPA.
+      *
+      *TEMPORAL
+      *    MOVE 'MAP' TO WA-TRAZA.
+      *    PERFORM 8800-TRAZA.
+      *
+           EVALUATE TRUE
+      *
+      *--- Envio de mapa limpio
+      *
+               WHEN ENVIO-ERASE
+                   MOVE CL-IDIOMA TO IDIO
+      * Carga del t¡tulo del mapa
+      *TEMPORAL
+      *    MOVE 'TIT' TO WA-TRAZA
+      *    PERFORM 8800-TRAZA
+      *
+                   MOVE 50 TO RTC-CENTER-AREA
+                   PERFORM 20000-TITULO-MAPA
+      *TEMPORAL
+      *    MOVE 'TEX' TO WA-TRAZA
+      *    PERFORM 8800-TRAZA
+      *
+      * Carga de los textos fijos del mapa
+                   MOVE WC-TRANSACCION TO TB-CLAVE1
+                   PERFORM 20200-OPEN-CURSOR-MAPS
+                   PERFORM WITH TEST AFTER UNTIL SQLCODE = 100
+                       PERFORM 20200-FETCH-CURSOR-MAPS
+                       IF SQLCODE NOT = 100 AND
+                          TB-CLAVE3 = CL-IDIOMA THEN
+                          ADD 1 TO IND
+                          EVALUATE IND
+                             WHEN 1
+                                MOVE TB-VALOR TO TX10O
+                             WHEN 2
+                                MOVE TB-VALOR TO TX20O
+                             WHEN 3
+                                MOVE TB-VALOR TO TX100O
+                             WHEN 4
+                                MOVE TB-VALOR TO TX110O
+                          END-EVALUATE
+                       END-IF
+                   END-PERFORM
+                   PERFORM 20200-CLOSE-CURSOR-MAPS
+      *
+                   EXEC CICS
+                       SEND MAP    ('HOLIMP')
+                            MAPSET ('HOLIMP')
+                            FROM   (HOLIMPO)
+                            ERASE
+                   END-EXEC
+      *
+      *--- Envio del mapa Solo datos
+      *
+               WHEN ENVIO-DATAONLY
+      *
+                   EXEC CICS
+                       SEND MAP     ('HOLIMP')
+                            MAPSET  ('HOLIMP')
+                            FROM    (HOLIMPO)
+                            DATAONLY
+                   END-EXEC
+      *
+           END-EVALUATE.
+      *
+       8000-ENVIO-MAPA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Envia un mensaje al terminal del usuario (fin sesion)    ---
+      *----------------------------------------------------------------
+       8100-ENVIA-MENSAJE.
+      *
+      *--- TXMUL ->
+           MOVE 'HOLIEND'                  TO CL-CLAVE1.
+           PERFORM 20100-OBTENER-TEXTO.
+           MOVE CL-VALOR                   TO WL-FIN-SESION.
+      * 'La transaccion HOLI ha finalizado...'
+      *--- TXMUL <-
+           EXEC CICS
+               SEND TEXT FROM(WL-FIN-SESION)
+                         ERASE
+                         FREEKB
+           END-EXEC.
+      *
+       8100-ENVIA-MENSAJE-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Devuelve el control a una transaccion                    ---
+      *----------------------------------------------------------------
+       8200-RETORNO-TRANS.
+      *
+           EXEC CICS
+               RETURN
+               TRANSID      (WA-TRANSACCION)
+               COMMAREA     (CH-COMMAREA-HOL)
+           END-EXEC.
+      *
+       8200-RETORNO-TRANS-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Recibe el mapa de la tarea                               ---
+      *----------------------------------------------------------------
+       8400-RECIBE-MAPA.
+      *
+           EXEC CICS
+                RECEIVE
+                MAP     ('HOLIMP')
+                MAPSET  ('HOLIMP')
+                INTO    (HOLIMPI)
+           END-EXEC.
+      *
+           PERFORM 8410-MAYUSCULAS.
+      *
+       8400-RECIBE-MAPA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Pasa datos sensibles a mayusculas                        ---
+      *----------------------------------------------------------------
+       8410-MAYUSCULAS.
+      *
+           MOVE FUNCTION UPPER-CASE(IDII) TO IDIO.
+      *
+       8410-MAYUSCULAS-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Llama a otro programa CICS por LINK con Commarea         ---
+      *----------------------------------------------------------------
+       8500-LINK-PROGRAMA.
+      *
+           EXEC CICS
+                LINK
+                PROGRAM (CH-LINK)
+                COMMAREA(CH-COMMAREA-HOL)
+                LENGTH  (LENGTH OF CH-COMMAREA-HOL)
+           END-EXEC.
+      *
+       8500-LINK-PROGRAMA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Commit de base de datos DB2 dede CICS                    ---
+      *----------------------------------------------------------------
+       8600-COMMIT.
+      *
+           EXEC CICS
+               SYNCPOINT
+           END-EXEC.
+      *
+       8600-COMMIT-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Cede el control a otro programa CICS                     ---
+      *----------------------------------------------------------------
+       8700-XCTL-PROGRAMA.
+      *
+           EXEC CICS
+                SET TERMINAL(EIBTRMID) UCTRAN
+           END-EXEC
+      *
+           EXEC CICS
+               XCTL PROGRAM  (CH-XCTL)
+                    COMMAREA (CH-COMMAREA-HOL)
+                    RESP     (WA-RESPUESTA-CICS)
+           END-EXEC.
+      *
+       8700-XCTL-PROGRAMA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- CEDF visualiza una traza - Quitar para produccion        ---
+      *----------------------------------------------------------------
+       8800-TRAZA.
+      *
+           EXEC CICS
+               ENTER       TRACEID(0)
+               FROM        (WA-TRAZA)
+           END-EXEC.
+      *
+       8800-TRAZA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Devuelve el control a CICS - Salida total                ---
+      *----------------------------------------------------------------
+       8900-RETORNO-CICS.
+      *
+           EXEC CICS
+                SET TERMINAL(EIBTRMID) UCTRAN
+           END-EXEC
+      *
+           EXEC CICS
+                RETURN
+           END-EXEC.
+      *
+       8900-RETORNO-CICS-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- TXMUL ->
+      *
+      * Rutinas multiidioma
+      *
+           EXEC SQL
+                INCLUDE PTXMUL
+           END-EXEC.
+      *
+       999999-DB2-ERRORES SECTION.
+      *--- TXMUL <-
+      *--- DB2 Errores y otros                                      ---
+      *----------------------------------------------------------------
+           EXEC SQL
+                INCLUDE PDDB2
+           END-EXEC.
+      *----------------------------------------------------------------
+      *-------------------- FIN DE PROGRAMA  --------------------------
+      *----------------------------------------------------------------

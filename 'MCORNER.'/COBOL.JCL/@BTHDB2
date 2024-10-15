@@ -1,0 +1,117 @@
+//BTHDB2   JOB MCORNER,'BATCH-COBOL-DB2',NOTIFY=&SYSUID,                00010000
+//            MSGCLASS=A,CLASS=A,MSGLEVEL=(1,1),REGION=0M               00020000
+//*                                                                     00021000
+//* VERSION 1.0                                                         00022000
+//*                                                                     00023000
+//*================================================================     00030000
+//*                                                                     00040000
+//SETPG   SET PGM=BHOLL                                                 00060006
+//*ETPG   SET PGM=BLNKTL                                                00060106
+//*                                                                     00060200
+//SETPL   SET PLN=BTHPLAN                                               00060300
+//*                                                                     00061000
+//*----------------------------------------------------------------     00070000
+//*       DB2 PRECOMPILER                                               00090000
+//*----------------------------------------------------------------     00100000
+//DB2      EXEC PGM=DSNHPC,                                             00110000
+//         PARM='HOST(IBMCOB),XREF,SOURCE,FLAG(W),APOST',               00120000
+//         REGION=8M                                                    00130000
+//*                                                                     00140000
+//STEPLIB  DD  DISP=SHR,DSN=DSN910.DB9G.SDSNEXIT                        00150000
+//         DD  DISP=SHR,DSN=DSN910.SDSNLOAD                             00160000
+//SYSIN    DD  DSN=MCORNER.BATCH.SOURCE(&PGM),DISP=SHR                  00170000
+//DBRMLIB  DD  DSN=MCORNER.DB2.DBRMLIB(&PGM),DISP=SHR                   00180000
+//SYSCIN   DD  DSN=MCORNER.DB2.DSNHOUT(&PGM),DISP=SHR                   00190000
+//SYSLIB   DD  DSN=MCORNER.COBOL.COPYS,DISP=SHR                         00200000
+//         DD  DSN=MCORNER.DB2.DCLGEN,DISP=SHR                          00210000
+//SYSPRINT DD  SYSOUT=A                                                 00240000
+//SYSTERM  DD  SYSOUT=A                                                 00250000
+//SYSOUT   DD  SYSOUT=A                                                 00251000
+//SYSUT1   DD  SPACE=(CYL,(5,1)),UNIT=SYSDA                             00260000
+//SYSUT2   DD  SPACE=(CYL,(5,1)),UNIT=SYSDA                             00270000
+//*                                                                     00280000
+//*----------------------------------------------------------------     00421000
+//*       COBOL COMPILER                                                00430000
+//*----------------------------------------------------------------     00440000
+//COB    EXEC PGM=IGYCRCTL,REGION=8M,                                   00450000
+//       PARM=(APOST,LIB,DYNAM)                                         00451000
+//*                                                                     00490000
+//STEPLIB  DD DSN=IGY420.SIGYCOMP,DISP=SHR                              00530000
+//         DD DSN=DFH410.CICS.SDFHLOAD,DISP=SHR                         00540000
+//SYSLIB   DD DSN=DFH410.CICS.SDFHCOB,DISP=SHR                          00550000
+//         DD DSN=MCORNER.CICS.SOURCE,DISP=SHR                          00590000
+//         DD DSN=MCORNER.COBOL.COPYS,DISP=SHR                          00600000
+//         DD DSN=MCORNER.DB2.DCLGEN,DISP=SHR                           00620000
+//SYSPRINT DD SYSOUT=A                                                  00630000
+//SYSIN    DD DSN=MCORNER.DB2.DSNHOUT(&PGM),DISP=SHR                    00640000
+//SYSLIN   DD DSN=&&LOADSET,DISP=(NEW,PASS),UNIT=SYSDA,                 00650000
+//            SPACE=(800,(500,500))                                     00660000
+//SYSUT1   DD UNIT=SYSDA,SPACE=(460,(350,100))                          00670000
+//SYSUT2   DD UNIT=SYSDA,SPACE=(460,(350,100))                          00680000
+//SYSUT3   DD UNIT=SYSDA,SPACE=(460,(350,100))                          00690000
+//SYSUT4   DD UNIT=SYSDA,SPACE=(460,(350,100))                          00700000
+//SYSUT5   DD UNIT=SYSDA,SPACE=(460,(350,100))                          00710000
+//SYSUT6   DD UNIT=SYSDA,SPACE=(460,(350,100))                          00720000
+//SYSUT7   DD UNIT=SYSDA,SPACE=(460,(350,100))                          00730000
+//SYSPRINT DD  SYSOUT=A                                                 00731000
+//SYSTERM  DD  SYSOUT=A                                                 00732000
+//SYSOUT   DD  SYSOUT=A                                                 00733000
+//*                                                                     00740000
+//*----------------------------------------------------------------     00861000
+//*     LINK EDITION                                                    00870000
+//*----------------------------------------------------------------     00880000
+//LKED   EXEC PGM=IEWL,REGION=8M,                                       00890000
+//            PARM='LIST,XREF,CALL,AMODE=31,RMODE=ANY',                 00900000
+//       COND=((0,NE,DB2),(0,NE,COB))                                   00910000
+//*                                                                     00920000
+//SYSLIB   DD  DSN=CEE.SCEELKED,DISP=SHR                                00930100
+//         DD  DSN=DSN910.DB9G.SDSNEXIT,DISP=SHR                        00931000
+//         DD  DSN=DSN910.SDSNLOAD,DISP=SHR                             00932000
+//         DD  DSN=TCPIP.SEZATCP,DISP=SHR                               01000000
+//         DD  DISP=SHR,DSN=ISP.SISPLOAD                                01010000
+//         DD  DISP=SHR,DSN=GDDM.SADMMOD                                01020000
+//*SYSLIN   DD  DSN=&&COPYLINK,DISP=(OLD,DELETE)                        01030000
+//SYSLIN   DD  DSN=&&LOADSET,DISP=(OLD,DELETE)                          01040000
+//         DD  DDNAME=SYSIN                                             01050000
+//SYSLMOD  DD DSN=MCORNER.BATCH.LOAD(&PGM),DISP=SHR                     01060000
+//SYSUT1   DD UNIT=SYSDA,DCB=BLKSIZE=1024,                              01070000
+//            SPACE=(1024,(200,20))                                     01080000
+//SYSPRINT DD  SYSOUT=A                                                 01090100
+//SYSTERM  DD  SYSOUT=A                                                 01090200
+//SYSOUT   DD  SYSOUT=A                                                 01090300
+//*                                                                     01091000
+//*-----------------------------------------------------------------    01100000
+//*        DB2 BIND PACKAGE APPHOL -> DBRM -> COLLECTION 'APPHOL'       01110000
+//*-----------------------------------------------------------------    01111000
+//BINDPK   EXEC PGM=IKJEFT01,REGION=8M,DYNAMNBR=20,                     01130000
+//   COND=((0,NE,DB2),(0,NE,COB),                                       01140000
+//        (0,NE,LKED))                                                  01150000
+//*                                                                     01160000
+//STEPLIB  DD  DISP=SHR,DSN=DSN910.SDSNLOAD                             01170000
+//DBRMLIB  DD  DISP=SHR,DSN=MCORNER.DB2.DBRMLIB                         01190000
+//SYSTSPRT DD  SYSOUT=A                                                 01210000
+//SYSUDUMP DD  SYSOUT=A                                                 01220000
+//REPORT   DD  SYSOUT=A                                                 01222000
+//SYSTSIN  DD  DSN=MCORNER.DB2.BIND(&PGM),DISP=SHR                      01231000
+//SYSPRINT DD  SYSOUT=A                                                 01232000
+//SYSTERM  DD  SYSOUT=A                                                 01233000
+//SYSOUT   DD  SYSOUT=A                                                 01234000
+//*                                                                     01240000
+//*-----------------------------------------------------------------    01250000
+//*        DB2 BIND PLAN COLECCION APPHOL = LISTA PACKAGES              01260000
+//*-----------------------------------------------------------------    01270000
+//*                                                                     01280000
+//BINDPL   EXEC PGM=IKJEFT01,REGION=8M,DYNAMNBR=20,                     01290000
+//   COND=((0,NE,DB2),(0,NE,COB),                                       01291000
+//        (0,NE,LKED),(0,NE,BINDPK))                                    01292000
+//*                                                                     01300000
+//STEPLIB  DD  DISP=SHR,DSN=DSN910.SDSNLOAD                             01310000
+//         DD  DISP=SHR,DSN=DSN910.DB9G.SDSNEXIT                        01320000
+//         DD  DISP=SHR,DSN=MCORNER.BATCH.LOAD                          01330000
+//DBRMLIB  DD  DISP=SHR,DSN=MCORNER.DB2.DBRMLIB                         01340000
+//SYSTSPRT DD  SYSOUT=A                                                 01360000
+//SYSPRINT DD  SYSOUT=A                                                 01361000
+//SYSTERM  DD  SYSOUT=A                                                 01362000
+//SYSOUT   DD  SYSOUT=A                                                 01363000
+//SYSTSIN  DD  DSN=MCORNER.DB2.BIND(&PLN),DISP=SHR                      01380000
+//*                                                                     01390000

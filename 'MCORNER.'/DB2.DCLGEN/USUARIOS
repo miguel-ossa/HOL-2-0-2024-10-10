@@ -1,0 +1,32 @@
+      ******************************************************************
+      * DCLGEN TABLE(USUARIOS)                                         *
+      *        LIBRARY(MCORNER.DB2.DCLGEN(USUARIOS))                   *
+      *        ACTION(REPLACE)                                         *
+      *        LANGUAGE(COBOL)                                         *
+      *        NAMES(US-)                                              *
+      *        STRUCTURE(US-USUARIOS)                                  *
+      *        QUOTE                                                   *
+      *        COLSUFFIX(YES)                                          *
+      * ... IS THE DCLGEN COMMAND THAT MADE THE FOLLOWING STATEMENTS   *
+      ******************************************************************
+           EXEC SQL DECLARE USUARIOS TABLE
+           ( USUARIO                        CHAR(6) NOT NULL,
+             NOMBRE                         CHAR(30) NOT NULL,
+             PASSWORD                       CHAR(100) NOT NULL,
+             CONECTADO                      CHAR(1)
+           ) END-EXEC.
+      ******************************************************************
+      * COBOL DECLARATION FOR TABLE USUARIOS                           *
+      ******************************************************************
+       01  US-USUARIOS.
+      *                       USUARIO
+           10 US-USUARIO           PIC X(6).
+      *                       NOMBRE
+           10 US-NOMBRE            PIC X(30).
+      *                       PASSWORD
+           10 US-PASSWORD          PIC X(100).
+      *                       CONECTADO
+           10 US-CONECTADO         PIC X(1).
+      ******************************************************************
+      * THE NUMBER OF COLUMNS DESCRIBED BY THIS DECLARATION IS 4       *
+      ******************************************************************

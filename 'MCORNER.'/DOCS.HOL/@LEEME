@@ -1,0 +1,439 @@
+=======================================================================
+ VERSION 1.0
+ -----------
+ DOCUMENTACI‡N PARA LA CUSTOMIZACI‡N E INSTALACI‡N DE HOL* EN CUALQUIER
+ MAINFRAME. EJERCICIO DE PASO DE COMPONENTES DE SOFTWARE DESDE OS390
+ V2R10 HACIA ZOS V1R11
+=======================================================================
+
+ ÷NDICE DE DOCUMENTOS:
+ ---------------------
+    @LEEME    - ESTE DOCUMENTO (Comienza aqu°)
+    INSTALAR  - C¢mo instalar la aplicaci¢n despuÇs de la descarga
+    TECNICOS  - Problemas identificados que a£n no tienen una soluci¢n
+    VERSIONS  - ÷ndice de las versiones publicadas
+    IMPLANTA  - Instrucciones para la implementaci¢n de cambios
+
+
+   YA HABêIS DESCARGADO LOS COMPONENTES DE LA APLICACI‡N.
+   TRµS EXTRAER LA CARPETA COMPRIMIDA EN ALGÈN LUGAR DE VUESTRO
+   ORDENADOR, VAIS A ENCONTRAR UNA COLECCI‡N DE CARPETAS.
+
+   ESTA DOCUMENTACI‡N ESTµ PRESENTE EN MCORNER.DOCS.HOL(LEEME)
+
+
+
+
+
+1. PRELIMINARES
+---------------
+
+Antes de poder instalarla aplicaci¢n, yo he realizado unos cuantos pasos
+para preparar el sistema. Recomiendo encarecidamente realizar al menos
+aquellos pasos que son realmente importantes, si no todos.
+
+Entre OS390 y z/OS 1.11 difieren muchas cosas y concretamente las
+librerias de PARMLIB, PROCLIB, TCPIP, versiones de CICS y de DB2 etc.
+Debemos de cerciorarnos sobre quÇ componentes trabaja el sistema
+antes de comenzar cualquier tarea de parametrizaci¢n o configuraci¢n.
+Esta distribuci¢n trabaja sobre ADCD.Z111S.xxxxxxx para casi todos sus
+par†mteros.
+
+En la aplicaci¢n que habÇis descargado, yo ya he hecho el trabajo de
+adaptaci¢n, sobre todo en JCLS de compilaci¢n etc.
+
+Aqu° documento los pasos que yo he realizado. Los nombres de los
+componentes y estos nombres son solo ejemplos. Cada cual puede
+utilizar los que desee y adaptar cada uno para sus propias necesidades.
+No opbstante, no recomiendo cambiar los nombres. Es una condici¢n
+necesaria para poderos ayudar, si algo sale mal.
+
+Siguiendo el v°deo de instalaci¢n de z/OS V1R11, ya deber°amos de tener
+nuestro sistema arrancado un vez con LOADPARM CS (Cold Start) y tal vez
+varias veces con WS (Warm Start).
+Debemos de arrancar el sistema con LOADPARM DI, hacer IPL, despues con
+DC, hacer IPL, y terminando con DB y hacer IPL.
+
+Cuando iniciemos sesi¢n en TSO y una vez arrancando el sistema con DB,
+el Procedure del usuario que hay que utilizar para obtener los men£s
+completos es, DBSPROC9.
+
+Deber°amos de hacer unas cuantas acciones para dejar el sistema
+preparado para la instalaci¢n de nuestra aplicaci¢n.
+Todas estas preparaciones ya han sido ilustradas en v°deos pasados o
+en v°deos m†s recientes ya sobre z/OS 1.11. LOS PASOS SON:
+
+ - Crear los Shadow Files del Hercules. Al menos al inicio.
+   Posteriormente, ser°a bueno crearlos de nuevo a cada paso.
+   Ver v°deos del canal.
+
+ - Crear discos adicionales a los del sistema
+   . SPOOL1 SPOOL2 SPOOL3 y a§adirlos como vol£menes al JES2
+   . ZVOL00 a ZVOL09 par vol£menes de usuario
+   Ver v°deos del canal. Cada cual puede crear los que vea.
+   En un v§ideo tambiÇn se explica como importarlos del OS390
+
+ - Con el JCL MCORNER.SISTEMA.JCL(DEFINCAT) crear el cat†logo de
+   usuario para MCORNER en el ZVOL00. Definir el ALIAS con DEFALIAS.
+   Ver v°deos del canal.
+
+ - Instalar HerPRT de softdevlabs.com para la impresi¢n en PDF
+   Configurar la impresora en Hercules y en JES2PARMS
+   Ver v°deos del canal. ADCD.Z111S.PARMLIB(JES2PARMS).
+   Tambien se puede definir una impresora emulada a archivo de texto.
+   Se recomienda utilizar la clase A.
+
+ - Si se llena de SYS1.LOGREC del sistema, se provee un JCL LOGRECF
+   para hacer una copia de seguridad del actual y volver a crear un
+   LOG de sistema nuevo. Yo lo he ubicado en ZVOL09. Primero, el JCL
+   cambia el nombre del actual LOG y luego lo crea. El SYS1.LOGREC
+   inicial est† en el volumen SBSYS1 y no en ZVOL09. Atenci¢n a esto.
+   La primera vez hay que cambiar el nombre del DATASET de ete volumen.
+   Las siguientes, lo haremos ya sobre el ZVOL09.
+
+ - Siguiendo las instrucciones del v°deo sobre la configuraci¢n del
+   TCPIP de z/OS 1.11 configuraremos nuestra conexi¢n, seg£n sea.
+   Atenci¢n, ya que el DATASAET que se utiliza es
+   ADCD.Z111S.TCPPARMS y los miembros son PROF1, TCPDATA.
+
+ - Ya en TSO e ISPF, deberemos de alocar todos los DATASET para poder
+   instalar nuestra aplicaci¢n.
+   Para los DATASET destinados a fuentes de alg£n tipo, podeis basaros
+   en cualquier DATASET ya existente. Buscad **.JCL por ejemplo.
+
+   . MCORNER.BATCH.SOURCE
+   . MCORNER.CALL.SOURCE
+   . MCORNER.CICS.COPYS
+   . MCORNER.CICS.MAP
+   . MCORNER.CICS.SOURCE
+   . MCORNER.COBOL.COPYS
+   . MCORNER.COBOL.JCL
+   . MCORNER.COBOL.PROC
+   . MCORNER.DB2.BIND
+   . MCORNER.DB2.DCLGEN
+   . MCORNER.DB2.DBRMLIB
+   . MCORNER.DB2.DSNHOUT
+   . MCORNER.DB2.RUN
+   . MCORNER.DB2.SPUFI
+   . MCORNER.DB2.SPUFO    (ojo, ver comentario abajo)
+   . MCORNER.DOCS.HOL
+   . MCORNER.SISTEMA.JCL
+
+  El DATASET MCORNER.DB2.SPUFO es de tipo secuencial de longitud de
+  registro 4092 de tipo V (variable).
+  Es opcional ya que si SPUFI detecta que queremos guardar los
+  resultados y el DATASET no existe, lo crear† Çl mismo.
+  Es mejor crearlo a priori y que quede catalogado.
+
+  Tenemos que crear tambien el DATASET MCORNER.CICS.LOAD para los
+  resultados de la compilaci¢n de programas CICS.
+  Podemos buscar cualquier DATASET de este tipo con **.LOAD
+  Tomamos la informaci¢n, y con ella, creamos el DATASET con nuestros
+  propios par†metros de tama§os.
+  Igualmente, crearemos los DATASET
+  MCORNER.BATCH.LOAD
+  MCORNER.CALL.LOAD
+
+  Es posible que hayais importado los vol£menes del OS390 tal y como
+  se explica en uno de los £ltimos v°deos. En este caso, todo esto ya
+  estar°a hecho, ecepto la creaci¢n de los DATASET de Batch, Call...
+
+
+2. INSTALACI‡N DE COMPONENTES
+-----------------------------
+
+ Ya hemos descargado y extra°do todos los componentes de software de
+ nuestra aplicaci¢n y ya los podemos subir a nuestro z/OS 1.11
+
+ Si vuestro TCPIP est† correctamente configurado, no tendrÇis ning£n
+ problema en conectar con alg£n cliente FTP con el z/OS.
+ La configurqaci¢n del cliente es b†sica:
+ . Conectar con la IP asignada el z/OS y puerto 21
+ . Usuario IBMUSER y Password la vuestra utilizada en TSO...
+ . El tipo de servidor puede ser ZOS (hay utilidades que permiten
+   seleccionar algunas cosas) Los datos por defecto servir†n.
+ . Utilizar autenticaci¢n de texto plano sin TLS ni nada de esto.
+ . Pode°s conectar con el sitio remoto 'MCORNER.' y os deber°an
+   de aparecer la lista de carpetas (DATASETs) en el lado remoto.
+ . Seleccionar en el lado local vuestros datos extra°dos
+ . Subir el contenido de cada carpeta local a la carpeta destino en
+   el z/OS
+ Yo, en lo personal, utilizo File Zilla Client que me va muy bien.
+
+ En este punto, ya podeis subir los componentes descargados al z/OS.
+ Si utilizas el File Zilla Client, procura trabajar siempre en la parte
+ inferior del recuadro Remote. Si se hacen las cosas mal, este programa
+ puede crear DATASETs no deseados en nuestro z/OS.
+ Debemos de ir probando poco a poco y comprobar si, despuÇs de subir
+ componentes, todo va bien del lado z/OS.
+
+ Para subir los componentes ir explorando en la parte izquierda, vuestra
+ extracci¢n de descarga, selecciona°s lo que vais a subir, en la parte
+ derecha seleccionais el destino cuidadosamente, y seleccionais
+ Upload en vuestro programa de FTP.
+
+
+3. PREPARACI‡N z/OS con DB2
+---------------------------
+
+ Ha llegado la hora de preparar z/OS para que podamos utilizar CICS
+ y BD2.
+ Ya vimos con OS390, que es importante vigilar los LOG del DB2. En esta
+ distribuci¢n el sub-sistema DB2 se llama DB9G. Por lo tanto, los
+ comandos de DB2 que queramos lanzar comenzar†n por -DB9G. Por ejemplo,
+ para parar DB2 lanzaremos el comando -DB9G STOP DB2
+
+ En el caso de esta distribuci¢n, no es necesario hacer nada especial
+ para el tema de ARCHIVE LOG del DB2.
+ Para lanzar el comando iremos a la opci¢n M.16 (Db2 Admin), y luego
+ a la opci¢n Z.
+ Una vez aqu°, podemos ver los LOG actuales con el comando LI, y lanzar
+ el archivado de los LOG actuales con la opci¢n LA.
+ Si intentamos lanzar el archivado desde la c¢nsola maestra, no
+ funcionar† debido a problemas de autorizaci¢n RACF.
+ Es m†s seguro no hacer nada m†s y reservar esta tarea al administrador
+ de DB2.
+
+ Crear objetos de DB2
+ --------------------
+
+ En nuestra descarga existe una carpeta para SPUFI. Iremos a nuestro
+ cliente FTP y subiremos los archivos decargados hacia el DATASET
+ correspondiente de nuestro z/OS.
+
+ Activaremos el Buffer Pool de DB2 llamado BP1 para nuestra aplicaci¢n.
+ Ver el v°deo correspondiente del canal.
+
+ Cada cual revisar† los nombres de sus componentes en los SPUFIs
+ descargados.
+
+ Nos dirigimos a la opci¢n de SPUFI en M.15.1 e iremos lanzando todos
+ los miembros de SPUFI 'MCORNER.DB2.SPUFI(SPUnnn)' nnn=001 a 008.
+ dirigiendo la salida a nuestro secuencial 'MCORNER.DB2.SPUFO'
+ En el canal hay v°deos de ejemplo.
+ Esto crear† todos los objetos necesarios de DB2.
+
+ De la misma manera y, para ir preparando las compilaciones COBOL,
+ vamos a ir subiendo los BIND dede nuestra descarga hacia nuestro z/OS.
+
+ Los otros DATASET de DB2 se ir†n llenando con las compilaciones que
+ lanzaremos llegado el momento. Deber°amos ahora de generar los
+ DCLGEN para las tablas.
+
+ Vamos a la opci¢n M.15.2 DCLGEN
+ Simpre voy a incluir los m°os en la carpeta DCLGEN pero no tiene
+ por quÇ coincidir con las de cada cual.
+
+ Introducimos el nombre de la tabla (CLIENTES, AYUDAS o TABLAS)
+ No poner nada em OWNER.
+ DATASET Name ser°a 'MCORNER.DB2.DCLGEN(CLIENTES, AYUDAS o TABLAS)'
+ ACTION ser°a REPLACE (por si lo hacemos varias veces para un objeto)
+ Structure Name ser°a CL-CLIENTES, AY-AYUDAS o bien, TB-TABLAS
+ FIELD Name prefix ser°a CL-  AY-  TB-
+ DELIMIT DBCS YES
+ COLUMN SUFFIX YES
+ As° ir°amos generando los DCLGEN para la aplicaci¢n.
+ De todas formas, incluirÇ estos componentes en la descarga origen.
+
+ En el la primera parte del v°deo sobre mi primer programa COBOL/CICS
+ /DB2 est† explicado todo esto.
+
+
+4. PREPARACI‡N z/OS con CICS
+----------------------------
+
+ Preparemos ahora nuestro entorno CICS para que pueda utilizar DB2.
+ Lo primero es crear un DB2CONN con CEDA desde CICS.
+ Nombre CICSDB2
+ Group  HOL4
+
+ Esto va a crear el grupo HOL4 en nuestro CICS.
+
+ Ver detalles en la segunda aprte del v°deo mi primer programa
+ COBOL/CICS/Db2 en el canal.
+ Crearemos el DB2ENTRY al plan HOL4PL que ser† el destino de compilaci¢n
+ El nombre del DB2ENTRY ser°a HOL4.
+
+ Se han convertido algunos JCL de compilaci¢n a PROC, poniendolos
+ en el DATASET MCORNER.JCL.PROC
+ Hay que subir estos componentes.
+ en MCORNER.COBOL.JCL existe un JCL llamado @INSTALL que se puede
+ encargar de Compilar todo y crear todos los CEDA en CICS.
+ Si se quiere utilizar, lanzar, comprobar salida para ver que todo
+ ha ido bien, y si es as°, parar CICS y volverlo a arrancar.
+ Esto dejar°a la aplicaci¢n lista para funcionar.
+
+ Debemos de customizar nuestro CICS y su arranque para concatenar
+ nuestra librear°a LOAD de aplicaci¢n y tambien el DSNSLOAD de DB2 a
+ nivel de STEPLIB de arranque de CICS. En nuestro SIP debemos de incluir
+ el par†metro DB2CONN=YES y cambiar el LOCALCCSID=284.
+ Igualmente a§adimos SPOOL=YES,      (por la £ltima opci¢n de men£)...
+ TambiÇn debemos de concatenar MCORNER.CALL.LOAD en la RPL.
+
+ Todo esto ya ha sido explicado en v°deos del canal, excepto para el
+ CCSID que es necesario para poder introducir texto en espa§ol.
+
+ 5. CREACI‡N OBJETOS CICS
+ ------------------------
+
+ Debemos de crear los terminales en CICS param concola maestra,
+ IBMUSER y el propio CICS en el grupo CONSOLES. Deberemos de a§adir
+ el grupo CONSOLES a la lista que se auto instalar† al arrancar el CICS
+ llamada MCORNER. Ver v°deos del canal.
+
+ Trabajaremos con el grupo HOL4. Este grupo se debe incluir en la
+ lista MCORNER, tal y como se hace en los v°deos del canal.
+ Recordar que la lista MCORNER debe de incluirse en el arranque de
+ CICS para que se auto intale siempre al iniciar el CICS.
+
+ Ha llegado la hora de lanzar unos cuantos CEDA desde la c¢nsola de
+ CICS: Si decides utilizar @INSATALL esto no har† falta...
+
+ MAPAS:
+   CEDA DEF MAP(HOLEMP) GR(HOL4)
+   CEDA DEF MAP(HOLHMP) GR(HOL4)
+   CEDA DEF MAP(HOLMMP) GR(HOL4)
+   CEDA DEF MAP(HOLPMP) GR(HOL4)
+   CEDA DEF MAP(HOLRMP) GR(HOL4)
+   CEDA DEF MAP(HOLSMP) GR(HOL4)
+   CEDA DEF MAP(HOLUMP) GR(HOL4)
+   CEDA DEF MAP(HOLXMP) GR(HOL4)
+   CEDA DEF MAP(HOLYMP) GR(HOL4)
+   CEDA DEF MAP(HOLZMP) GR(HOL4)
+   CEDA DEF MAP(HOL4MP) GR(HOL4)
+   CEDA DEF MAP(TST1MP) GR(HOL4)
+
+ PROGRAMAS:
+   CEDA DEF PROG(RTCENTI) GR(HOL4)
+   CEDA DEF PROG(HOL4) GR(HOL4)
+   CEDA DEF PROG(LNKTL) GR(HOL4)
+   CEDA DEF PROG(PHOLE) GR(HOL4)
+   CEDA DEF PROG(PHOLH) GR(HOL4)
+   CEDA DEF PROG(PHOLL) GR(HOL4)
+   CEDA DEF PROG(PHOLM) GR(HOL4)
+   CEDA DEF PROG(PHOLP) GR(HOL4)
+   CEDA DEF PROG(PHOLR) GR(HOL4)
+   CEDA DEF PROG(PHOLS) GR(HOL4)
+   CEDA DEF PROG(PHOLU) GR(HOL4)
+   CEDA DEF PROG(PHOLW) GR(HOL4)
+   CEDA DEF PROG(PHOLX) GR(HOL4)
+   CEDA DEF PROG(PHOLY) GR(HOL4)
+   CEDA DEF PROG(PHOLZ) GR(HOL4)
+   CEDA DEF PROG(PTST1) GR(HOL4)
+
+ TRANSACCIONES:
+   CEDA DEF TRANS(HOL4) PROGRAM(HOL4) GR(HOL4)
+   CEDA DEF TRANS(HOLE) PROGRAM(PHOLE) GR(HOL4)
+   CEDA DEF TRANS(HOLH) PROGRAM(PHOLH) GR(HOL4)
+   CEDA DEF TRANS(HOLL) PROGRAM(PHOLL) GR(HOL4)
+   CEDA DEF TRANS(HOLM) PROGRAM(PHOLM) GR(HOL4)
+   CEDA DEF TRANS(HOLP) PROGRAM(PHOLP) GR(HOL4)
+   CEDA DEF TRANS(HOLR) PROGRAM(PHOLR) GR(HOL4)
+   CEDA DEF TRANS(HOLS) PROGRAM(PHOLS) GR(HOL4)
+   CEDA DEF TRANS(HOLU) PROGRAM(PHOLU) GR(HOL4)
+   CEDA DEF TRANS(HOLW) PROGRAM(PHOLW) GR(HOL4)
+   CEDA DEF TRANS(HOLX) PROGRAM(PHOLX) GR(HOL4)
+   CEDA DEF TRANS(HOLY) PROGRAM(PHOLY) GR(HOL4)
+   CEDA DEF TRANS(HOLZ) PROGRAM(PHOLZ) GR(HOL4)
+   CEDA DEF TRANS(TST1) PROGRAM(PTST1) GR(HOL4)
+
+ TRANSACCIONES DB2:
+   CEDA DEF DB2TRAN(HOL4TRAN) GR(HOL4) ENTRY(HOL4) TRANSID(HOL4)
+   CEDA DEF DB2TRAN(HOLETRAN) GR(HOL4) ENTRY(HOL4) TRANSID(HOLE)
+   CEDA DEF DB2TRAN(HOLHTRAN) GR(HOL4) ENTRY(HOL4) TRANSID(HOLH)
+   CEDA DEF DB2TRAN(HOLLTRAN) GR(HOL4) ENTRY(HOL4) TRANSID(HOLL)
+   CEDA DEF DB2TRAN(HOLMTRAN) GR(HOL4) ENTRY(HOL4) TRANSID(HOLM)
+   CEDA DEF DB2TRAN(HOLPTRAN) GR(HOL4) ENTRY(HOL4) TRANSID(HOLP)
+   CEDA DEF DB2TRAN(HOLRTRAN) GR(HOL4) ENTRY(HOL4) TRANSID(HOLR)
+   CEDA DEF DB2TRAN(HOLSTRAN) GR(HOL4) ENTRY(HOL4) TRANSID(HOLS)
+   CEDA DEF DB2TRAN(HOLXTRAN) GR(HOL4) ENTRY(HOL4) TRANSID(HOLX)
+   CEDA DEF DB2TRAN(HOLYTRAN) GR(HOL4) ENTRY(HOL4) TRANSID(HOLY)
+   CEDA DEF DB2TRAN(HOLZTRAN) GR(HOL4) ENTRY(HOL4) TRANSID(HOLZ)
+   CEDA DEF DB2TRAN(TST1TRAN) GR(HOL4) ENTRY(HOL4) TRANSID(TST1)
+
+ TEMA ESPECIAL DE MAYUSCULAS:
+
+   CEDA COPY TYPETERM(DFHCONS) GR(DFHTYPE) AS (CONSDFH) TO (HOL4)
+
+   Opcional:
+   DespuÇs de este comando, Alteramos el terminal L700 (o el que
+   cada uno tenga), para que su TYPETERM apunte al nuevo CONSDFH.
+
+   Modificar el SIP de carga de CICS
+   DFH410.SYSIN(SIP1)
+   Asegurarse de:
+        *
+        DB2CONN=YES,
+        SPOOL=YES,
+        LOCALCCSID=284,
+        GRPLIST=(XYZLIST,MCORNER),
+        *GRPLIST=(DFHLIST),
+
+
+ 6. COMPILACI‡N DE COMPONENTES CICS
+ ----------------------------------
+
+ Ahora compilaremos todos los componentes:
+ . Mapas con MCORNER.COBOL.JCL(@ASMMAP)
+ . Programa RTCENTI con @COBLCALL
+ . Resto de programas con @CICSDB2
+
+ Haremos el new Copy con CEMT S PROG(programa) para todos ellos.
+
+ DespÇs de compilar todo, tendremos el plan DB2 llamado HOL4PL listo
+ para que las aplicaciones accedan a DB2 a travÇs del DSNCLI.
+ Antes de ejecutar cualquier transacci¢n, debemos de permitir el
+ acceso al plan para el usuario de CICS que ejecute una transacci¢n.
+
+ Por defecto, el usuario siempre va a ser CICSUSER. Por lo que debemos
+ de asignar permisos a este usuario de cara a DB2 a travÇs del PLAN.
+ El comando ser°a:
+
+ GRANT EXECUTE ON PLAN HOL4PL TO CICSUSER
+ o incluso mejor:
+ ,.......  TO PUBLIC (Cualquier usuario podr°a ejecutar las transacci
+ nes del plan.
+
+ 7. PRUEBA DE LA APLICACI‡N CICS
+ -------------------------------
+
+ Si quereis utilizar mis datos en vuestra aplicaci¢n, debeis de
+ submitir los JCL LOADCL, LOADAY y LOADTB despuÇs de haber subido
+ los componentes y sobre todos los secuenciales MCORNER.DATA.**
+
+ Cuando sub†is estos datasets se ir†n quiz†s a un vol£men no deseado.
+ Se incluye un JCL MOVEDS para que pod†is moverlos donde se requiera.
+ Una vez all°, catalogarlos.
+
+ Haremos una prueba de HOL4 hasta que todo vaya bien. Una vez
+ solucionados los posibles problemas de esta, las dem†s ir†n bien.
+ Os podriais encontrar con problemas de permisos sobre el plan.
+
+ Esto se debe a que el usuario por defecto que ejecuta una transacci¢n
+ en un CICS no securizado, es CICSUSER. Es un usuario especial para CICS
+ y que debe de autorizarse para el plan.
+
+ Iremos a RACF y crearemos un USUARIO CICSUSER con un Owner IBMUSER al
+ grupo SYS1.
+ DespuÇs, desde QMF por ejemplo, ejecutaremos:
+ GRANT EXECUTE ON PLAN HOL4PL TO CICSUSER;
+
+ 8. PARTE BATCH DE LA APLICACI‡N
+ -------------------------------
+
+ En MCORNER.BATCH.SOURE hay un programa llamado BHOLL que se debe
+ de compilar con @BTHDB2. Tanbien hay un JCL en MCORNER.COBOL.JCL
+ llamado RUNBHOLL que se puede submitir para obtener un listado de
+ clientes en la clase A.
+ Se pueden variar los par†metros de PARMS para cambiar los criterios
+ de ordenaci¢n y filtrado para el listado.
+
+ Para la compilaci¢n del Batch se utiliza el plan BTHPLAN. No deber°an
+ de surgir problemas si las compialciones se lanzan conectado como
+ IBMUSER.
+
+ Las 2 £ltimas opciones de HOLM en CICS, utilizan la parte batch.
+ Ver los v°deos del canal sobre HOLW y HOLY.
+
+
+ BUENA SUERTE A TODOS.

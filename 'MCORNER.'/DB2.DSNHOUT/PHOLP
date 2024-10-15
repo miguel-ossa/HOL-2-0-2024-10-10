@@ -1,0 +1,2050 @@
+      *****************************************************************
+      *                 IDENTIFICATION     DIVISION                   *
+      *****************************************************************
+       IDENTIFICATION DIVISION.
+      *
+       PROGRAM-ID.      PHOLP.
+       AUTHOR.          LUIS MARTINEZ.
+      *
+      *****************************************************************
+      **  PROYECTO .........: HOL                                    **
+      **  PROGRAMA .........: PHOLP                                  **
+      **  VERSION ..........: 1.0                                    **
+      **  TITULO ...........: VISUALIZACION DE PAGINAS DE AYUDA      **
+      **                                                             **
+      **  TIPO .............:                                        **
+      **     - LENGUAJE ...............: COBOL II                    **
+      **     - ENTORNO ................: CICS                        **
+      **     - BASE DE DATOS ..........: DB2                         **
+      **                                                             **
+      **  DESCRIPCION ......:                                        **
+      **                                                             **
+      **    - Recibe el codigo de transaccion via Commarea y accede  **
+      **      a la tabla AYUDAS para ir mostrando las paginas dispo  **
+      **      nibles para esa transaccion con paginacion             **
+      **                                                             **
+      **                                                             **
+      **  LOG DE MODIFICACIONES:                                     **
+      **  FECHA----- DESCRIPCION------------------------------ BUSCA **
+      **  2024-08-21 Adaptaci¢n multiidioma (MOSSA)            TXMUL **
+      **  2024-09-24 Multiusuario (MOSSA)                      USER  **
+      **                                                             **
+      **                                                             **
+      **                                                             **
+      **                                                             **
+      **                                                             **
+      **                                                             **
+      **                                                             **
+      *****************************************************************
+       ENVIRONMENT DIVISION.
+      *
+       CONFIGURATION SECTION.
+       SPECIAL-NAMES.
+           DECIMAL-POINT IS COMMA.
+      *
+       DATA DIVISION.
+      *----------------------------------------------------------------
+       WORKING-STORAGE SECTION.
+      *
+      *--- Zona CICS --------------------------------------------------
+      *
+       COPY DFHAID.
+       COPY DFHBMSCA.
+       COPY HOLPMP.
+      *
+      *--- Zona CICS fin ----------------------------------------------
+      *
+      *--- Zona DB2 ---------------------------------------------------
+      *
+      *****EXEC SQL
+      *****     INCLUDE SQLCA
+      *****END-EXEC
+        01 SQLCA.
+           05 SQLCAID     PIC X(8).
+           05 SQLCABC     PIC S9(9) COMP-4.
+           05 SQLCODE     PIC S9(9) COMP-4.
+           05 SQLERRM.
+              49 SQLERRML PIC S9(4) COMP-4.
+              49 SQLERRMC PIC X(70).
+           05 SQLERRP     PIC X(8).
+           05 SQLERRD     OCCURS 6 TIMES
+                          PIC S9(9) COMP-4.
+           05 SQLWARN.
+              10 SQLWARN0 PIC X.
+              10 SQLWARN1 PIC X.
+              10 SQLWARN2 PIC X.
+              10 SQLWARN3 PIC X.
+              10 SQLWARN4 PIC X.
+              10 SQLWARN5 PIC X.
+              10 SQLWARN6 PIC X.
+              10 SQLWARN7 PIC X.
+           05 SQLEXT.
+              10 SQLWARN8 PIC X.
+              10 SQLWARN9 PIC X.
+              10 SQLWARNA PIC X.
+              10 SQLSTATE PIC X(5).
+      *
+      *****EXEC SQL
+      *****     INCLUDE AYUDAS
+      *****END-EXEC.
+      ******************************************************************
+      * DCLGEN TABLE(AYUDAS)                                           *
+      *        LIBRARY(MCORNER.DB2.DCLGEN(AYUDAS))                     *
+      *        ACTION(REPLACE)                                         *
+      *        LANGUAGE(COBOL)                                         *
+      *        NAMES(AY-)                                              *
+      *        STRUCTURE(AY-AYUDAS)                                    *
+      *        QUOTE                                                   *
+      *        COLSUFFIX(YES)                                          *
+      * ... IS THE DCLGEN COMMAND THAT MADE THE FOLLOWING STATEMENTS   *
+      ******************************************************************
+      *****EXEC SQL DECLARE AYUDAS TABLE
+      *****( TRANSACCION                    CHAR(4) NOT NULL,
+      *****  PAGINA                         INTEGER,
+      *****  L01                            CHAR(80),
+      *****  L02                            CHAR(80),
+      *****  L03                            CHAR(80),
+      *****  L04                            CHAR(80),
+      *****  L05                            CHAR(80),
+      *****  L06                            CHAR(80),
+      *****  L07                            CHAR(80),
+      *****  L08                            CHAR(80),
+      *****  L09                            CHAR(80),
+      *****  L10                            CHAR(80),
+      *****  L11                            CHAR(80),
+      *****  L12                            CHAR(80),
+      *****  L13                            CHAR(80),
+      *****  L14                            CHAR(80),
+      *****  L15                            CHAR(80),
+      *****  L16                            CHAR(80)
+      *****) END-EXEC.
+      ******************************************************************
+      * COBOL DECLARATION FOR TABLE AYUDAS                             *
+      ******************************************************************
+       01  AY-AYUDAS.
+      *                       TRANSACCION
+           10 AY-TRANSACCION       PIC X(4).
+      *                       PAGINA
+           10 AY-PAGINA            PIC S9(9) USAGE COMP.
+      *                       L01
+           10 AY-L01               PIC X(80).
+      *                       L02
+           10 AY-L02               PIC X(80).
+      *                       L03
+           10 AY-L03               PIC X(80).
+      *                       L04
+           10 AY-L04               PIC X(80).
+      *                       L05
+           10 AY-L05               PIC X(80).
+      *                       L06
+           10 AY-L06               PIC X(80).
+      *                       L07
+           10 AY-L07               PIC X(80).
+      *                       L08
+           10 AY-L08               PIC X(80).
+      *                       L09
+           10 AY-L09               PIC X(80).
+      *                       L10
+           10 AY-L10               PIC X(80).
+      *                       L11
+           10 AY-L11               PIC X(80).
+      *                       L12
+           10 AY-L12               PIC X(80).
+      *                       L13
+           10 AY-L13               PIC X(80).
+      *                       L14
+           10 AY-L14               PIC X(80).
+      *                       L15
+           10 AY-L15               PIC X(80).
+      *                       L16
+           10 AY-L16               PIC X(80).
+      ******************************************************************
+      * THE NUMBER OF COLUMNS DESCRIBED BY THIS DECLARATION IS 18      *
+      ******************************************************************
+      *
+      *****EXEC SQL
+      *****     INCLUDE DDDB2
+      *****END-EXEC
+      * --- AREA DE DB2 PARA TRATAMIENTO DE ERRORES (VARIABLES HOST) -
+      * --- VERSION 1.1
+       01  DB2-AREA.
+           03  DB2-CODE                     PIC S9(9).
+           03  DB2-CODE-EDIT                PIC --------9.
+           03  DB2-CODE-X                   PIC X(10).
+           03  DB2-ERROR-MSG                PIC X(50).
+      *
+           03  DB2-IDIOMA                   PIC XX   VALUE 'ES'.
+      *
+      *--- TXMUL ->
+      *    03  DB2-TABLA                    PIC X(8).
+      *    03  DB2-CLAVE1                   PIC X(8).
+      *    03  DB2-CLAVE2                   PIC X(8).
+      *    03  DB2-CLAVE3                   PIC X(8).
+      *    03  DB2-VALOR                    PIC X(80).
+      *--- TXMUL <-
+      *
+           03  DB2-TABLA-TITULOS            PIC X(8) VALUE 'TITULMAP'.
+           03  DB2-TABLA-TEXTOMAP           PIC X(8) VALUE 'TEXTOMAP'.
+           03  DB2-TABLA-PROGRMSG           PIC X(8) VALUE 'PROGRMSG'.
+      *
+           03  DB2-COUNT1                   PIC S9(9) COMP-3.
+           03  DB2-COUNT2                   PIC S9(9) COMP-3.
+      *---------------------------------------------------------------
+      *--- TXMUL ->
+      *****EXEC SQL
+      *****     INCLUDE TABLAS
+      *****END-EXEC
+      ******************************************************************
+      * DCLGEN TABLE(TABLAS)                                           *
+      *        LIBRARY(MCORNER.DB2.DCLGEN(TABLAS))                     *
+      *        ACTION(REPLACE)                                         *
+      *        LANGUAGE(COBOL)                                         *
+      *        NAMES(TB-)                                              *
+      *        STRUCTURE(TB-TABLAS)                                    *
+      *        QUOTE                                                   *
+      *        COLSUFFIX(YES)                                          *
+      * ... IS THE DCLGEN COMMAND THAT MADE THE FOLLOWING STATEMENTS   *
+      ******************************************************************
+      *****EXEC SQL DECLARE TABLAS TABLE
+      *****( TABLA                          CHAR(8) NOT NULL,
+      *****  CLAVE1                         CHAR(8) NOT NULL,
+      *****  CLAVE2                         CHAR(8),
+      *****  CLAVE3                         CHAR(8),
+      *****  VALOR                          CHAR(64) NOT NULL
+      *****) END-EXEC.
+      ******************************************************************
+      * COBOL DECLARATION FOR TABLE TABLAS                             *
+      ******************************************************************
+       01  TB-TABLAS.
+      *                       TABLA
+           10 TB-TABLA             PIC X(8).
+      *                       CLAVE1
+           10 TB-CLAVE1            PIC X(8).
+      *                       CLAVE2
+           10 TB-CLAVE2            PIC X(8).
+      *                       CLAVE3
+           10 TB-CLAVE3            PIC X(8).
+      *                       VALOR
+           10 TB-VALOR             PIC X(64).
+      ******************************************************************
+      * THE NUMBER OF COLUMNS DESCRIBED BY THIS DECLARATION IS 5       *
+      ******************************************************************
+      *--- TXMUL <-
+      *--- Zona DB2 fin -----------------------------------------------
+      *
+       01  FILLER                          PIC X(19)
+           VALUE '***START-WORKING***'.
+      *----------------------------------------------------------------
+      *--- AREA DE COMMAREA -------------------------------------------
+      *----------------------------------------------------------------
+       01  FILLER                          PIC X(10) VALUE 'I-COMMAREA'.
+           COPY DDCICS.
+       01  FILLER                          PIC X(10) VALUE 'F-COMMAREA'.
+      *----------------------------------------------------------------
+      *
+       01  WC-CONSTANTES.
+           03  WC-PROGRAMA                 PIC X(8)  VALUE 'PHOLP'.
+           03  WC-TRANSACCION              PIC X(4)  VALUE 'HOLP'.
+           03  WC-MAP                      PIC X(8)  VALUE 'HOLPMP'.
+           03  WC-MAPSET                   PIC X(8)  VALUE 'HOLPMP'.
+      *--- USER ->
+      *    03  WC-LONGITUD-TITULO          PIC 99    VALUE 74.
+      *--- USER <-
+      *
+           03  WC-CALL-RTCENTI             PIC X(8)  VALUE 'RTCENTI'.
+           03  WC-LINEA-VACIA              PIC X(80) VALUE
+           X'00000000000000000000000000000000000000000000000000000000000
+      -     '000000000000000000000'.
+      *
+       01  SW-SWITCHES.
+           03 SW-ENVIO-MAPA                PIC X    VALUE '1'.
+              88 ENVIO-ERASE                        VALUE '1'.
+              88 ENVIO-DATAONLY                     VALUE '2'.
+      *
+           03 SW-ERROR-VALIDACION          PIC X    VALUE '0'.
+              88 ERROR-VALIDACION                   VALUE '1'.
+      *
+       01  WL-LITERALES.
+           03  WL-FIN-SESION               PIC X(80) VALUE
+               'La transaccion HOLP ha finalizado...'.
+      *--- TXMUL ->
+       77 IND                             PIC 99 VALUE ZERO.
+      *--- TXMUL <-
+      *
+      *--- Zona para CALLs --------------------------------------------
+      *
+           COPY LKCENTI.
+      *
+       01 FILLER                           PIC X(17)
+           VALUE '***END-WORKING***'.
+      *----------------------------------------------------------------
+        77 SQL-TEMP      PIC X(128).
+        77 DSN-TEMP      PIC S9(9)  COMP-4.
+        77 DSN-TMP2      PIC S9(18) COMP-3.
+        77 DSNNROWS      PIC S9(9)  COMP-4.
+        77 DSNNTYPE      PIC S9(4)  COMP-4.
+        77 DSNNLEN       PIC S9(4)  COMP-4.
+        77 SQL-NULL      PIC S9(9) COMP-4 VALUE +0.
+        77 SQL-INIT-FLAG PIC S9(4) COMP-4 VALUE +0.
+           88 SQL-INIT-DONE VALUE +1.
+        77 SQL-FILE-READ      PIC S9(9) COMP-4 VALUE +2.
+        77 SQL-FILE-CREATE    PIC S9(9) COMP-4 VALUE +8.
+        77 SQL-FILE-OVERWRITE PIC S9(9) COMP-4 VALUE +16.
+        77 SQL-FILE-APPEND    PIC S9(9) COMP-4 VALUE +32.
+        01 SQL-PLIST7.
+           05 SQL-PLIST-CON   PIC S9(9) COMP-4 VALUE +4210688.
+           05 SQL-CALLTYPE    PIC S9(4) COMP-4 VALUE +50.
+           05 SQL-PROG-NAME   PIC X(8)  VALUE X'50484F4C50202020'.
+           05 SQL-TIMESTAMP-1 PIC S9(9) COMP-4 VALUE +469383581.
+           05 SQL-TIMESTAMP-2 PIC S9(9) COMP-4 VALUE +293658304.
+           05 SQL-SECTION     PIC S9(4) COMP-4 VALUE +1.
+           05 SQL-CODEPTR     PIC S9(9) COMP-4.
+           05 SQL-VPARMPTR    PIC S9(9) COMP-4 VALUE +0.
+           05 SQL-APARMPTR    PIC S9(9) COMP-4 VALUE +0.
+           05 FILLER          PIC S9(4) COMP-4 VALUE +1208.
+           05 SQL-STMT-TYPE   PIC S9(4) COMP-4 VALUE +3.
+           05 SQL-STMT-NUM    PIC S9(9) COMP-4 VALUE +695.
+           05 SQL-PLIST-FLG   PIC S9(4) COMP-4 VALUE +0.
+           05 FILLER          PIC X(18) VALUE
+              X'000000000000000000000000000000000000'.
+           05 SQL-PVAR-LIST7.
+              10 PRE-SQLDAID  PIC X(8)  VALUE 'SQLDA  Ê'.
+              10 PRE-SQLDABC  PIC S9(9) COMP-4 VALUE +104.
+              10 PRE-SQLN     PIC S9(4) COMP-4 VALUE +2.
+              10 PRE-SQLLD    PIC S9(4) COMP-4 VALUE +2.
+              10 PRE-SQLVAR.
+                12 SQLVAR-BASE1.
+                  15 SQL-PVAR-TYPE1      PIC S9(4) COMP-4 VALUE +452.
+                  15 SQL-PVAR-LEN1       PIC S9(4) COMP-4 VALUE +4.
+                  15 SQL-PVAR-ADDRS1.
+                     20 SQL-PVAR-ADDR1   PIC S9(9) COMP-4.
+                     20 SQL-PVAR-IND1    PIC S9(9) COMP-4.
+                  15 SQL-PVAR-NAME1.
+                     20 SQL-PVAR-NAMEL1  PIC S9(4) COMP-4 VALUE +0.
+                     20 SQL-PVAR-NAMEC1  PIC X(30) VALUE ' '.
+                12 SQLVAR-BASE2.
+                  15 SQL-PVAR-TYPE2      PIC S9(4) COMP-4 VALUE +496.
+                  15 SQL-PVAR-LEN2       PIC S9(4) COMP-4 VALUE +4.
+                  15 SQL-PVAR-ADDRS2.
+                     20 SQL-PVAR-ADDR2   PIC S9(9) COMP-4.
+                     20 SQL-PVAR-IND2    PIC S9(9) COMP-4.
+                  15 SQL-PVAR-NAME2.
+                     20 SQL-PVAR-NAMEL2  PIC S9(4) COMP-4 VALUE +0.
+                     20 SQL-PVAR-NAMEC2  PIC X(30) VALUE ' '.
+        01 SQL-PLIST8.
+           05 SQL-PLIST-CON   PIC S9(9) COMP-4 VALUE +4195328.
+           05 SQL-CALLTYPE    PIC S9(4) COMP-4 VALUE +30.
+           05 SQL-PROG-NAME   PIC X(8)  VALUE X'50484F4C50202020'.
+           05 SQL-TIMESTAMP-1 PIC S9(9) COMP-4 VALUE +469383581.
+           05 SQL-TIMESTAMP-2 PIC S9(9) COMP-4 VALUE +293658304.
+           05 SQL-SECTION     PIC S9(4) COMP-4 VALUE +1.
+           05 SQL-CODEPTR     PIC S9(9) COMP-4.
+           05 SQL-VPARMPTR    PIC S9(9) COMP-4 VALUE +0.
+           05 SQL-APARMPTR    PIC S9(9) COMP-4 VALUE +0.
+           05 FILLER          PIC S9(4) COMP-4 VALUE +1208.
+           05 SQL-STMT-TYPE   PIC S9(4) COMP-4 VALUE +4.
+           05 SQL-STMT-NUM    PIC S9(9) COMP-4 VALUE +710.
+           05 SQL-PLIST-FLG   PIC S9(4) COMP-4 VALUE +0.
+           05 FILLER          PIC X(18) VALUE
+              X'000000000000000000000000000000000000'.
+           05 SQL-AVAR-LIST8.
+              10 PRE-SQLDAID  PIC X(8)  VALUE 'SQLDA  Ê'.
+              10 PRE-SQLDABC  PIC S9(9) COMP-4 VALUE +808.
+              10 PRE-SQLN     PIC S9(4) COMP-4 VALUE +18.
+              10 PRE-SQLLD    PIC S9(4) COMP-4 VALUE +18.
+              10 PRE-SQLVAR.
+                12 SQLVAR-BASE1.
+                  15 SQL-AVAR-TYPE1      PIC S9(4) COMP-4 VALUE +452.
+                  15 SQL-AVAR-LEN1       PIC S9(4) COMP-4 VALUE +4.
+                  15 SQL-AVAR-ADDRS1.
+                     20 SQL-AVAR-ADDR1   PIC S9(9) COMP-4.
+                     20 SQL-AVAR-IND1    PIC S9(9) COMP-4.
+                  15 SQL-AVAR-NAME1.
+                     20 SQL-AVAR-NAMEL1  PIC S9(4) COMP-4 VALUE +0.
+                     20 SQL-AVAR-NAMEC1  PIC X(30) VALUE ' '.
+                12 SQLVAR-BASE2.
+                  15 SQL-AVAR-TYPE2      PIC S9(4) COMP-4 VALUE +496.
+                  15 SQL-AVAR-LEN2       PIC S9(4) COMP-4 VALUE +4.
+                  15 SQL-AVAR-ADDRS2.
+                     20 SQL-AVAR-ADDR2   PIC S9(9) COMP-4.
+                     20 SQL-AVAR-IND2    PIC S9(9) COMP-4.
+                  15 SQL-AVAR-NAME2.
+                     20 SQL-AVAR-NAMEL2  PIC S9(4) COMP-4 VALUE +0.
+                     20 SQL-AVAR-NAMEC2  PIC X(30) VALUE ' '.
+                12 SQLVAR-BASE3.
+                  15 SQL-AVAR-TYPE3      PIC S9(4) COMP-4 VALUE +452.
+                  15 SQL-AVAR-LEN3       PIC S9(4) COMP-4 VALUE +80.
+                  15 SQL-AVAR-ADDRS3.
+                     20 SQL-AVAR-ADDR3   PIC S9(9) COMP-4.
+                     20 SQL-AVAR-IND3    PIC S9(9) COMP-4.
+                  15 SQL-AVAR-NAME3.
+                     20 SQL-AVAR-NAMEL3  PIC S9(4) COMP-4 VALUE +0.
+                     20 SQL-AVAR-NAMEC3  PIC X(30) VALUE ' '.
+                12 SQLVAR-BASE4.
+                  15 SQL-AVAR-TYPE4      PIC S9(4) COMP-4 VALUE +452.
+                  15 SQL-AVAR-LEN4       PIC S9(4) COMP-4 VALUE +80.
+                  15 SQL-AVAR-ADDRS4.
+                     20 SQL-AVAR-ADDR4   PIC S9(9) COMP-4.
+                     20 SQL-AVAR-IND4    PIC S9(9) COMP-4.
+                  15 SQL-AVAR-NAME4.
+                     20 SQL-AVAR-NAMEL4  PIC S9(4) COMP-4 VALUE +0.
+                     20 SQL-AVAR-NAMEC4  PIC X(30) VALUE ' '.
+                12 SQLVAR-BASE5.
+                  15 SQL-AVAR-TYPE5      PIC S9(4) COMP-4 VALUE +452.
+                  15 SQL-AVAR-LEN5       PIC S9(4) COMP-4 VALUE +80.
+                  15 SQL-AVAR-ADDRS5.
+                     20 SQL-AVAR-ADDR5   PIC S9(9) COMP-4.
+                     20 SQL-AVAR-IND5    PIC S9(9) COMP-4.
+                  15 SQL-AVAR-NAME5.
+                     20 SQL-AVAR-NAMEL5  PIC S9(4) COMP-4 VALUE +0.
+                     20 SQL-AVAR-NAMEC5  PIC X(30) VALUE ' '.
+                12 SQLVAR-BASE6.
+                  15 SQL-AVAR-TYPE6      PIC S9(4) COMP-4 VALUE +452.
+                  15 SQL-AVAR-LEN6       PIC S9(4) COMP-4 VALUE +80.
+                  15 SQL-AVAR-ADDRS6.
+                     20 SQL-AVAR-ADDR6   PIC S9(9) COMP-4.
+                     20 SQL-AVAR-IND6    PIC S9(9) COMP-4.
+                  15 SQL-AVAR-NAME6.
+                     20 SQL-AVAR-NAMEL6  PIC S9(4) COMP-4 VALUE +0.
+                     20 SQL-AVAR-NAMEC6  PIC X(30) VALUE ' '.
+                12 SQLVAR-BASE7.
+                  15 SQL-AVAR-TYPE7      PIC S9(4) COMP-4 VALUE +452.
+                  15 SQL-AVAR-LEN7       PIC S9(4) COMP-4 VALUE +80.
+                  15 SQL-AVAR-ADDRS7.
+                     20 SQL-AVAR-ADDR7   PIC S9(9) COMP-4.
+                     20 SQL-AVAR-IND7    PIC S9(9) COMP-4.
+                  15 SQL-AVAR-NAME7.
+                     20 SQL-AVAR-NAMEL7  PIC S9(4) COMP-4 VALUE +0.
+                     20 SQL-AVAR-NAMEC7  PIC X(30) VALUE ' '.
+                12 SQLVAR-BASE8.
+                  15 SQL-AVAR-TYPE8      PIC S9(4) COMP-4 VALUE +452.
+                  15 SQL-AVAR-LEN8       PIC S9(4) COMP-4 VALUE +80.
+                  15 SQL-AVAR-ADDRS8.
+                     20 SQL-AVAR-ADDR8   PIC S9(9) COMP-4.
+                     20 SQL-AVAR-IND8    PIC S9(9) COMP-4.
+                  15 SQL-AVAR-NAME8.
+                     20 SQL-AVAR-NAMEL8  PIC S9(4) COMP-4 VALUE +0.
+                     20 SQL-AVAR-NAMEC8  PIC X(30) VALUE ' '.
+                12 SQLVAR-BASE9.
+                  15 SQL-AVAR-TYPE9      PIC S9(4) COMP-4 VALUE +452.
+                  15 SQL-AVAR-LEN9       PIC S9(4) COMP-4 VALUE +80.
+                  15 SQL-AVAR-ADDRS9.
+                     20 SQL-AVAR-ADDR9   PIC S9(9) COMP-4.
+                     20 SQL-AVAR-IND9    PIC S9(9) COMP-4.
+                  15 SQL-AVAR-NAME9.
+                     20 SQL-AVAR-NAMEL9  PIC S9(4) COMP-4 VALUE +0.
+                     20 SQL-AVAR-NAMEC9  PIC X(30) VALUE ' '.
+                12 SQLVAR-BASE10.
+                  15 SQL-AVAR-TYPE10      PIC S9(4) COMP-4 VALUE +452.
+                  15 SQL-AVAR-LEN10       PIC S9(4) COMP-4 VALUE +80.
+                  15 SQL-AVAR-ADDRS10.
+                     20 SQL-AVAR-ADDR10   PIC S9(9) COMP-4.
+                     20 SQL-AVAR-IND10    PIC S9(9) COMP-4.
+                  15 SQL-AVAR-NAME10.
+                     20 SQL-AVAR-NAMEL10  PIC S9(4) COMP-4 VALUE +0.
+                     20 SQL-AVAR-NAMEC10  PIC X(30) VALUE ' '.
+                12 SQLVAR-BASE11.
+                  15 SQL-AVAR-TYPE11      PIC S9(4) COMP-4 VALUE +452.
+                  15 SQL-AVAR-LEN11       PIC S9(4) COMP-4 VALUE +80.
+                  15 SQL-AVAR-ADDRS11.
+                     20 SQL-AVAR-ADDR11   PIC S9(9) COMP-4.
+                     20 SQL-AVAR-IND11    PIC S9(9) COMP-4.
+                  15 SQL-AVAR-NAME11.
+                     20 SQL-AVAR-NAMEL11  PIC S9(4) COMP-4 VALUE +0.
+                     20 SQL-AVAR-NAMEC11  PIC X(30) VALUE ' '.
+                12 SQLVAR-BASE12.
+                  15 SQL-AVAR-TYPE12      PIC S9(4) COMP-4 VALUE +452.
+                  15 SQL-AVAR-LEN12       PIC S9(4) COMP-4 VALUE +80.
+                  15 SQL-AVAR-ADDRS12.
+                     20 SQL-AVAR-ADDR12   PIC S9(9) COMP-4.
+                     20 SQL-AVAR-IND12    PIC S9(9) COMP-4.
+                  15 SQL-AVAR-NAME12.
+                     20 SQL-AVAR-NAMEL12  PIC S9(4) COMP-4 VALUE +0.
+                     20 SQL-AVAR-NAMEC12  PIC X(30) VALUE ' '.
+                12 SQLVAR-BASE13.
+                  15 SQL-AVAR-TYPE13      PIC S9(4) COMP-4 VALUE +452.
+                  15 SQL-AVAR-LEN13       PIC S9(4) COMP-4 VALUE +80.
+                  15 SQL-AVAR-ADDRS13.
+                     20 SQL-AVAR-ADDR13   PIC S9(9) COMP-4.
+                     20 SQL-AVAR-IND13    PIC S9(9) COMP-4.
+                  15 SQL-AVAR-NAME13.
+                     20 SQL-AVAR-NAMEL13  PIC S9(4) COMP-4 VALUE +0.
+                     20 SQL-AVAR-NAMEC13  PIC X(30) VALUE ' '.
+                12 SQLVAR-BASE14.
+                  15 SQL-AVAR-TYPE14      PIC S9(4) COMP-4 VALUE +452.
+                  15 SQL-AVAR-LEN14       PIC S9(4) COMP-4 VALUE +80.
+                  15 SQL-AVAR-ADDRS14.
+                     20 SQL-AVAR-ADDR14   PIC S9(9) COMP-4.
+                     20 SQL-AVAR-IND14    PIC S9(9) COMP-4.
+                  15 SQL-AVAR-NAME14.
+                     20 SQL-AVAR-NAMEL14  PIC S9(4) COMP-4 VALUE +0.
+                     20 SQL-AVAR-NAMEC14  PIC X(30) VALUE ' '.
+                12 SQLVAR-BASE15.
+                  15 SQL-AVAR-TYPE15      PIC S9(4) COMP-4 VALUE +452.
+                  15 SQL-AVAR-LEN15       PIC S9(4) COMP-4 VALUE +80.
+                  15 SQL-AVAR-ADDRS15.
+                     20 SQL-AVAR-ADDR15   PIC S9(9) COMP-4.
+                     20 SQL-AVAR-IND15    PIC S9(9) COMP-4.
+                  15 SQL-AVAR-NAME15.
+                     20 SQL-AVAR-NAMEL15  PIC S9(4) COMP-4 VALUE +0.
+                     20 SQL-AVAR-NAMEC15  PIC X(30) VALUE ' '.
+                12 SQLVAR-BASE16.
+                  15 SQL-AVAR-TYPE16      PIC S9(4) COMP-4 VALUE +452.
+                  15 SQL-AVAR-LEN16       PIC S9(4) COMP-4 VALUE +80.
+                  15 SQL-AVAR-ADDRS16.
+                     20 SQL-AVAR-ADDR16   PIC S9(9) COMP-4.
+                     20 SQL-AVAR-IND16    PIC S9(9) COMP-4.
+                  15 SQL-AVAR-NAME16.
+                     20 SQL-AVAR-NAMEL16  PIC S9(4) COMP-4 VALUE +0.
+                     20 SQL-AVAR-NAMEC16  PIC X(30) VALUE ' '.
+                12 SQLVAR-BASE17.
+                  15 SQL-AVAR-TYPE17      PIC S9(4) COMP-4 VALUE +452.
+                  15 SQL-AVAR-LEN17       PIC S9(4) COMP-4 VALUE +80.
+                  15 SQL-AVAR-ADDRS17.
+                     20 SQL-AVAR-ADDR17   PIC S9(9) COMP-4.
+                     20 SQL-AVAR-IND17    PIC S9(9) COMP-4.
+                  15 SQL-AVAR-NAME17.
+                     20 SQL-AVAR-NAMEL17  PIC S9(4) COMP-4 VALUE +0.
+                     20 SQL-AVAR-NAMEC17  PIC X(30) VALUE ' '.
+                12 SQLVAR-BASE18.
+                  15 SQL-AVAR-TYPE18      PIC S9(4) COMP-4 VALUE +452.
+                  15 SQL-AVAR-LEN18       PIC S9(4) COMP-4 VALUE +80.
+                  15 SQL-AVAR-ADDRS18.
+                     20 SQL-AVAR-ADDR18   PIC S9(9) COMP-4.
+                     20 SQL-AVAR-IND18    PIC S9(9) COMP-4.
+                  15 SQL-AVAR-NAME18.
+                     20 SQL-AVAR-NAMEL18  PIC S9(4) COMP-4 VALUE +0.
+                     20 SQL-AVAR-NAMEC18  PIC X(30) VALUE ' '.
+        01 SQL-PLIST9.
+           05 SQL-PLIST-CON   PIC S9(9) COMP-4 VALUE +4194304.
+           05 SQL-CALLTYPE    PIC S9(4) COMP-4 VALUE +45.
+           05 SQL-PROG-NAME   PIC X(8)  VALUE X'50484F4C50202020'.
+           05 SQL-TIMESTAMP-1 PIC S9(9) COMP-4 VALUE +469383581.
+           05 SQL-TIMESTAMP-2 PIC S9(9) COMP-4 VALUE +293658304.
+           05 SQL-SECTION     PIC S9(4) COMP-4 VALUE +1.
+           05 SQL-CODEPTR     PIC S9(9) COMP-4.
+           05 SQL-VPARMPTR    PIC S9(9) COMP-4 VALUE +0.
+           05 SQL-APARMPTR    PIC S9(9) COMP-4 VALUE +0.
+           05 FILLER          PIC S9(4) COMP-4 VALUE +1208.
+           05 SQL-STMT-TYPE   PIC S9(4) COMP-4 VALUE +5.
+           05 SQL-STMT-NUM    PIC S9(9) COMP-4 VALUE +744.
+           05 SQL-PLIST-FLG   PIC S9(4) COMP-4 VALUE +0.
+           05 FILLER          PIC X(18) VALUE
+              X'000000000000000000000000000000000000'.
+        01 SQL-PLIST11.
+           05 SQL-PLIST-CON   PIC S9(9) COMP-4 VALUE +4210688.
+           05 SQL-CALLTYPE    PIC S9(4) COMP-4 VALUE +50.
+           05 SQL-PROG-NAME   PIC X(8)  VALUE X'50484F4C50202020'.
+           05 SQL-TIMESTAMP-1 PIC S9(9) COMP-4 VALUE +469383581.
+           05 SQL-TIMESTAMP-2 PIC S9(9) COMP-4 VALUE +293658304.
+           05 SQL-SECTION     PIC S9(4) COMP-4 VALUE +2.
+           05 SQL-CODEPTR     PIC S9(9) COMP-4.
+           05 SQL-VPARMPTR    PIC S9(9) COMP-4 VALUE +0.
+           05 SQL-APARMPTR    PIC S9(9) COMP-4 VALUE +0.
+           05 FILLER          PIC S9(4) COMP-4 VALUE +1208.
+           05 SQL-STMT-TYPE   PIC S9(4) COMP-4 VALUE +3.
+           05 SQL-STMT-NUM    PIC S9(9) COMP-4 VALUE +785.
+           05 SQL-PLIST-FLG   PIC S9(4) COMP-4 VALUE +0.
+           05 FILLER          PIC X(18) VALUE
+              X'000000000000000000000000000000000000'.
+           05 SQL-PVAR-LIST11.
+              10 PRE-SQLDAID  PIC X(8)  VALUE 'SQLDA  Ê'.
+              10 PRE-SQLDABC  PIC S9(9) COMP-4 VALUE +104.
+              10 PRE-SQLN     PIC S9(4) COMP-4 VALUE +2.
+              10 PRE-SQLLD    PIC S9(4) COMP-4 VALUE +2.
+              10 PRE-SQLVAR.
+                12 SQLVAR-BASE1.
+                  15 SQL-PVAR-TYPE1      PIC S9(4) COMP-4 VALUE +452.
+                  15 SQL-PVAR-LEN1       PIC S9(4) COMP-4 VALUE +4.
+                  15 SQL-PVAR-ADDRS1.
+                     20 SQL-PVAR-ADDR1   PIC S9(9) COMP-4.
+                     20 SQL-PVAR-IND1    PIC S9(9) COMP-4.
+                  15 SQL-PVAR-NAME1.
+                     20 SQL-PVAR-NAMEL1  PIC S9(4) COMP-4 VALUE +0.
+                     20 SQL-PVAR-NAMEC1  PIC X(30) VALUE ' '.
+                12 SQLVAR-BASE2.
+                  15 SQL-PVAR-TYPE2      PIC S9(4) COMP-4 VALUE +496.
+                  15 SQL-PVAR-LEN2       PIC S9(4) COMP-4 VALUE +4.
+                  15 SQL-PVAR-ADDRS2.
+                     20 SQL-PVAR-ADDR2   PIC S9(9) COMP-4.
+                     20 SQL-PVAR-IND2    PIC S9(9) COMP-4.
+                  15 SQL-PVAR-NAME2.
+                     20 SQL-PVAR-NAMEL2  PIC S9(4) COMP-4 VALUE +0.
+                     20 SQL-PVAR-NAMEC2  PIC X(30) VALUE ' '.
+        01 SQL-PLIST12.
+           05 SQL-PLIST-CON   PIC S9(9) COMP-4 VALUE +4195328.
+           05 SQL-CALLTYPE    PIC S9(4) COMP-4 VALUE +30.
+           05 SQL-PROG-NAME   PIC X(8)  VALUE X'50484F4C50202020'.
+           05 SQL-TIMESTAMP-1 PIC S9(9) COMP-4 VALUE +469383581.
+           05 SQL-TIMESTAMP-2 PIC S9(9) COMP-4 VALUE +293658304.
+           05 SQL-SECTION     PIC S9(4) COMP-4 VALUE +2.
+           05 SQL-CODEPTR     PIC S9(9) COMP-4.
+           05 SQL-VPARMPTR    PIC S9(9) COMP-4 VALUE +0.
+           05 SQL-APARMPTR    PIC S9(9) COMP-4 VALUE +0.
+           05 FILLER          PIC S9(4) COMP-4 VALUE +1208.
+           05 SQL-STMT-TYPE   PIC S9(4) COMP-4 VALUE +4.
+           05 SQL-STMT-NUM    PIC S9(9) COMP-4 VALUE +800.
+           05 SQL-PLIST-FLG   PIC S9(4) COMP-4 VALUE +0.
+           05 FILLER          PIC X(18) VALUE
+              X'000000000000000000000000000000000000'.
+           05 SQL-AVAR-LIST12.
+              10 PRE-SQLDAID  PIC X(8)  VALUE 'SQLDA  Ê'.
+              10 PRE-SQLDABC  PIC S9(9) COMP-4 VALUE +808.
+              10 PRE-SQLN     PIC S9(4) COMP-4 VALUE +18.
+              10 PRE-SQLLD    PIC S9(4) COMP-4 VALUE +18.
+              10 PRE-SQLVAR.
+                12 SQLVAR-BASE1.
+                  15 SQL-AVAR-TYPE1      PIC S9(4) COMP-4 VALUE +452.
+                  15 SQL-AVAR-LEN1       PIC S9(4) COMP-4 VALUE +4.
+                  15 SQL-AVAR-ADDRS1.
+                     20 SQL-AVAR-ADDR1   PIC S9(9) COMP-4.
+                     20 SQL-AVAR-IND1    PIC S9(9) COMP-4.
+                  15 SQL-AVAR-NAME1.
+                     20 SQL-AVAR-NAMEL1  PIC S9(4) COMP-4 VALUE +0.
+                     20 SQL-AVAR-NAMEC1  PIC X(30) VALUE ' '.
+                12 SQLVAR-BASE2.
+                  15 SQL-AVAR-TYPE2      PIC S9(4) COMP-4 VALUE +496.
+                  15 SQL-AVAR-LEN2       PIC S9(4) COMP-4 VALUE +4.
+                  15 SQL-AVAR-ADDRS2.
+                     20 SQL-AVAR-ADDR2   PIC S9(9) COMP-4.
+                     20 SQL-AVAR-IND2    PIC S9(9) COMP-4.
+                  15 SQL-AVAR-NAME2.
+                     20 SQL-AVAR-NAMEL2  PIC S9(4) COMP-4 VALUE +0.
+                     20 SQL-AVAR-NAMEC2  PIC X(30) VALUE ' '.
+                12 SQLVAR-BASE3.
+                  15 SQL-AVAR-TYPE3      PIC S9(4) COMP-4 VALUE +452.
+                  15 SQL-AVAR-LEN3       PIC S9(4) COMP-4 VALUE +80.
+                  15 SQL-AVAR-ADDRS3.
+                     20 SQL-AVAR-ADDR3   PIC S9(9) COMP-4.
+                     20 SQL-AVAR-IND3    PIC S9(9) COMP-4.
+                  15 SQL-AVAR-NAME3.
+                     20 SQL-AVAR-NAMEL3  PIC S9(4) COMP-4 VALUE +0.
+                     20 SQL-AVAR-NAMEC3  PIC X(30) VALUE ' '.
+                12 SQLVAR-BASE4.
+                  15 SQL-AVAR-TYPE4      PIC S9(4) COMP-4 VALUE +452.
+                  15 SQL-AVAR-LEN4       PIC S9(4) COMP-4 VALUE +80.
+                  15 SQL-AVAR-ADDRS4.
+                     20 SQL-AVAR-ADDR4   PIC S9(9) COMP-4.
+                     20 SQL-AVAR-IND4    PIC S9(9) COMP-4.
+                  15 SQL-AVAR-NAME4.
+                     20 SQL-AVAR-NAMEL4  PIC S9(4) COMP-4 VALUE +0.
+                     20 SQL-AVAR-NAMEC4  PIC X(30) VALUE ' '.
+                12 SQLVAR-BASE5.
+                  15 SQL-AVAR-TYPE5      PIC S9(4) COMP-4 VALUE +452.
+                  15 SQL-AVAR-LEN5       PIC S9(4) COMP-4 VALUE +80.
+                  15 SQL-AVAR-ADDRS5.
+                     20 SQL-AVAR-ADDR5   PIC S9(9) COMP-4.
+                     20 SQL-AVAR-IND5    PIC S9(9) COMP-4.
+                  15 SQL-AVAR-NAME5.
+                     20 SQL-AVAR-NAMEL5  PIC S9(4) COMP-4 VALUE +0.
+                     20 SQL-AVAR-NAMEC5  PIC X(30) VALUE ' '.
+                12 SQLVAR-BASE6.
+                  15 SQL-AVAR-TYPE6      PIC S9(4) COMP-4 VALUE +452.
+                  15 SQL-AVAR-LEN6       PIC S9(4) COMP-4 VALUE +80.
+                  15 SQL-AVAR-ADDRS6.
+                     20 SQL-AVAR-ADDR6   PIC S9(9) COMP-4.
+                     20 SQL-AVAR-IND6    PIC S9(9) COMP-4.
+                  15 SQL-AVAR-NAME6.
+                     20 SQL-AVAR-NAMEL6  PIC S9(4) COMP-4 VALUE +0.
+                     20 SQL-AVAR-NAMEC6  PIC X(30) VALUE ' '.
+                12 SQLVAR-BASE7.
+                  15 SQL-AVAR-TYPE7      PIC S9(4) COMP-4 VALUE +452.
+                  15 SQL-AVAR-LEN7       PIC S9(4) COMP-4 VALUE +80.
+                  15 SQL-AVAR-ADDRS7.
+                     20 SQL-AVAR-ADDR7   PIC S9(9) COMP-4.
+                     20 SQL-AVAR-IND7    PIC S9(9) COMP-4.
+                  15 SQL-AVAR-NAME7.
+                     20 SQL-AVAR-NAMEL7  PIC S9(4) COMP-4 VALUE +0.
+                     20 SQL-AVAR-NAMEC7  PIC X(30) VALUE ' '.
+                12 SQLVAR-BASE8.
+                  15 SQL-AVAR-TYPE8      PIC S9(4) COMP-4 VALUE +452.
+                  15 SQL-AVAR-LEN8       PIC S9(4) COMP-4 VALUE +80.
+                  15 SQL-AVAR-ADDRS8.
+                     20 SQL-AVAR-ADDR8   PIC S9(9) COMP-4.
+                     20 SQL-AVAR-IND8    PIC S9(9) COMP-4.
+                  15 SQL-AVAR-NAME8.
+                     20 SQL-AVAR-NAMEL8  PIC S9(4) COMP-4 VALUE +0.
+                     20 SQL-AVAR-NAMEC8  PIC X(30) VALUE ' '.
+                12 SQLVAR-BASE9.
+                  15 SQL-AVAR-TYPE9      PIC S9(4) COMP-4 VALUE +452.
+                  15 SQL-AVAR-LEN9       PIC S9(4) COMP-4 VALUE +80.
+                  15 SQL-AVAR-ADDRS9.
+                     20 SQL-AVAR-ADDR9   PIC S9(9) COMP-4.
+                     20 SQL-AVAR-IND9    PIC S9(9) COMP-4.
+                  15 SQL-AVAR-NAME9.
+                     20 SQL-AVAR-NAMEL9  PIC S9(4) COMP-4 VALUE +0.
+                     20 SQL-AVAR-NAMEC9  PIC X(30) VALUE ' '.
+                12 SQLVAR-BASE10.
+                  15 SQL-AVAR-TYPE10      PIC S9(4) COMP-4 VALUE +452.
+                  15 SQL-AVAR-LEN10       PIC S9(4) COMP-4 VALUE +80.
+                  15 SQL-AVAR-ADDRS10.
+                     20 SQL-AVAR-ADDR10   PIC S9(9) COMP-4.
+                     20 SQL-AVAR-IND10    PIC S9(9) COMP-4.
+                  15 SQL-AVAR-NAME10.
+                     20 SQL-AVAR-NAMEL10  PIC S9(4) COMP-4 VALUE +0.
+                     20 SQL-AVAR-NAMEC10  PIC X(30) VALUE ' '.
+                12 SQLVAR-BASE11.
+                  15 SQL-AVAR-TYPE11      PIC S9(4) COMP-4 VALUE +452.
+                  15 SQL-AVAR-LEN11       PIC S9(4) COMP-4 VALUE +80.
+                  15 SQL-AVAR-ADDRS11.
+                     20 SQL-AVAR-ADDR11   PIC S9(9) COMP-4.
+                     20 SQL-AVAR-IND11    PIC S9(9) COMP-4.
+                  15 SQL-AVAR-NAME11.
+                     20 SQL-AVAR-NAMEL11  PIC S9(4) COMP-4 VALUE +0.
+                     20 SQL-AVAR-NAMEC11  PIC X(30) VALUE ' '.
+                12 SQLVAR-BASE12.
+                  15 SQL-AVAR-TYPE12      PIC S9(4) COMP-4 VALUE +452.
+                  15 SQL-AVAR-LEN12       PIC S9(4) COMP-4 VALUE +80.
+                  15 SQL-AVAR-ADDRS12.
+                     20 SQL-AVAR-ADDR12   PIC S9(9) COMP-4.
+                     20 SQL-AVAR-IND12    PIC S9(9) COMP-4.
+                  15 SQL-AVAR-NAME12.
+                     20 SQL-AVAR-NAMEL12  PIC S9(4) COMP-4 VALUE +0.
+                     20 SQL-AVAR-NAMEC12  PIC X(30) VALUE ' '.
+                12 SQLVAR-BASE13.
+                  15 SQL-AVAR-TYPE13      PIC S9(4) COMP-4 VALUE +452.
+                  15 SQL-AVAR-LEN13       PIC S9(4) COMP-4 VALUE +80.
+                  15 SQL-AVAR-ADDRS13.
+                     20 SQL-AVAR-ADDR13   PIC S9(9) COMP-4.
+                     20 SQL-AVAR-IND13    PIC S9(9) COMP-4.
+                  15 SQL-AVAR-NAME13.
+                     20 SQL-AVAR-NAMEL13  PIC S9(4) COMP-4 VALUE +0.
+                     20 SQL-AVAR-NAMEC13  PIC X(30) VALUE ' '.
+                12 SQLVAR-BASE14.
+                  15 SQL-AVAR-TYPE14      PIC S9(4) COMP-4 VALUE +452.
+                  15 SQL-AVAR-LEN14       PIC S9(4) COMP-4 VALUE +80.
+                  15 SQL-AVAR-ADDRS14.
+                     20 SQL-AVAR-ADDR14   PIC S9(9) COMP-4.
+                     20 SQL-AVAR-IND14    PIC S9(9) COMP-4.
+                  15 SQL-AVAR-NAME14.
+                     20 SQL-AVAR-NAMEL14  PIC S9(4) COMP-4 VALUE +0.
+                     20 SQL-AVAR-NAMEC14  PIC X(30) VALUE ' '.
+                12 SQLVAR-BASE15.
+                  15 SQL-AVAR-TYPE15      PIC S9(4) COMP-4 VALUE +452.
+                  15 SQL-AVAR-LEN15       PIC S9(4) COMP-4 VALUE +80.
+                  15 SQL-AVAR-ADDRS15.
+                     20 SQL-AVAR-ADDR15   PIC S9(9) COMP-4.
+                     20 SQL-AVAR-IND15    PIC S9(9) COMP-4.
+                  15 SQL-AVAR-NAME15.
+                     20 SQL-AVAR-NAMEL15  PIC S9(4) COMP-4 VALUE +0.
+                     20 SQL-AVAR-NAMEC15  PIC X(30) VALUE ' '.
+                12 SQLVAR-BASE16.
+                  15 SQL-AVAR-TYPE16      PIC S9(4) COMP-4 VALUE +452.
+                  15 SQL-AVAR-LEN16       PIC S9(4) COMP-4 VALUE +80.
+                  15 SQL-AVAR-ADDRS16.
+                     20 SQL-AVAR-ADDR16   PIC S9(9) COMP-4.
+                     20 SQL-AVAR-IND16    PIC S9(9) COMP-4.
+                  15 SQL-AVAR-NAME16.
+                     20 SQL-AVAR-NAMEL16  PIC S9(4) COMP-4 VALUE +0.
+                     20 SQL-AVAR-NAMEC16  PIC X(30) VALUE ' '.
+                12 SQLVAR-BASE17.
+                  15 SQL-AVAR-TYPE17      PIC S9(4) COMP-4 VALUE +452.
+                  15 SQL-AVAR-LEN17       PIC S9(4) COMP-4 VALUE +80.
+                  15 SQL-AVAR-ADDRS17.
+                     20 SQL-AVAR-ADDR17   PIC S9(9) COMP-4.
+                     20 SQL-AVAR-IND17    PIC S9(9) COMP-4.
+                  15 SQL-AVAR-NAME17.
+                     20 SQL-AVAR-NAMEL17  PIC S9(4) COMP-4 VALUE +0.
+                     20 SQL-AVAR-NAMEC17  PIC X(30) VALUE ' '.
+                12 SQLVAR-BASE18.
+                  15 SQL-AVAR-TYPE18      PIC S9(4) COMP-4 VALUE +452.
+                  15 SQL-AVAR-LEN18       PIC S9(4) COMP-4 VALUE +80.
+                  15 SQL-AVAR-ADDRS18.
+                     20 SQL-AVAR-ADDR18   PIC S9(9) COMP-4.
+                     20 SQL-AVAR-IND18    PIC S9(9) COMP-4.
+                  15 SQL-AVAR-NAME18.
+                     20 SQL-AVAR-NAMEL18  PIC S9(4) COMP-4 VALUE +0.
+                     20 SQL-AVAR-NAMEC18  PIC X(30) VALUE ' '.
+        01 SQL-PLIST13.
+           05 SQL-PLIST-CON   PIC S9(9) COMP-4 VALUE +4194304.
+           05 SQL-CALLTYPE    PIC S9(4) COMP-4 VALUE +45.
+           05 SQL-PROG-NAME   PIC X(8)  VALUE X'50484F4C50202020'.
+           05 SQL-TIMESTAMP-1 PIC S9(9) COMP-4 VALUE +469383581.
+           05 SQL-TIMESTAMP-2 PIC S9(9) COMP-4 VALUE +293658304.
+           05 SQL-SECTION     PIC S9(4) COMP-4 VALUE +2.
+           05 SQL-CODEPTR     PIC S9(9) COMP-4.
+           05 SQL-VPARMPTR    PIC S9(9) COMP-4 VALUE +0.
+           05 SQL-APARMPTR    PIC S9(9) COMP-4 VALUE +0.
+           05 FILLER          PIC S9(4) COMP-4 VALUE +1208.
+           05 SQL-STMT-TYPE   PIC S9(4) COMP-4 VALUE +5.
+           05 SQL-STMT-NUM    PIC S9(9) COMP-4 VALUE +834.
+           05 SQL-PLIST-FLG   PIC S9(4) COMP-4 VALUE +0.
+           05 FILLER          PIC X(18) VALUE
+              X'000000000000000000000000000000000000'.
+        01 SQL-PLIST14.
+           05 SQL-PLIST-CON   PIC S9(9) COMP-4 VALUE +4211712.
+           05 SQL-CALLTYPE    PIC S9(4) COMP-4 VALUE +30.
+           05 SQL-PROG-NAME   PIC X(8)  VALUE X'50484F4C50202020'.
+           05 SQL-TIMESTAMP-1 PIC S9(9) COMP-4 VALUE +469383581.
+           05 SQL-TIMESTAMP-2 PIC S9(9) COMP-4 VALUE +293658304.
+           05 SQL-SECTION     PIC S9(4) COMP-4 VALUE +3.
+           05 SQL-CODEPTR     PIC S9(9) COMP-4.
+           05 SQL-VPARMPTR    PIC S9(9) COMP-4 VALUE +0.
+           05 SQL-APARMPTR    PIC S9(9) COMP-4 VALUE +0.
+           05 FILLER          PIC S9(4) COMP-4 VALUE +1208.
+           05 SQL-STMT-TYPE   PIC S9(4) COMP-4 VALUE +231.
+           05 SQL-STMT-NUM    PIC S9(9) COMP-4 VALUE +849.
+           05 SQL-PLIST-FLG   PIC S9(4) COMP-4 VALUE +0.
+           05 FILLER          PIC X(18) VALUE
+              X'000000000000000000000000000000000000'.
+           05 SQL-PVAR-LIST14.
+              10 PRE-SQLDAID  PIC X(8)  VALUE 'SQLDA  Ê'.
+              10 PRE-SQLDABC  PIC S9(9) COMP-4 VALUE +60.
+              10 PRE-SQLN     PIC S9(4) COMP-4 VALUE +1.
+              10 PRE-SQLLD    PIC S9(4) COMP-4 VALUE +1.
+              10 PRE-SQLVAR.
+                12 SQLVAR-BASE1.
+                  15 SQL-PVAR-TYPE1      PIC S9(4) COMP-4 VALUE +452.
+                  15 SQL-PVAR-LEN1       PIC S9(4) COMP-4 VALUE +4.
+                  15 SQL-PVAR-ADDRS1.
+                     20 SQL-PVAR-ADDR1   PIC S9(9) COMP-4.
+                     20 SQL-PVAR-IND1    PIC S9(9) COMP-4.
+                  15 SQL-PVAR-NAME1.
+                     20 SQL-PVAR-NAMEL1  PIC S9(4) COMP-4 VALUE +0.
+                     20 SQL-PVAR-NAMEC1  PIC X(30) VALUE ' '.
+           05 SQL-AVAR-LIST14.
+              10 PRE-SQLDAID  PIC X(8)  VALUE 'SQLDA  Ê'.
+              10 PRE-SQLDABC  PIC S9(9) COMP-4 VALUE +60.
+              10 PRE-SQLN     PIC S9(4) COMP-4 VALUE +1.
+              10 PRE-SQLLD    PIC S9(4) COMP-4 VALUE +1.
+              10 PRE-SQLVAR.
+                12 SQLVAR-BASE1.
+                  15 SQL-AVAR-TYPE1      PIC S9(4) COMP-4 VALUE +484.
+                  15 SQL-AVAR-LEN1       PIC S9(4) COMP-4 VALUE +2304.
+                  15 SQL-AVAR-ADDRS1.
+                     20 SQL-AVAR-ADDR1   PIC S9(9) COMP-4.
+                     20 SQL-AVAR-IND1    PIC S9(9) COMP-4.
+                  15 SQL-AVAR-NAME1.
+                     20 SQL-AVAR-NAMEL1  PIC S9(4) COMP-4 VALUE +0.
+                     20 SQL-AVAR-NAMEC1  PIC X(30) VALUE ' '.
+        01 SQL-PLIST16.
+           05 SQL-PLIST-CON   PIC S9(9) COMP-4 VALUE +4210688.
+           05 SQL-CALLTYPE    PIC S9(4) COMP-4 VALUE +50.
+           05 SQL-PROG-NAME   PIC X(8)  VALUE X'50484F4C50202020'.
+           05 SQL-TIMESTAMP-1 PIC S9(9) COMP-4 VALUE +469383581.
+           05 SQL-TIMESTAMP-2 PIC S9(9) COMP-4 VALUE +293658304.
+           05 SQL-SECTION     PIC S9(4) COMP-4 VALUE +4.
+           05 SQL-CODEPTR     PIC S9(9) COMP-4.
+           05 SQL-VPARMPTR    PIC S9(9) COMP-4 VALUE +0.
+           05 SQL-APARMPTR    PIC S9(9) COMP-4 VALUE +0.
+           05 FILLER          PIC S9(4) COMP-4 VALUE +1208.
+           05 SQL-STMT-TYPE   PIC S9(4) COMP-4 VALUE +3.
+           05 SQL-STMT-NUM    PIC S9(9) COMP-4 VALUE +1209.
+           05 SQL-PLIST-FLG   PIC S9(4) COMP-4 VALUE +0.
+           05 FILLER          PIC X(18) VALUE
+              X'000000000000000000000000000000000000'.
+           05 SQL-PVAR-LIST16.
+              10 PRE-SQLDAID  PIC X(8)  VALUE 'SQLDA  Ê'.
+              10 PRE-SQLDABC  PIC S9(9) COMP-4 VALUE +60.
+              10 PRE-SQLN     PIC S9(4) COMP-4 VALUE +1.
+              10 PRE-SQLLD    PIC S9(4) COMP-4 VALUE +1.
+              10 PRE-SQLVAR.
+                12 SQLVAR-BASE1.
+                  15 SQL-PVAR-TYPE1      PIC S9(4) COMP-4 VALUE +452.
+                  15 SQL-PVAR-LEN1       PIC S9(4) COMP-4 VALUE +8.
+                  15 SQL-PVAR-ADDRS1.
+                     20 SQL-PVAR-ADDR1   PIC S9(9) COMP-4.
+                     20 SQL-PVAR-IND1    PIC S9(9) COMP-4.
+                  15 SQL-PVAR-NAME1.
+                     20 SQL-PVAR-NAMEL1  PIC S9(4) COMP-4 VALUE +0.
+                     20 SQL-PVAR-NAMEC1  PIC X(30) VALUE ' '.
+        01 SQL-PLIST17.
+           05 SQL-PLIST-CON   PIC S9(9) COMP-4 VALUE +4195328.
+           05 SQL-CALLTYPE    PIC S9(4) COMP-4 VALUE +30.
+           05 SQL-PROG-NAME   PIC X(8)  VALUE X'50484F4C50202020'.
+           05 SQL-TIMESTAMP-1 PIC S9(9) COMP-4 VALUE +469383581.
+           05 SQL-TIMESTAMP-2 PIC S9(9) COMP-4 VALUE +293658304.
+           05 SQL-SECTION     PIC S9(4) COMP-4 VALUE +4.
+           05 SQL-CODEPTR     PIC S9(9) COMP-4.
+           05 SQL-VPARMPTR    PIC S9(9) COMP-4 VALUE +0.
+           05 SQL-APARMPTR    PIC S9(9) COMP-4 VALUE +0.
+           05 FILLER          PIC S9(4) COMP-4 VALUE +1208.
+           05 SQL-STMT-TYPE   PIC S9(4) COMP-4 VALUE +4.
+           05 SQL-STMT-NUM    PIC S9(9) COMP-4 VALUE +1219.
+           05 SQL-PLIST-FLG   PIC S9(4) COMP-4 VALUE +0.
+           05 FILLER          PIC X(18) VALUE
+              X'000000000000000000000000000000000000'.
+           05 SQL-AVAR-LIST17.
+              10 PRE-SQLDAID  PIC X(8)  VALUE 'SQLDA  Ê'.
+              10 PRE-SQLDABC  PIC S9(9) COMP-4 VALUE +148.
+              10 PRE-SQLN     PIC S9(4) COMP-4 VALUE +3.
+              10 PRE-SQLLD    PIC S9(4) COMP-4 VALUE +3.
+              10 PRE-SQLVAR.
+                12 SQLVAR-BASE1.
+                  15 SQL-AVAR-TYPE1      PIC S9(4) COMP-4 VALUE +452.
+                  15 SQL-AVAR-LEN1       PIC S9(4) COMP-4 VALUE +8.
+                  15 SQL-AVAR-ADDRS1.
+                     20 SQL-AVAR-ADDR1   PIC S9(9) COMP-4.
+                     20 SQL-AVAR-IND1    PIC S9(9) COMP-4.
+                  15 SQL-AVAR-NAME1.
+                     20 SQL-AVAR-NAMEL1  PIC S9(4) COMP-4 VALUE +0.
+                     20 SQL-AVAR-NAMEC1  PIC X(30) VALUE ' '.
+                12 SQLVAR-BASE2.
+                  15 SQL-AVAR-TYPE2      PIC S9(4) COMP-4 VALUE +452.
+                  15 SQL-AVAR-LEN2       PIC S9(4) COMP-4 VALUE +8.
+                  15 SQL-AVAR-ADDRS2.
+                     20 SQL-AVAR-ADDR2   PIC S9(9) COMP-4.
+                     20 SQL-AVAR-IND2    PIC S9(9) COMP-4.
+                  15 SQL-AVAR-NAME2.
+                     20 SQL-AVAR-NAMEL2  PIC S9(4) COMP-4 VALUE +0.
+                     20 SQL-AVAR-NAMEC2  PIC X(30) VALUE ' '.
+                12 SQLVAR-BASE3.
+                  15 SQL-AVAR-TYPE3      PIC S9(4) COMP-4 VALUE +452.
+                  15 SQL-AVAR-LEN3       PIC S9(4) COMP-4 VALUE +64.
+                  15 SQL-AVAR-ADDRS3.
+                     20 SQL-AVAR-ADDR3   PIC S9(9) COMP-4.
+                     20 SQL-AVAR-IND3    PIC S9(9) COMP-4.
+                  15 SQL-AVAR-NAME3.
+                     20 SQL-AVAR-NAMEL3  PIC S9(4) COMP-4 VALUE +0.
+                     20 SQL-AVAR-NAMEC3  PIC X(30) VALUE ' '.
+        01 SQL-PLIST18.
+           05 SQL-PLIST-CON   PIC S9(9) COMP-4 VALUE +4194304.
+           05 SQL-CALLTYPE    PIC S9(4) COMP-4 VALUE +45.
+           05 SQL-PROG-NAME   PIC X(8)  VALUE X'50484F4C50202020'.
+           05 SQL-TIMESTAMP-1 PIC S9(9) COMP-4 VALUE +469383581.
+           05 SQL-TIMESTAMP-2 PIC S9(9) COMP-4 VALUE +293658304.
+           05 SQL-SECTION     PIC S9(4) COMP-4 VALUE +4.
+           05 SQL-CODEPTR     PIC S9(9) COMP-4.
+           05 SQL-VPARMPTR    PIC S9(9) COMP-4 VALUE +0.
+           05 SQL-APARMPTR    PIC S9(9) COMP-4 VALUE +0.
+           05 FILLER          PIC S9(4) COMP-4 VALUE +1208.
+           05 SQL-STMT-TYPE   PIC S9(4) COMP-4 VALUE +5.
+           05 SQL-STMT-NUM    PIC S9(9) COMP-4 VALUE +1230.
+           05 SQL-PLIST-FLG   PIC S9(4) COMP-4 VALUE +0.
+           05 FILLER          PIC X(18) VALUE
+              X'000000000000000000000000000000000000'.
+
+       LINKAGE SECTION.
+      *
+       01 DFHCOMMAREA                      PIC X(2048).
+      *
+      *================================================================
+       PROCEDURE DIVISION.
+      *----------------------------------------------------------------
+      *--- Proceso principal                                        ---
+      *----------------------------------------------------------------
+       DSNSQL SECTION.
+       SQL-SKIP.
+           GO TO SQL-INIT-END.
+       SQL-INITIAL.
+           MOVE 1 TO SQL-INIT-FLAG.
+           CALL 'DSNHADDR' USING SQL-VPARMPTR OF SQL-PLIST7 SQL-PVAR-LIS
+      -    T7.
+           CALL 'DSNHADD2' USING SQL-PVAR-ADDRS1 IN
+           SQL-PVAR-LIST7 AY-TRANSACCION OF AY-AYUDAS SQL-NULL AY-PAGINA
+           OF AY-AYUDAS SQL-NULL
+           CALL 'DSNHADDR' USING SQL-CODEPTR OF SQL-PLIST7 SQLCA.
+           CALL 'DSNHADDR' USING SQL-APARMPTR OF SQL-PLIST8 SQL-AVAR-LIS
+      -    T8.
+           CALL 'DSNHADD2' USING SQL-AVAR-ADDRS1 IN
+           SQL-AVAR-LIST8 AY-TRANSACCION OF AY-AYUDAS SQL-NULL AY-PAGINA
+           OF AY-AYUDAS SQL-NULL AY-L01 OF AY-AYUDAS SQL-NULL AY-L02 OF
+           AY-AYUDAS SQL-NULL AY-L03 OF AY-AYUDAS SQL-NULL AY-L04 OF AY-
+      -    AYUDAS SQL-NULL AY-L05 OF AY-AYUDAS SQL-NULL AY-L06 OF AY-AYU
+      -    DAS SQL-NULL AY-L07 OF AY-AYUDAS SQL-NULL AY-L08 OF AY-AYUDAS
+           SQL-NULL AY-L09 OF AY-AYUDAS SQL-NULL AY-L10 OF AY-AYUDAS SQL
+      -    -NULL AY-L11 OF AY-AYUDAS SQL-NULL AY-L12 OF AY-AYUDAS SQL-NU
+      -    LL AY-L13 OF AY-AYUDAS SQL-NULL AY-L14 OF AY-AYUDAS SQL-NULL
+           AY-L15 OF AY-AYUDAS SQL-NULL AY-L16 OF AY-AYUDAS SQL-NULL.
+           CALL 'DSNHADDR' USING SQL-CODEPTR OF SQL-PLIST8 SQLCA.
+           CALL 'DSNHADDR' USING SQL-CODEPTR OF SQL-PLIST9 SQLCA.
+           CALL 'DSNHADDR' USING SQL-VPARMPTR OF SQL-PLIST11 SQL-PVAR-LI
+      -    ST11.
+           CALL 'DSNHADD2' USING SQL-PVAR-ADDRS1 IN
+           SQL-PVAR-LIST11 AY-TRANSACCION OF AY-AYUDAS SQL-NULL AY-PAGIN
+      -    A OF AY-AYUDAS SQL-NULL
+           CALL 'DSNHADDR' USING SQL-CODEPTR OF SQL-PLIST11 SQLCA.
+           CALL 'DSNHADDR' USING SQL-APARMPTR OF SQL-PLIST12 SQL-AVAR-LI
+      -    ST12.
+           CALL 'DSNHADD2' USING SQL-AVAR-ADDRS1 IN
+           SQL-AVAR-LIST12 AY-TRANSACCION OF AY-AYUDAS SQL-NULL AY-PAGIN
+      -    A OF AY-AYUDAS SQL-NULL AY-L01 OF AY-AYUDAS SQL-NULL AY-L02 O
+      -    F AY-AYUDAS SQL-NULL AY-L03 OF AY-AYUDAS SQL-NULL AY-L04 OF A
+      -    Y-AYUDAS SQL-NULL AY-L05 OF AY-AYUDAS SQL-NULL AY-L06 OF AY-A
+      -    YUDAS SQL-NULL AY-L07 OF AY-AYUDAS SQL-NULL AY-L08 OF AY-AYUD
+      -    AS SQL-NULL AY-L09 OF AY-AYUDAS SQL-NULL AY-L10 OF AY-AYUDAS
+           SQL-NULL AY-L11 OF AY-AYUDAS SQL-NULL AY-L12 OF AY-AYUDAS SQL
+      -    -NULL AY-L13 OF AY-AYUDAS SQL-NULL AY-L14 OF AY-AYUDAS SQL-NU
+      -    LL AY-L15 OF AY-AYUDAS SQL-NULL AY-L16 OF AY-AYUDAS SQL-NULL
+           .
+           CALL 'DSNHADDR' USING SQL-CODEPTR OF SQL-PLIST12 SQLCA.
+           CALL 'DSNHADDR' USING SQL-CODEPTR OF SQL-PLIST13 SQLCA.
+           CALL 'DSNHADDR' USING SQL-VPARMPTR OF SQL-PLIST14 SQL-PVAR-LI
+      -    ST14.
+           CALL 'DSNHADD2' USING SQL-PVAR-ADDRS1 IN
+           SQL-PVAR-LIST14 AY-TRANSACCION OF AY-AYUDAS SQL-NULL
+           CALL 'DSNHADDR' USING SQL-APARMPTR OF SQL-PLIST14 SQL-AVAR-LI
+      -    ST14.
+           CALL 'DSNHADD2' USING SQL-AVAR-ADDRS1 IN
+           SQL-AVAR-LIST14 DB2-COUNT1 OF DB2-AREA SQL-NULL.
+           CALL 'DSNHADDR' USING SQL-CODEPTR OF SQL-PLIST14 SQLCA.
+           CALL 'DSNHADDR' USING SQL-VPARMPTR OF SQL-PLIST16 SQL-PVAR-LI
+      -    ST16.
+           CALL 'DSNHADD2' USING SQL-PVAR-ADDRS1 IN
+           SQL-PVAR-LIST16 TB-CLAVE1 OF TB-TABLAS SQL-NULL
+           CALL 'DSNHADDR' USING SQL-CODEPTR OF SQL-PLIST16 SQLCA.
+           CALL 'DSNHADDR' USING SQL-APARMPTR OF SQL-PLIST17 SQL-AVAR-LI
+      -    ST17.
+           CALL 'DSNHADD2' USING SQL-AVAR-ADDRS1 IN
+           SQL-AVAR-LIST17 TB-CLAVE2 OF TB-TABLAS SQL-NULL TB-CLAVE3 OF
+           TB-TABLAS SQL-NULL TB-VALOR OF TB-TABLAS SQL-NULL.
+           CALL 'DSNHADDR' USING SQL-CODEPTR OF SQL-PLIST17 SQLCA.
+           CALL 'DSNHADDR' USING SQL-CODEPTR OF SQL-PLIST18 SQLCA.
+       SQL-INIT-END.
+           CONTINUE.
+
+       0000-PROCESO-TAREA.
+      *
+      *****EXEC SQL
+      *****     INCLUDE PDOPCIDB
+      *****END-EXEC
+      *----------------------------------------------------------------
+      *--- CONTROL DE OPCIONES PARA PROGRAMAS CICS CON DB2          ---
+      *--- VERSION 1.0
+      *----------------------------------------------------------------
+      *--- INCLUIR ESTE COPY CON INCLUDE DE SQL EN TODOS LOS        ---
+      *--- PROGRAMAS COBOL CON DB2 DENTRO DE LA PROCEDURE DIVISION. ---
+      *--- AL METERLO CON INCLUDE DE SQL, EL PRE-COMPILADOR SQL     ---
+      *--- LO TRADUCE Y, POR LO TANTO, SE PUEDEN UTILIZAR COMANDOS  ---
+      *--- CICS IGUALMENTE.                                         ---
+      *----------------------------------------------------------------
+      *
+           EXEC CICS
+                SET TERMINAL(EIBTRMID) NOUCTRAN
+           END-EXEC
+      *
+           EXEC CICS
+                IGNORE CONDITION MAPFAIL
+           END-EXEC
+      *
+      *****EXEC SQL
+      *****     WHENEVER  SQLERROR    GO TO  G999-ERROR-DB2
+      *****END-EXEC
+      *
+      *****EXEC SQL
+      *****     WHENEVER  SQLWARNING  GO TO  G999-ERROR-DB2
+      *****END-EXEC
+      *
+      *****EXEC SQL
+      *****     WHENEVER  NOT FOUND   CONTINUE
+      *****END-EXEC
+      *
+           CONTINUE.
+      *
+      *
+           MOVE WC-TRANSACCION              TO WA-TRANSACCION
+      *
+           IF EIBCALEN > 0
+              MOVE DFHCOMMAREA              TO CH-COMMAREA-HOL
+           END-IF
+      *
+      *--- Evaluacion de Commarea y Teclas para identificar
+      *--- los procesos que deban de ejecutarse
+      *
+           EVALUATE TRUE
+      *
+      *--- No hay Commarea
+      *--- Se inicializa la Commarea y se envia mapa limpio
+      *
+               WHEN EIBCALEN = ZERO
+                    MOVE LOW-VALUE          TO HOLPMPO
+                    INITIALIZE CH-COMMAREA-HOL
+                    SET ENVIO-ERASE         TO TRUE
+      *--- TXMUL ->
+                    MOVE 'TRNOCICS'         TO CL-CLAVE1
+                    PERFORM 20100-OBTENER-TEXTO
+                    MOVE CL-VALOR           TO MSGO
+      *             MOVE 'La transaccion no es arrancable desde CICS'
+      *               TO MSGO
+      *--- TXMUL <-
+                    PERFORM 8000-ENVIO-MAPA
+      *
+      *--- Hay Commarea
+      *--- El programa ha podido ser arrancado por XCTL desde otro
+      *--- programa con XCTL como retorno al actual. En este caso
+      *--- el campo ch-trans-retorno contiene algun valor.
+      *--- En este caso inicializamos la Commarea y enviamos mapa erase
+      *
+               WHEN EIBCALEN > ZERO AND EIBTRNID NOT = WC-TRANSACCION
+                    MOVE LOW-VALUE          TO HOLPMPO
+                    SET ENVIO-ERASE         TO TRUE
+                    MOVE CH-TRANSACCION     TO TRANI
+                    PERFORM 1420-PRIMERA-PAG
+                    PERFORM 8000-ENVIO-MAPA
+      *
+      *--- Borrado de pantalla  - Mensaje y retorno a CICS
+      *--- F3 Tambien termina la transaccion
+      *
+               WHEN EIBAID = DFHCLEAR
+                    MOVE LOW-VALUE          TO HOLPMPO
+                    PERFORM 8100-ENVIA-MENSAJE
+                    PERFORM 8900-RETORNO-CICS
+      *
+      *--- Teclas de Att no hacemos nada
+      *
+               WHEN EIBAID = DFHPA1 OR DFHPA2 OR DFHPA3
+                    CONTINUE
+      *
+      *--- Teclas de funcion Legales
+      *--- Teclas que requieren un procesado del mapa
+      *
+              WHEN  EIBAID = DFHPF3
+                 OR EIBAID = DFHPF7
+                 OR EIBAID = DFHPF8
+                    PERFORM 1000-PROCESO-MAPA
+      *
+      *--- Teclas ilegales
+      *--- Teclas no programadas que se detectaran en proceso de mapa
+      *
+               WHEN OTHER
+                    PERFORM 1000-PROCESO-MAPA
+      *
+           END-EVALUATE
+      *
+      *--- Terminamos el proceso con Return TransId
+      *--- Volvemos a enganchar esta misma transaccion
+      *
+           PERFORM 8200-RETORNO-TRANS.
+      *
+       0000-PROCESO-TAREA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Procesa la pantalla segun tecla elegida por el usuario   ---
+      *----------------------------------------------------------------
+       1000-PROCESO-MAPA.
+      *
+      * Recuperamos el mapa desde el terminal
+      *
+           PERFORM 8400-RECIBE-MAPA
+           MOVE SPACES                     TO MSGO
+           MOVE 1                          TO CH-CURPOS
+      *
+           EVALUATE TRUE
+      *
+      *--- F8   : Validamos el mapa y si es correcto proceso F8
+      *
+              WHEN EIBAID = DFHPF8
+                   PERFORM 1100-TRATA-MAPA
+      *
+      *--- F7   : Validamos el mapa y si es correcto proceso F7
+      *
+              WHEN EIBAID = DFHPF7
+                   PERFORM 1100-TRATA-MAPA
+      *
+      *--- F3   : Validamos el mapa y si es correcto proceso F3
+      *
+              WHEN EIBAID = DFHPF3
+                   PERFORM 1100-TRATA-MAPA
+      *
+              WHEN OTHER
+                   MOVE 1                  TO CH-CURPOS
+                   MOVE DFHRED             TO MSGC
+                   MOVE 'Tecla erronea...' TO MSGO
+      *
+           END-EVALUATE
+      *
+           SET ENVIO-DATAONLY              TO TRUE
+           PERFORM 8000-ENVIO-MAPA.
+      *
+       1000-PROCESO-MAPA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Valida la Accion solo A B C M                            ---
+      *----------------------------------------------------------------
+       1100-TRATA-MAPA.
+      *
+           MOVE TRANI                      TO AY-TRANSACCION
+           MOVE PAGI                       TO AY-PAGINA
+      *
+           EVALUATE TRUE
+      *
+              WHEN EIBAID = DFHPF8
+                   PERFORM 3000-PAGINA-SIGUIENTE
+      *
+              WHEN EIBAID = DFHPF7
+                   PERFORM 3500-PAGINA-ANTERIOR
+      *
+              WHEN EIBAID = DFHPF3
+                   PERFORM 4000-VOLVER
+           END-EVALUATE.
+      *
+       1100-TRATA-MAPA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- limpia las lineas de la pantlla                          ---
+      *----------------------------------------------------------------
+       1310-LIMPIA-LINEAS.
+      *
+           MOVE SPACES                     TO L01O
+           MOVE SPACES                     TO L02O
+           MOVE SPACES                     TO L03O
+           MOVE SPACES                     TO L04O
+           MOVE SPACES                     TO L05O
+           MOVE SPACES                     TO L06O
+           MOVE SPACES                     TO L07O
+           MOVE SPACES                     TO L08O
+           MOVE SPACES                     TO L09O
+           MOVE SPACES                     TO L10O
+           MOVE SPACES                     TO L11O
+           MOVE SPACES                     TO L12O
+           MOVE SPACES                     TO L13O
+           MOVE SPACES                     TO L14O
+           MOVE SPACES                     TO L15O
+           MOVE SPACES                     TO L16O.
+      *
+       1310-LIMPIA-LINEAS-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Muestra la primera pagina disponible para la transaccion ---
+      *----------------------------------------------------------------
+       1420-PRIMERA-PAG.
+      *
+           MOVE TRANI                       TO AY-TRANSACCION
+           MOVE ZERO                        TO AY-PAGINA
+           MOVE 0                           TO PAGO
+           PERFORM 7800-CUENTA-REGISTROS
+      *
+           IF DB2-COUNT1 = 0
+      *--- TXMUL ->
+              MOVE 'NAYTRAN'             TO CL-CLAVE1
+              PERFORM 20100-OBTENER-TEXTO
+              MOVE CL-VALOR              TO MSGO
+      *       MOVE 'No hay paginas de ayuda para la transaccion'
+      *         TO MSGO
+      *--- TXMUL <-
+           ELSE
+              PERFORM 3000-PAGINA-SIGUIENTE
+              MOVE DFHGREEN              TO MSGC
+      *--- TXMUL ->
+              MOVE '1PGSHOW'             TO CL-CLAVE1
+              PERFORM 20100-OBTENER-TEXTO
+              MOVE CL-VALOR              TO MSGO
+      *       MOVE 'Primera pagina mostrada' TO MSGO
+      *--- TXMUL <-
+           END-IF.
+      *
+       1420-PRIMERA-PAG-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Mueve datos de HV a pantalla                             ---
+      *----------------------------------------------------------------
+       2000-DATOS-PANTALLA.
+      *
+           MOVE AY-TRANSACCION             TO TRANO
+           MOVE AY-PAGINA                  TO PAGO
+      *
+           IF AY-L01 = WC-LINEA-VACIA
+              MOVE SPACES                  TO AY-L01
+           END-IF
+      *    MOVE AY-L02 TO WA-TRAZA
+           IF AY-L02 = WC-LINEA-VACIA
+      *         MOVE 'LOW'  TO WA-TRAZA
+              MOVE SPACES                  TO AY-L02
+           END-IF
+           IF AY-L03 = WC-LINEA-VACIA
+              MOVE SPACES                  TO AY-L03
+           END-IF
+           IF AY-L04 = WC-LINEA-VACIA
+              MOVE SPACES                  TO AY-L04
+           END-IF
+           IF AY-L05 = WC-LINEA-VACIA
+              MOVE SPACES                  TO AY-L05
+           END-IF
+           IF AY-L06 = WC-LINEA-VACIA
+              MOVE SPACES                  TO AY-L06
+           END-IF
+           IF AY-L07 = WC-LINEA-VACIA
+              MOVE SPACES                  TO AY-L07
+           END-IF
+           IF AY-L08 = WC-LINEA-VACIA
+              MOVE SPACES                  TO AY-L08
+           END-IF
+           IF AY-L09 = WC-LINEA-VACIA
+              MOVE SPACES                  TO AY-L09
+           END-IF
+           IF AY-L10 = WC-LINEA-VACIA
+              MOVE SPACES                  TO AY-L10
+           END-IF
+           IF AY-L11 = WC-LINEA-VACIA
+              MOVE SPACES                  TO AY-L11
+           END-IF
+           IF AY-L12 = WC-LINEA-VACIA
+              MOVE SPACES                  TO AY-L12
+           END-IF
+           IF AY-L13 = WC-LINEA-VACIA
+              MOVE SPACES                  TO AY-L13
+           END-IF
+           IF AY-L14 = WC-LINEA-VACIA
+              MOVE SPACES                  TO AY-L14
+           END-IF
+           IF AY-L15 = WC-LINEA-VACIA
+              MOVE SPACES                  TO AY-L15
+           END-IF
+           IF AY-L16 = WC-LINEA-VACIA
+              MOVE SPACES                  TO AY-L16
+           END-IF
+      *
+           MOVE AY-L01                     TO L01O
+           MOVE AY-L02                     TO L02O
+           MOVE AY-L03                     TO L03O
+           MOVE AY-L04                     TO L04O
+           MOVE AY-L05                     TO L05O
+           MOVE AY-L06                     TO L06O
+           MOVE AY-L07                     TO L07O
+           MOVE AY-L08                     TO L08O
+           MOVE AY-L09                     TO L09O
+           MOVE AY-L10                     TO L10O
+           MOVE AY-L11                     TO L11O
+           MOVE AY-L12                     TO L12O
+           MOVE AY-L13                     TO L13O
+           MOVE AY-L14                     TO L14O
+           MOVE AY-L15                     TO L15O
+           MOVE AY-L16                     TO L16O.
+      *
+       2000-DATOS-PANTALLA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Muestra la pagina siguiente                              ---
+      *----------------------------------------------------------------
+       3000-PAGINA-SIGUIENTE.
+      *
+           MOVE '3000-PAGINA-SIGUIENTE'         TO WA-PARRAFO
+      *
+           MOVE TRANI                           TO AY-TRANSACCION
+           MOVE PAGI                            TO AY-PAGINA
+           MOVE 'OPEN SIGUIENTE'                TO CH-E-ACCION
+           PERFORM 7500-ABRIR-CURSIG
+      *
+           MOVE 'FETCH SIGUIENTE'               TO CH-E-ACCION
+           PERFORM 7510-FETCH-CURSIG
+           IF SQLCODE = +100
+              MOVE DFHRED                       TO MSGC
+      *--- TXMUL ->
+              MOVE 'NPGNEXT'                    TO CL-CLAVE1
+              PERFORM 20100-OBTENER-TEXTO
+              MOVE CL-VALOR                     TO MSGO
+      *       MOVE 'No hay pagina siguiente...' TO MSGO
+      *--- TXMUL <-
+           ELSE
+              PERFORM 2000-DATOS-PANTALLA
+              MOVE DFHGREEN                     TO MSGC
+      *--- TXMUL ->
+              MOVE 'REGNSHOW'                   TO CL-CLAVE1
+              PERFORM 20100-OBTENER-TEXTO
+              MOVE CL-VALOR                     TO MSGO
+      *       MOVE 'OK - Pagina siguiente mostrada' TO MSGO
+      *--- TXMUL <-
+           END-IF
+      *
+           MOVE 'CLOSE SIGUIENTE'               TO CH-E-ACCION
+           PERFORM 7590-CLOSE-CURSIG.
+      *
+       3000-PAGINA-SIGUIENTE-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Muestra la pagina anterior                               ---
+      *----------------------------------------------------------------
+       3500-PAGINA-ANTERIOR.
+      *
+           MOVE '3500-PAGINA-ANTERIOR'          TO WA-PARRAFO
+      *
+           MOVE TRANI                           TO AY-TRANSACCION
+           MOVE PAGI                            TO AY-PAGINA
+           MOVE 'OPEN ANTERIOR'                 TO CH-E-ACCION
+           PERFORM 7700-ABRIR-CURANT
+      *
+           MOVE 'FETCH ANTERIOR'                TO CH-E-ACCION
+           PERFORM 7710-FETCH-CURANT
+           IF SQLCODE = +100
+              MOVE DFHRED                       TO MSGC
+      *--- TXMUL ->
+              MOVE 'NPGANT'                     TO CL-CLAVE1
+              PERFORM 20100-OBTENER-TEXTO
+              MOVE CL-VALOR                     TO MSGO
+      *       MOVE 'No hay pagina anterior...'  TO MSGO
+      *--- TXMUL <-
+           ELSE
+              PERFORM 2000-DATOS-PANTALLA
+              MOVE DFHGREEN                        TO MSGC
+      *--- TXMUL ->
+              MOVE 'REGASHOW'            TO CL-CLAVE1
+              PERFORM 20100-OBTENER-TEXTO
+              MOVE CL-VALOR              TO MSGO
+      *       MOVE 'OK - Pagina anterior mostrada' TO MSGO
+      *--- TXMUL <-
+           END-IF
+      *
+           MOVE 'CLOSE ANTERIOR'                TO CH-E-ACCION
+           PERFORM 7790-CLOSE-CURANT.
+      *
+       3500-PAGINA-ANTERIOR-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Volvemos al programa que ha llamado a este               ---
+      *----------------------------------------------------------------
+       4000-VOLVER.
+      *
+           MOVE CH-PROGRAMA-RETORNO        TO CH-XCTL
+           MOVE CH-PROGRAMA-RETORNO TO MSGO
+           PERFORM 8700-XCTL-PROGRAMA.
+      *
+       4000-VOLVER-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Abre el cursor para pagina siguiente                     ---
+      *----------------------------------------------------------------
+       7500-ABRIR-CURSIG.
+      *
+      *****EXEC SQL
+      *****     DECLARE CURSIG CURSOR FOR
+      *****        SELECT TRANSACCION
+      *****             , PAGINA
+      *****             , L01
+      *****             , L02
+      *****             , L03
+      *****             , L04
+      *****             , L05
+      *****             , L06
+      *****             , L07
+      *****             , L08
+      *****             , L09
+      *****             , L10
+      *****             , L11
+      *****             , L12
+      *****             , L13
+      *****             , L14
+      *****             , L15
+      *****             , L16
+      *****          FROM AYUDAS
+      *****          WHERE TRANSACCION = :AY-TRANSACCION
+      *****            AND PAGINA      > :AY-PAGINA
+      *****          ORDER BY PAGINA ASC
+      *****END-EXEC
+      *
+      *****EXEC SQL
+      *****     OPEN CURSIG
+      *****END-EXEC
+           PERFORM SQL-INITIAL UNTIL SQL-INIT-DONE
+           CALL 'DSNHLI' USING SQL-PLIST7
+           IF SQLCODE < 0 GO TO G999-ERROR-DB2 ELSE
+           IF SQLCODE > 0 AND SQLCODE NOT = 100
+           OR SQLWARN0 = 'W' GO TO G999-ERROR-DB2 ELSE
+           MOVE 1 TO SQL-INIT-FLAG
+           END-IF
+           END-IF
+      *
+           IF SQLCODE NOT = 0
+              PERFORM G999-ERROR-DB2
+           END-IF.
+      *
+       7500-ABRIR-CURSIG-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- leer el cursor para pagina siguiente                     ---
+      *----------------------------------------------------------------
+       7510-FETCH-CURSIG.
+      *
+      *****EXEC SQL
+      *****  FETCH CURSIG
+      *****     INTO :AY-TRANSACCION
+      *****        , :AY-PAGINA
+      *****        , :AY-L01
+      *****        , :AY-L02
+      *****        , :AY-L03
+      *****        , :AY-L04
+      *****        , :AY-L05
+      *****        , :AY-L06
+      *****        , :AY-L07
+      *****        , :AY-L08
+      *****        , :AY-L09
+      *****        , :AY-L10
+      *****        , :AY-L11
+      *****        , :AY-L12
+      *****        , :AY-L13
+      *****        , :AY-L14
+      *****        , :AY-L15
+      *****        , :AY-L16
+      *****END-EXEC
+           PERFORM SQL-INITIAL UNTIL SQL-INIT-DONE
+           CALL 'DSNHLI' USING SQL-PLIST8
+           IF SQLCODE < 0 GO TO G999-ERROR-DB2 ELSE
+           IF SQLCODE > 0 AND SQLCODE NOT = 100
+           OR SQLWARN0 = 'W' GO TO G999-ERROR-DB2 ELSE
+           MOVE 1 TO SQL-INIT-FLAG
+           END-IF
+           END-IF
+      *
+           IF SQLCODE NOT = 0 AND SQLCODE NOT = +100
+              PERFORM 7590-CLOSE-CURSIG
+              PERFORM G999-ERROR-DB2
+           END-IF.
+      *
+       7510-FETCH-CURSIG-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Close el cursor para pagina siguiente                    ---
+      *----------------------------------------------------------------
+       7590-CLOSE-CURSIG.
+      *
+      *****EXEC SQL
+      *****     CLOSE CURSIG
+      *****END-EXEC
+           PERFORM SQL-INITIAL UNTIL SQL-INIT-DONE
+           CALL 'DSNHLI' USING SQL-PLIST9
+           IF SQLCODE < 0 GO TO G999-ERROR-DB2 ELSE
+           IF SQLCODE > 0 AND SQLCODE NOT = 100
+           OR SQLWARN0 = 'W' GO TO G999-ERROR-DB2 ELSE
+           MOVE 1 TO SQL-INIT-FLAG
+           END-IF
+           END-IF
+      *
+           IF SQLCODE NOT = 0
+              PERFORM G999-ERROR-DB2
+           END-IF.
+      *
+       7590-CLOSE-CURSIG-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Abre el cursor para pagina anterior                      ---
+      *----------------------------------------------------------------
+       7700-ABRIR-CURANT.
+      *
+      *****EXEC SQL
+      *****     DECLARE CURANT CURSOR FOR
+      *****        SELECT TRANSACCION
+      *****             , PAGINA
+      *****             , L01
+      *****             , L02
+      *****             , L03
+      *****             , L04
+      *****             , L05
+      *****             , L06
+      *****             , L07
+      *****             , L08
+      *****             , L09
+      *****             , L10
+      *****             , L11
+      *****             , L12
+      *****             , L13
+      *****             , L14
+      *****             , L15
+      *****             , L16
+      *****          FROM AYUDAS
+      *****          WHERE TRANSACCION = :AY-TRANSACCION
+      *****            AND PAGINA      < :AY-PAGINA
+      *****          ORDER BY PAGINA DESC
+      *****END-EXEC
+      *
+      *****EXEC SQL
+      *****     OPEN CURANT
+      *****END-EXEC.
+           PERFORM SQL-INITIAL UNTIL SQL-INIT-DONE
+           CALL 'DSNHLI' USING SQL-PLIST11
+           IF SQLCODE < 0 GO TO G999-ERROR-DB2 ELSE
+           IF SQLCODE > 0 AND SQLCODE NOT = 100
+           OR SQLWARN0 = 'W' GO TO G999-ERROR-DB2 ELSE
+           MOVE 1 TO SQL-INIT-FLAG
+           END-IF
+           END-IF.
+      *
+           IF SQLCODE NOT = 0
+              PERFORM G999-ERROR-DB2
+           END-IF.
+      *
+       7700-ABRIR-CURANT-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Abre el cursor para pagina anterior                      ---
+      *----------------------------------------------------------------
+       7710-FETCH-CURANT.
+      *
+      *****EXEC SQL
+      *****FETCH CURANT
+      *****   INTO :AY-TRANSACCION
+      *****      , :AY-PAGINA
+      *****      , :AY-L01
+      *****      , :AY-L02
+      *****      , :AY-L03
+      *****      , :AY-L04
+      *****      , :AY-L05
+      *****      , :AY-L06
+      *****      , :AY-L07
+      *****      , :AY-L08
+      *****      , :AY-L09
+      *****      , :AY-L10
+      *****      , :AY-L11
+      *****      , :AY-L12
+      *****      , :AY-L13
+      *****      , :AY-L14
+      *****      , :AY-L15
+      *****      , :AY-L16
+      *****END-EXEC
+           PERFORM SQL-INITIAL UNTIL SQL-INIT-DONE
+           CALL 'DSNHLI' USING SQL-PLIST12
+           IF SQLCODE < 0 GO TO G999-ERROR-DB2 ELSE
+           IF SQLCODE > 0 AND SQLCODE NOT = 100
+           OR SQLWARN0 = 'W' GO TO G999-ERROR-DB2 ELSE
+           MOVE 1 TO SQL-INIT-FLAG
+           END-IF
+           END-IF
+      *
+           IF SQLCODE NOT = 0 AND SQLCODE NOT = +100
+              PERFORM 7790-CLOSE-CURANT
+              PERFORM G999-ERROR-DB2
+           END-IF.
+      *
+       7710-FETCH-CURANT-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Close el cursor para pagina anterior                     ---
+      *----------------------------------------------------------------
+       7790-CLOSE-CURANT.
+      *
+      *****EXEC SQL
+      *****     CLOSE CURANT
+      *****END-EXEC
+           PERFORM SQL-INITIAL UNTIL SQL-INIT-DONE
+           CALL 'DSNHLI' USING SQL-PLIST13
+           IF SQLCODE < 0 GO TO G999-ERROR-DB2 ELSE
+           IF SQLCODE > 0 AND SQLCODE NOT = 100
+           OR SQLWARN0 = 'W' GO TO G999-ERROR-DB2 ELSE
+           MOVE 1 TO SQL-INIT-FLAG
+           END-IF
+           END-IF
+      *
+           IF SQLCODE NOT = 0
+              PERFORM G999-ERROR-DB2
+           END-IF.
+      *
+       7790-CLOSE-CURANT-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Cuena los registros presentes en la tabla                ---
+      *----------------------------------------------------------------
+       7800-CUENTA-REGISTROS.
+      *
+      *****EXEC SQL
+      *****     SELECT COUNT(*)
+      *****     INTO   :DB2-COUNT1
+      *****     FROM AYUDAS
+      *****     WHERE TRANSACCION = :AY-TRANSACCION
+      *****END-EXEC
+           PERFORM SQL-INITIAL UNTIL SQL-INIT-DONE
+           CALL 'DSNHLI' USING SQL-PLIST14
+           IF SQLCODE < 0 GO TO G999-ERROR-DB2 ELSE
+           IF SQLCODE > 0 AND SQLCODE NOT = 100
+           OR SQLWARN0 = 'W' GO TO G999-ERROR-DB2 ELSE
+           MOVE 1 TO SQL-INIT-FLAG
+           END-IF
+           END-IF
+      *
+           IF SQLCODE NOT = 0
+              PERFORM G999-ERROR-DB2
+           END-IF.
+      *
+       7800-CUENTA-REGISTROS-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Errores de DB2 - Llamada a la transaccion HOLE           ---
+      *----------------------------------------------------------------
+      *****EXEC SQL
+      *****     INCLUDE PDDB2
+      *****END-EXEC.
+      *----------------------------------------------------------------
+      *--- ERROR DE DB2 EN ALGUNA PARTE DEL CODIGO COBOL
+      *--- VERSION 1.0
+      *----------------------------------------------------------------
+       G999-ERROR-DB2.
+      *
+           MOVE WA-PARRAFO              TO CH-E-PARRAFO
+           MOVE SQLCODE                 TO DB2-CODE
+           MOVE DB2-CODE                TO DB2-CODE-EDIT
+           MOVE DB2-CODE-EDIT           TO CH-E-CODIGO
+           MOVE SQLERRMC                TO CH-E-MENSAJE
+           MOVE WC-PROGRAMA             TO CH-E-PROGRAMA
+           MOVE WC-TRANSACCION          TO CH-E-TRANSACCION
+           MOVE CS-PGM-ERROR            TO CH-XCTL
+           MOVE WC-TRANSACCION          TO CH-TRANS-RETORNO
+           MOVE WC-PROGRAMA             TO CH-PROGRAMA-RETORNO
+           PERFORM 8700-XCTL-PROGRAMA.
+      *----------------------------------------------------------------
+       G999-ERROR-DB2-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- ERROR DE CICS EN ALGUNA PARTE DEL CODIGO COBOL
+      *----------------------------------------------------------------
+       G888-ERROR-CICS.
+      *
+           MOVE WA-PARRAFO              TO CH-E-PARRAFO
+           MOVE EIBRESP                 TO DB2-CODE
+           MOVE DB2-CODE                TO DB2-CODE-EDIT
+           MOVE DB2-CODE-EDIT           TO CH-E-CODIGO
+      *->  MOVE SQLERRMC                TO CH-E-MENSAJE
+           MOVE WC-PROGRAMA             TO CH-E-PROGRAMA
+           MOVE WC-TRANSACCION          TO CH-E-TRANSACCION
+           MOVE CS-PGM-ERROR            TO CH-XCTL
+           MOVE WC-TRANSACCION          TO CH-TRANS-RETORNO
+           MOVE WC-PROGRAMA             TO CH-PROGRAMA-RETORNO
+           PERFORM 8700-XCTL-PROGRAMA.
+      *
+       G888-ERROR-CCIS-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *
+      *----------------------------------------------------------------
+      *--- Envia el mapa al terminal segun modo del switch          ---
+      *----------------------------------------------------------------
+       8000-ENVIO-MAPA.
+      *
+           EVALUATE TRUE
+      *
+      *--- Envio de mapa limpio
+      *
+               WHEN ENVIO-ERASE
+      *
+      *--- TXMUL ->
+                   MOVE 50 TO RTC-CENTER-AREA
+                   PERFORM 20000-TITULO-MAPA
+      * Carga de los textos fijos del mapa
+                   MOVE WC-TRANSACCION TO TB-CLAVE1
+                   PERFORM 20200-OPEN-CURSOR-MAPS
+                   PERFORM WITH TEST AFTER UNTIL SQLCODE = 100
+                       PERFORM 20200-FETCH-CURSOR-MAPS
+                       IF SQLCODE NOT = 100 AND
+                          TB-CLAVE3 = CL-IDIOMA THEN
+                          ADD 1 TO IND
+                          EVALUATE IND
+                             WHEN 1
+                                MOVE TB-VALOR TO TX10O
+                             WHEN 2
+                                MOVE TB-VALOR TO TX80O
+                             WHEN 3
+                                MOVE TB-VALOR TO TX90O
+                          END-EVALUATE
+                       END-IF
+                   END-PERFORM
+                   PERFORM 20200-CLOSE-CURSOR-MAPS
+      *--- TXMUL <-
+      *
+                    EXEC CICS
+                        SEND MAP    ('HOLPMP')
+                             MAPSET ('HOLPMP')
+                             FROM   (HOLPMPO)
+                             ERASE
+                    END-EXEC
+      *
+      *--- Envio del mapa Solo datos
+      *
+               WHEN ENVIO-DATAONLY
+                    EXEC CICS
+                         SEND MAP     ('HOLPMP')
+                              MAPSET  ('HOLPMP')
+                              FROM    (HOLPMPO)
+                              DATAONLY
+                              CURSOR  (CH-CURPOS)
+                    END-EXEC
+      *
+           END-EVALUATE.
+      *
+       8000-ENVIO-MAPA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Envia un mensaje al terminal del usuario (fin sesion)    ---
+      *----------------------------------------------------------------
+       8100-ENVIA-MENSAJE.
+      *
+      *--- TXMUL ->
+           MOVE 'HOLPEND'                  TO CL-CLAVE1.
+           PERFORM 20100-OBTENER-TEXTO.
+           MOVE CL-VALOR                   TO WL-FIN-SESION.
+      * 'La transaccion HOLP ha finalizado...'
+      *--- TXMUL <-
+           EXEC CICS
+               SEND TEXT FROM(WL-FIN-SESION)
+                         ERASE
+                         FREEKB
+           END-EXEC.
+      *
+       8100-ENVIA-MENSAJE-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Devuelve el control a una transaccion                    ---
+      *----------------------------------------------------------------
+       8200-RETORNO-TRANS.
+      *
+           EXEC CICS
+               RETURN
+               TRANSID      (WA-TRANSACCION)
+               COMMAREA     (CH-COMMAREA-HOL)
+               LENGTH       (LENGTH OF CH-COMMAREA-HOL)
+           END-EXEC.
+      *
+       8200-RETORNO-TRANS-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Recibe el mapa de la tarea                               ---
+      *----------------------------------------------------------------
+       8400-RECIBE-MAPA.
+      *
+           EXEC CICS
+                RECEIVE
+                MAP     ('HOLPMP')
+                MAPSET  ('HOLPMP')
+                INTO    (HOLPMPI)
+           END-EXEC.
+      *
+       8400-RECIBE-MAPA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Llama a otro programa CICS por LINK con Commarea         ---
+      *----------------------------------------------------------------
+       8500-LINK-PROGRAMA.
+      *
+           EXEC CICS
+                LINK
+                PROGRAM (CH-LINK)
+                COMMAREA(CH-COMMAREA-HOL)
+                LENGTH  (LENGTH OF CH-COMMAREA-HOL)
+           END-EXEC.
+      *
+       8500-LINK-PROGRAMA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Cede el control a otro programa CICS                     ---
+      *----------------------------------------------------------------
+       8700-XCTL-PROGRAMA.
+      *
+           EXEC CICS
+                SET TERMINAL(EIBTRMID) UCTRAN
+           END-EXEC
+      *
+           EXEC CICS
+               XCTL PROGRAM  (CH-XCTL)
+                    COMMAREA (CH-COMMAREA-HOL)
+                    LENGTH   (LENGTH OF CH-COMMAREA-HOL)
+                    RESP     (WA-RESPUESTA-CICS)
+           END-EXEC.
+      *
+       8700-XCTL-PROGRAMA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- CEDF visualiza una traza - Quitar para produccion        ---
+      *----------------------------------------------------------------
+       8800-TRAZA.
+      *
+           EXEC CICS
+               ENTER       TRACEID(0)
+               FROM        (WA-TRAZA)
+           END-EXEC.
+      *
+       8800-TRAZA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Devuelve el control a CICS - Salida total                ---
+      *----------------------------------------------------------------
+       8900-RETORNO-CICS.
+      *
+           EXEC CICS
+                SET TERMINAL(EIBTRMID) UCTRAN
+           END-EXEC
+      *
+           EXEC CICS
+                RETURN
+           END-EXEC.
+      *
+       8900-RETORNO-CICS-EXIT.
+           EXIT.
+      *--- TXMUL ->
+      *
+      * Rutinas multiidioma
+      *
+      *****EXEC SQL
+      *****     INCLUDE PTXMUL
+      *****END-EXEC.
+      *****************************************************************
+      **  PROYECTO .........: HOL                                    **
+      **  PROGRAMA .........: FPROC1                                 **
+      **  VERSION ..........: 1.0                                    **
+      **  TITULO ...........: PROCEDIMIENTOS COMPARTIDOS             **
+      **                                                             **
+      **  TIPO .............:                                        **
+      **     - LENGUAJE ...............: COBOL II                    **
+      **     - ENTORNO ................: CICS                        **
+      **     - BASE DE DATOS ..........: DB2                         **
+      **                                                             **
+      **  DESCRIPCION ......:                                        **
+      **                                                             **
+      **    - Procedimientos de uso general en programas.            **
+      **                                                             **
+      **  LOG DE MODIFICACIONES:                                     **
+      **  FECHA----- DESCRIPCION------------------------------ BUSCA **
+      **  2024-08-19 Adaptaci¢n multiidioma (MOSSA)            TXMUL **
+      **                                                             **
+      **                                                             **
+      **                                                             **
+      **                                                             **
+      **                                                             **
+      **                                                             **
+      *****************************************************************
+      *--- TXMUL ->
+      *----------------------------------------------------------------
+      *--- Recuperar el titulo del mapa LNKTL    de tabla: TABLAS   ---
+      *----------------------------------------------------------------
+       20000-TITULO-MAPA.
+      *==================
+           PERFORM 20000-TITULO-MAPA-INI.
+           PERFORM 20000-TITULO-MAPA-FIN.
+       20000-TITULO-MAPA-EXIT.
+           EXIT.
+      *
+       20000-TITULO-MAPA-INI.
+      *======================
+      *
+           MOVE '100000-TITULO-MAPA'         TO WA-PARRAFO.
+           MOVE DB2-TABLA-TITULOS            TO CL-TABLA.
+           MOVE WC-TRANSACCION               TO CL-CLAVE1.
+           MOVE LOW-VALUES                   TO CL-CLAVE2.
+           MOVE CL-IDIOMA                    TO CL-CLAVE3.
+           MOVE CS-PGM-TABLA-TITULO          TO CH-LINK.
+      *
+       20000-TITULO-MAPA-INI-EXIT.
+           EXIT.
+      *
+       20000-TITULO-MAPA-FIN.
+      *=======================
+      *
+           PERFORM 8500-LINK-PROGRAMA.
+      *
+           EVALUATE TRUE
+              WHEN CL-RESULTADO = '00' OR CL-RESULTADO = '01'
+      *--- USER ->
+      *            MOVE WC-LONGITUD-TITULO
+      *              TO LKC-LONGITUD-RESULTADO
+      *--- USER <-
+      *
+      *--- Centrado del titulo del mapa CALL
+                   MOVE CL-VALOR           TO RTC-INPUT-STRING
+                   CALL CS-PGM-CALL-RTCENTI USING RTC-CENTI
+                   IF RTC-RESULT = ZERO THEN
+                      MOVE RTC-OUTPUT-STRING TO TITLEO
+                   ELSE
+                      MOVE RTC-INPUT-STRING  TO TITLEO
+                   END-IF
+      *
+              WHEN CL-RESULTADO = '99'
+                   MOVE '20000-TITULO-MAPA'         TO WA-PARRAFO
+                   MOVE 'LNKTITLE KO'               TO CH-E-ACCION,
+      *--- TXMUL ->
+                                                       CL-VALOR
+      *--- TXMUL <-
+                   MOVE -999999999                  TO SQLCODE
+                   MOVE 'SQLMSG?'                   TO SQLERRMC
+                   PERFORM G999-ERROR-DB2
+           END-EVALUATE.
+      *--- Mostrar el usuario en la esquina superior izquierda
+           MOVE SPACES TO USERO.
+           STRING "(" US-USER ")"
+                  DELIMITED BY SPACES
+                INTO USERO
+           END-STRING.
+      *
+       20000-TITULO-MAPA-FIN-EXIT.
+           EXIT.
+      *
+      *----------------------------------------------------------------
+      *--- Obtener texto fijo con prog LNKTL     de tabla: TABLAS   ---
+      *----------------------------------------------------------------
+       20100-OBTENER-TEXTO.
+      *
+           MOVE '20100-OBTENER-TEXTO'        TO WA-PARRAFO.
+           MOVE DB2-TABLA-PROGRMSG           TO CL-TABLA.
+           MOVE LOW-VALUES                   TO CL-CLAVE2.
+           MOVE CL-IDIOMA                    TO CL-CLAVE3.
+           MOVE CS-PGM-TABLA-TITULO          TO CH-LINK.
+           PERFORM 8500-LINK-PROGRAMA.
+           IF CL-RESULTADO = '99' THEN
+              IF CS-PGM-TABLA-TITULO NOT = CS-PGM-ERROR THEN
+                 MOVE '20100-OBTENER-TEXTO'       TO WA-PARRAFO
+                 MOVE 'LNKTEXTO KO'               TO CH-E-ACCION,
+                                                     CL-VALOR
+                 MOVE -999999999                  TO SQLCODE
+                 MOVE 'SQLMSG?'                   TO SQLERRMC
+                 PERFORM G999-ERROR-DB2
+              ELSE
+                 MOVE 'FATAL ERROR' TO MSGO
+                 SET ENVIO-DATAONLY TO TRUE
+                 PERFORM 8000-ENVIO-MAPA
+              END-IF
+           END-IF.
+      *
+       20100-OBTENER-TEXTO-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Declaraci¢n y apertura del cursor de textos para mapas   ---
+      *----------------------------------------------------------------
+       20200-OPEN-CURSOR-MAPS.
+      *****EXEC SQL
+      *****   DECLARE TXT-CUR CURSOR FOR
+      *****      SELECT CLAVE2, CLAVE3, VALOR
+      *****        FROM TABLAS
+      *****        WHERE TABLA = 'TEXTOMAP'
+      *****          AND CLAVE1 = :TB-CLAVE1
+      *****END-EXEC.
+      *
+      *****EXEC SQL
+      *****   OPEN TXT-CUR
+      *****END-EXEC.
+           PERFORM SQL-INITIAL UNTIL SQL-INIT-DONE
+           CALL 'DSNHLI' USING SQL-PLIST16
+           IF SQLCODE < 0 GO TO G999-ERROR-DB2 ELSE
+           IF SQLCODE > 0 AND SQLCODE NOT = 100
+           OR SQLWARN0 = 'W' GO TO G999-ERROR-DB2 ELSE
+           MOVE 1 TO SQL-INIT-FLAG
+           END-IF
+           END-IF.
+       20200-OPEN-CURSOR-MAPS-FIN.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Fetch del cursor para obtener textos para mapas          ---
+      *----------------------------------------------------------------
+       20200-FETCH-CURSOR-MAPS.
+      *
+      *****EXEC SQL
+      *****   FETCH TXT-CUR
+      *****      INTO :TB-CLAVE2, :TB-CLAVE3, :TB-VALOR
+      *****END-EXEC.
+           PERFORM SQL-INITIAL UNTIL SQL-INIT-DONE
+           CALL 'DSNHLI' USING SQL-PLIST17
+           IF SQLCODE < 0 GO TO G999-ERROR-DB2 ELSE
+           IF SQLCODE > 0 AND SQLCODE NOT = 100
+           OR SQLWARN0 = 'W' GO TO G999-ERROR-DB2 ELSE
+           MOVE 1 TO SQL-INIT-FLAG
+           END-IF
+           END-IF.
+       20200-FETCH-CURSOR-MAPS-FIN.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Cierre del cursor para obtener textos para mapas         ---
+      *----------------------------------------------------------------
+       20200-CLOSE-CURSOR-MAPS.
+      *
+      *****EXEC SQL
+      *****   CLOSE TXT-CUR
+      *****END-EXEC.
+           PERFORM SQL-INITIAL UNTIL SQL-INIT-DONE
+           CALL 'DSNHLI' USING SQL-PLIST18
+           IF SQLCODE < 0 GO TO G999-ERROR-DB2 ELSE
+           IF SQLCODE > 0 AND SQLCODE NOT = 100
+           OR SQLWARN0 = 'W' GO TO G999-ERROR-DB2 ELSE
+           MOVE 1 TO SQL-INIT-FLAG
+           END-IF
+           END-IF.
+       20200-CLOSE-CURSOR-MAPS-FIN.
+           EXIT.
+      *--- TXMUL <-
+      *
+       999999-DB2-ERRORES SECTION.
+      *--- TXMUL <-
+      *----------------------------------------------------------------
+      *-------------------- FIN DE PROGRAMA  --------------------------
+      *----------------------------------------------------------------

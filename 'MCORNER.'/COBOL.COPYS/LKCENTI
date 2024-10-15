@@ -1,0 +1,32 @@
+      * --- AREA DE LINKAGE PARA LA RUTINA RTCENTI                  ---
+      * --- VERSION 2.0
+      *----------------------------------------------------------------
+      *--- RUTINA DE CENTRADO DE TEXTOS                             ---
+      *--- Par metros de entrada:                                   ---
+      *---   RTC-INPUT-STRING                                       ---
+      *---     Cadena que queremos centrar (m ximo 132 caracteres). ---
+      *---   RTC-CENTER-AREA                                        ---
+      *---     Longitud  rea de centrado (m ximo 132).              ---
+      *--- Par metros de salida:                                    ---
+      *---   RTC-OUTPUT-STRING                                      ---
+      *---     Cadena centrada en el  rea especificada.             ---
+      *---   RTC-RESULT                                             ---
+      *---     0 = resultado correcto, cadena centrada.             ---
+      *---     1 = no se ha especificado ninguna cadena.            ---
+      *---     2 = demasiado grande, no se puede centrar.           ---
+      *---                                                          ---
+      *--- Utilizaci¢n:                                             ---
+      *---   Si el retorno es 0, utilizar RTC-OUTPUT-STRING.        ---
+      *---   Si el retorno no es 0, revisar el programa llamador o  ---
+      *---      utilizar RTC-INPUT-STRING.                          ---
+      *----------------------------------------------------------------
+       01  RTC-CENTI.
+           03  RTC-INPUT-DATA.
+               05  RTC-INPUT-STRING             PIC X(132).
+               05  RTC-CENTER-AREA              PIC 999.
+           03  RTC-OUTPUT-DATA.
+               05  RTC-OUTPUT-STRING            PIC X(132).
+               05  RTC-RESULT                   PIC 9(5).
+                   88  RTC-OK                   VALUE ZERO.
+                   88  RTC-NO-DATA-PROVIDED     VALUE 1.
+                   88  RTC-STRING-TO-BIG        VALUE 2.

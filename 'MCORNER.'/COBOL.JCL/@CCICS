@@ -1,0 +1,53 @@
+//CCICS    JOB MCORNER,'COMP-CICS',CLASS=A,MSGCLASS=A,MSGLEVEL=(1,1),   00010000
+//            NOTIFY=&SYSUID                                            00020000
+//*                                                                     00021000
+//* VERSION 1.0                                                         00022000
+//*                                                                     00023000
+//*================================================================     00030000
+//*                                                                     00040000
+//SETP     SET  PRG=PHOLW                                               00050000
+//*                                                                     00060000
+//*================================================================     00070000
+//CICS     EXEC PGM=DFHECP1$,REGION=8M,                                 00080000
+//         PARM=(COBOL3,NOSOURCE,SP)                                    00090000
+//STEPLIB  DD DISP=SHR,DSN=DFH410.CICS.SDFHLOAD                         00100000
+//SYSPRINT DD SYSOUT=*                                                  00110000
+//SYSUDUMP DD SYSOUT=*                                                  00120000
+//SYSPUNCH DD DISP=(NEW,PASS),DSN=&&CICSOUT0,UNIT=SYSDA,                00130000
+//            SPACE=(800,(500,500)),DCB=BLKSIZE=400                     00140000
+//SYSIN    DD  DSN=MCORNER.CICS.SOURCE(&PRG),DISP=SHR                   00150000
+//*                                                                     00160000
+//COB3    EXEC PGM=IGYCRCTL,REGION=8M,                                  00170000
+//             PARM=(APOST,LIB,XREF,MAP,RENT,BUF(32760),                00180000
+//             SSRANGE,OFFSET,TRUNC(OPT))                               00190000
+//STEPLIB  DD  DSN=IGY420.SIGYCOMP,DISP=SHR                             00200000
+//SYSIN    DD  DSN=&&CICSOUT0,DISP=(OLD,DELETE)                         00210000
+//SYSLIB   DD  DSN=DFH410.CICS.SDFHCOB,DISP=SHR                         00220000
+//         DD  DSN=MCORNER.COBOL.COPYS,DISP=SHR                         00230000
+//SYSLIN   DD  DSN=&&LOADSET,DISP=(NEW,PASS),UNIT=SYSDA,                00240000
+//             SPACE=(800,(500,500))                                    00250000
+//SYSPRINT DD  SYSOUT=*                                                 00260000
+//SYSUDUMP DD  SYSOUT=*                                                 00270000
+//SYSUT1   DD  SPACE=(800,(500,500),,,ROUND),UNIT=SYSDA                 00280000
+//SYSUT2   DD  SPACE=(800,(500,500),,,ROUND),UNIT=SYSDA                 00290000
+//SYSUT3   DD  SPACE=(800,(500,500),,,ROUND),UNIT=SYSDA                 00300000
+//SYSUT4   DD  SPACE=(800,(500,500),,,ROUND),UNIT=SYSDA                 00310000
+//SYSUT5   DD  SPACE=(800,(500,500),,,ROUND),UNIT=SYSDA                 00320000
+//SYSUT6   DD  SPACE=(800,(500,500),,,ROUND),UNIT=SYSDA                 00330000
+//SYSUT7   DD  SPACE=(800,(500,500),,,ROUND),UNIT=SYSDA                 00340000
+//*                                                                     00350000
+//LKEDITA EXEC PGM=IEWL,PARM='LIST,XREF,CALL,AMODE=31,RMODE=ANY',       00360000
+//             COND=((4,LT,COB3),(4,LT,CICS)),REGION=8M                 00370000
+//SYSLIB   DD  DSN=CEE.SCEELKED,DISP=SHR                                00380000
+//         DD  DSN=DFH410.CICS.SDFHLOAD,DISP=SHR                        00390000
+//         DD  DSN=DFH410.CICS.SDFHEXCI,DISP=SHR                        00400000
+//         DD  DSN=SYS1.LINKLIB,DISP=SHR                                00410000
+//         DD  DSN=TCPIP.SEZATCP,DISP=SHR                               00420000
+//SYSLIN   DD  DSN=DFH410.CICS.SDFHCOB(DFHEILIC),DISP=SHR               00430000
+//         DD  DSN=&&LOADSET,DISP=(OLD,DELETE)                          00440000
+//         DD  DDNAME=SYSIN                                             00450000
+//SYSLMOD  DD  DISP=SHR,DSN=MCORNER.CICS.LOAD(&PRG)                     00460000
+//SYSPRINT DD  SYSOUT=*                                                 00470000
+//SYSUDUMP DD  SYSOUT=*                                                 00480000
+//SYSUT1   DD  SPACE=(1024,(500,500)),UNIT=SYSDA                        00490000
+//*                                                                     00500000

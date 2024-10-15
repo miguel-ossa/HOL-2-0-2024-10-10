@@ -1,0 +1,190 @@
+      *****************************************************************
+      *                 IDENTIFICATION     DIVISION                   *
+      *****************************************************************
+       IDENTIFICATION DIVISION.
+      *
+       PROGRAM-ID.      RTCENTI.
+       AUTHOR.          LUIS MARTINEZ.
+      *
+      *****************************************************************
+      **  PROYECTO .........: HOL                                    **
+      **  PROGRAMA .........: RTCENTI                                **
+      **  VERSION ..........: 1.0                                    **
+      **  TITULO ...........: RUTINA DE CENTRADO DE TEXTOS           **
+      **                                                             **
+      **  TIPO .............:                                        **
+      **     - LENGUAJE ...............: COBOL II                    **
+      **     - ENTORNO ................:                             **
+      **     - BASE DE DATOS ..........:                             **
+      **                                                             **
+      **  DESCRIPCION ......:                                        **
+      **                                                             **
+      **    - Recibe por LINKAGE un texto de 50 caracteres y una     **
+      **      longitud de resultado deseado (Z)                      **
+      **      Devuelve el texto util de entrada con X espacios       **
+      **      delante e Y espacios detras, de forma a que el texto   **
+      **      util de entrada este centrado en las Z posiciones de   **
+      **      texto resultado.                                       **
+      **                                                             **
+      **  LOG DE MODIFICACIONES:                                     **
+      **  FECHA----- DESCRIPCION------------------------------ BUSCA **
+      **  2024-09-24 Multiusuario (MOSSA)                      USER  **
+      **                                                             **
+      **                                                             **
+      **                                                             **
+      **                                                             **
+      **                                                             **
+      **                                                             **
+      **                                                             **
+      *****************************************************************
+       ENVIRONMENT DIVISION.
+      *
+       CONFIGURATION SECTION.
+       SPECIAL-NAMES.
+           DECIMAL-POINT IS COMMA.
+      *
+       DATA DIVISION.
+      *----------------------------------------------------------------
+       WORKING-STORAGE SECTION.
+      *
+       01  FILLER                          PIC X(19)
+           VALUE '***START-WORKING***'.
+      *
+       01  SW-SWITCHES.
+           03 SW-FIN-BUBLE                 PIC X    VALUE 'N'.
+              88 FIN-BUCLE                          VALUE 'S'.
+      *
+           03 SW-ERROR-DATOS               PIC X    VALUE 'N'.
+              88 ERROR-DATOS                        VALUE 'S'.
+      *
+       01  WX-VARIABLES.
+           03  I                           PIC 999  VALUE 0.
+           03  WX-INI                      PIC 999  VALUE 0.
+           03  WX-FIN                      PIC 999  VALUE 0.
+           03  WX-INIR                     PIC 999  VALUE 0.
+           03  WX-LONG-UTIL                PIC 999  VALUE 0.
+           03  WX-LONG                     PIC 999  VALUE 0.
+           03  WX-CENTRO                   PIC 99.
+      *--- USER ->
+      *    03  WX-BUFFER-RESULTADO         PIC X(80).
+           03  WX-BUFFER-RESULTADO         PIC X(50).
+      *--- USER <-
+      *
+       01 FILLER                           PIC X(17)
+           VALUE '***END-WORKING***'.
+      *----------------------------------------------------------------
+       LINKAGE SECTION.
+      *
+           COPY LKCENTI.
+      *
+      *================================================================
+       PROCEDURE DIVISION USING LKC-CENTI.
+      *----------------------------------------------------------------
+      *--- Proceso principal                                        ---
+      *----------------------------------------------------------------
+       0000-PROCESO.
+      *
+           MOVE LENGTH OF          LKC-BUFFER-ENTRADA
+             TO WX-LONG
+      *
+           IF WX-LONG > 0
+              PERFORM 1000-PRIMER-UTIL
+              IF NOT ERROR-DATOS
+                 PERFORM 2000-ULTIMO-UTIL
+                 IF NOT ERROR-DATOS
+                    PERFORM 3000-CALCULOS
+                 END-IF
+              END-IF
+           ELSE
+              SET ERROR-DATOS              TO TRUE
+              INITIALIZE LKC-CENTI
+           END-IF.
+      *
+           GOBACK.
+      *
+       0000-PROCESO-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Explorar primer caracter util de LKC-BUFFER-ENTRADA      ---
+      *----------------------------------------------------------------
+       1000-PRIMER-UTIL.
+      *
+           MOVE 1                          TO I
+           MOVE 'N'                        TO SW-FIN-BUBLE
+           PERFORM UNTIL I > WX-LONG OR FIN-BUCLE
+               IF LKC-BUFFER-ENTRADA(I:1) NOT = SPACES      AND
+                  LKC-BUFFER-ENTRADA(I:1) NOT = HIGH-VALUES AND
+                  LKC-BUFFER-ENTRADA(I:1) NOT = LOW-VALUES
+                  MOVE I                   TO WX-INI
+                  SET FIN-BUCLE            TO TRUE
+               END-IF
+               ADD 1                       TO I
+           END-PERFORM
+      *
+           IF NOT FIN-BUCLE
+              SET ERROR-DATOS              TO TRUE
+           END-IF.
+      *
+       1000-PRIMER-UTIL-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Explorar ultimo caracter util de LKC-BUFFER-ENTRADA      ---
+      *--- calculamos la longitud util real del texto de entrada    ---
+      *----------------------------------------------------------------
+       2000-ULTIMO-UTIL.
+      *
+      *--- USER ->
+      *    MOVE 80                         TO I
+           MOVE 50                         TO I
+      *--- USER <-
+           MOVE 'N'                        TO SW-FIN-BUBLE
+           PERFORM UNTIL I = 0 OR FIN-BUCLE
+               IF LKC-BUFFER-ENTRADA(I:1) NOT = SPACES       AND
+                  LKC-BUFFER-ENTRADA(I:1) NOT = HIGH-VALUES  AND
+                  LKC-BUFFER-ENTRADA(I:1) NOT = LOW-VALUES
+                  MOVE I                   TO WX-FIN
+                  SET FIN-BUCLE            TO TRUE
+               END-IF
+               SUBTRACT 1                  FROM I
+           END-PERFORM
+      *
+           IF NOT FIN-BUCLE
+              SET ERROR-DATOS              TO TRUE
+           END-IF.
+      *
+       2000-ULTIMO-UTIL-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Calculamos el resultado devolviendo el texto centrado en ---
+      *--- LKC-BUFFER-ENTRADA y la longitud util del texto en       ---
+      *--- LKC-LONGITUD-RESULTADO                                   ---
+      *----------------------------------------------------------------
+       3000-CALCULOS.
+      *
+           IF WX-INI NOT = WX-FIN
+              COMPUTE WX-LONG-UTIL = WX-FIN - WX-INI + 1
+           ELSE
+              MOVE 1                       TO WX-LONG-UTIL
+           END-IF
+      *
+           MOVE SPACES                     TO WX-BUFFER-RESULTADO
+      *
+           COMPUTE WX-CENTRO ROUNDED =
+                   LKC-LONGITUD-RESULTADO / 2
+      *
+           COMPUTE WX-INIR ROUNDED =
+                   WX-CENTRO - (WX-LONG-UTIL / 2)
+      *
+           MOVE LKC-BUFFER-ENTRADA(WX-INI : WX-LONG-UTIL)
+             TO WX-BUFFER-RESULTADO(WX-INIR : WX-LONG-UTIL)
+      *
+           MOVE WX-BUFFER-RESULTADO
+             TO LKC-BUFFER-ENTRADA
+           MOVE LENGTH OF LKC-BUFFER-ENTRADA
+             TO LKC-LONGITUD-RESULTADO.
+      *
+       3000-CALCULOS-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *-------------------- FIN DE PROGRAMA  --------------------------
+      *----------------------------------------------------------------

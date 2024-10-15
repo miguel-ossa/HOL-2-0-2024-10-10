@@ -1,0 +1,18 @@
+//MOVEDSET JOB MCORNER,'MOVE-DATASET',NOTIFY=&SYSUID,                   00001001
+//          MSGCLASS=A,CLASS=A,MSGLEVEL=(1,1),REGION=8M,TIME=(0,7)      00002002
+//*                                                                     00003000
+//* VERSION 1.0                                                         00004000
+//*                                                                     00009100
+//* MUEVE DATASETS SECUENCIALES DE UN VOLUMEN A OTRO                    00009202
+//*                                                                     00009500
+//STEP1    EXEC PGM=ADRDSSU                                             00009602
+//SYSPRINT DD   SYSOUT=A                                                00009702
+//SYSIN    DD   *                                                       00009802
+ COPY DATASET(         -                                                00009902
+   INCLUDE(MCORNER.**)            /* FILTER ON DS W/1ST LEV Q USER1 */ -00030002
+   BY(MULTI,=,NO))                /* FILTER ON SINGLE VOLUME        */ -00044002
+   INDYNAM (SBSYS1)               /* ALLOC VOL SBSYS1 DYNAMICALLY   */ -00045002
+   OUTDYNAM(ZVOL01)               /* ALLOC VOL ZVOL01 DYNAMICALLY   */ -00045102
+   DELETE                                                               00060002
+/*                                                                      00070002
+//*                                                                     00340001

@@ -1,0 +1,50 @@
+//PASMMAP  PROC                                                         00010008
+//*                                                                     00021000
+//* VERSION 1.0                                                         00022008
+//*                                                                     00023000
+//*================================================================     00030000
+//*                                                                     00080000
+//*            COMPILA MAPA BMS Y GENERA COPY COBOL                     00090008
+//*                                                                     00100000
+//COMPIL  EXEC PGM=ASMA90,REGION=2000K,PARM='SYSPARM(MAP)'              00110000
+//SYSLIB   DD  DSN=DFH410.CICS.SDFHMAC,DISP=SHR                         00120000
+//         DD  DSN=SYS1.MACLIB,DISP=SHR                                 00130000
+//SYSUT1   DD  SPACE=(1700,(999,999)),UNIT=SYSDA                        00140000
+//SYSUT2   DD  SPACE=(1700,(300,50)),UNIT=SYSDA                         00150000
+//SYSUT3   DD  SPACE=(1700,(300,50)),UNIT=SYSDA                         00160000
+//SYSLIN   DD  DSN=&&LOADSET,DISP=(MOD,PASS),UNIT=SYSDA,                00170000
+//             SPACE=(800,(500,500))                                    00180000
+//SYSIN    DD  DSN=MCORNER.CICS.MAP(&MAP),DISP=SHR                      00190010
+//SYSPRINT DD  SYSOUT=A                                                 00200000
+//SYSOUT   DD  SYSOUT=A                                                 00201011
+//SYSPRT   DD  SYSOUT=A                                                 00202011
+//SYSUDUMP DD  SYSOUT=*                                                 00210000
+//*                                                                     00220000
+//*            LINKEDITA SI COMPILACION                                 00230000
+//*            DA COD. RETORNO MENOR O IGUAL A 4                        00240000
+//*                                                                     00250000
+//LKED    EXEC PGM=IEWL,PARM='LIST,XREF,LET',REGION=2000K,              00260000
+//             COND=(4,LT,COMPIL)                                       00270000
+//SYSLIN   DD  DSN=&&LOADSET,DISP=(OLD,DELETE)                          00280000
+//*        DD  DDNAME=SYSIN                                             00290000
+//SYSLMOD  DD  DISP=SHR,DSN=MCORNER.CICS.LOAD(&MAP)                     00300000
+//SYSUT1   DD  SPACE=(1024,(50,50)),UNIT=SYSDA                          00310000
+//SYSPRINT DD  SYSOUT=A                                                 00320000
+//SYSOUT   DD  SYSOUT=A                                                 00321011
+//SYSPRT   DD  SYSOUT=A                                                 00322011
+//SYSUDUMP DD  SYSOUT=*                                                 00330000
+//*                                                                     00340000
+//*            GENERA LA COPY DEL MAPA (SIMBOLICA)                      00350000
+//*                                                                     00360000
+//ASMDSECT EXEC PGM=ASMA90,REGION=2000K,                                00370000
+//  PARM='SYSPARM(A.DSECT),DECK,NOOBJECT'                               00380000
+//SYSPRINT DD SYSOUT=A                                                  00390000
+//SYSOUT   DD  SYSOUT=A                                                 00391011
+//SYSPRT   DD  SYSOUT=A                                                 00392011
+//SYSLIB   DD DSN=DFH410.CICS.SDFHMAC,DISP=SHR                          00400000
+//         DD DSN=SYS1.MACLIB,DISP=SHR                                  00410000
+//SYSUT1   DD UNIT=SYSDA,SPACE=(TRK,(5,5))                              00420000
+//SYSUT2   DD UNIT=SYSDA,SPACE=(TRK,(5,5))                              00430000
+//SYSUT3   DD UNIT=SYSDA,SPACE=(TRK,(5,5))                              00440000
+//SYSPUNCH DD DSN=MCORNER.COBOL.COPYS(&MAP),DISP=SHR                    00450002
+//SYSIN    DD DSN=MCORNER.CICS.MAP(&MAP),DISP=SHR                       00460000

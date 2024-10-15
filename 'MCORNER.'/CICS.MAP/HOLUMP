@@ -1,0 +1,128 @@
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*                   -----  MAP  'HOLUMP' -----                        *
+*                LISTADOS CLIENTES CON PARµMETROS A BATCH            *
+*                          VERSION 1.0                                *
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+HOLUMP   DFHMSD MODE=INOUT,LANG=COBOL,TIOAPFX=YES,TYPE=DSECT,TERM=ALL, X
+               CTRL=FREEKB,STORAGE=AUTO,                               X
+               MAPATTS=(COLOR,HILIGHT,OUTLINE),                        X
+               DSATTS=(COLOR,HILIGHT,OUTLINE),                         X
+               EXTATT=YES,COLOR=GREEN
+*
+HOLUMP   DFHMDI SIZE=(24,80),LINE=1,COLUMN=1
+*
+* --- Map fields ---
+*
+TRN1     DFHMDF POS=(01,01),LENGTH=04,ATTRB=(PROT,FSET,BRT),           X
+               INITIAL='HOLU',COLOR=YELLOW
+*
+USER     DFHMDF POS=(01,06),LENGTH=08,                                 X
+               ATTRB=(PROT,BRT),COLOR=RED
+*
+TITLE    DFHMDF POS=(01,15),LENGTH=50,ATTRB=(PROT,BRT),                X
+               INITIAL='Petici¢n de listados con par metros (Batch) ', X
+               COLOR=YELLOW
+*
+         DFHMDF POS=(02,01),LENGTH=78,ATTRB=(PROT,NORM),               X
+               INITIAL='-----------------------------------------------X
+               -------------------------------',                       X
+               COLOR=YELLOW
+*
+TX10     DFHMDF POS=(05,10),LENGTH=20,ATTRB=(PROT,NORM),               X
+               INITIAL='Criterio de ¢rden...',                         X
+               COLOR=TURQUOISE
+*
+ODNI     DFHMDF POS=(05,35),LENGTH=01,ATTRB=(UNPROT,FSET,IC),          X
+               COLOR=GREEN,HILIGHT=UNDERLINE
+         DFHMDF POS=(05,37),LENGTH=01,ATTRB=ASKIP
+*
+TX20     DFHMDF POS=(05,40),LENGTH=25,ATTRB=(PROT,NORM),               X
+               INITIAL='Por N£mero de DNI        ',                    X
+               COLOR=TURQUOISE
+*
+ONOM     DFHMDF POS=(06,35),LENGTH=01,ATTRB=(UNPROT,FSET),             X
+               COLOR=GREEN,HILIGHT=UNDERLINE
+         DFHMDF POS=(06,37),LENGTH=01,ATTRB=ASKIP
+*
+TX30     DFHMDF POS=(06,40),LENGTH=25,ATTRB=(PROT,NORM),               X
+               INITIAL='Por Nombre de cliente    ',                    X
+               COLOR=TURQUOISE
+*
+OAPE     DFHMDF POS=(07,35),LENGTH=01,ATTRB=(UNPROT,FSET),             X
+               COLOR=GREEN,HILIGHT=UNDERLINE
+         DFHMDF POS=(07,37),LENGTH=01,ATTRB=ASKIP
+*
+TX40     DFHMDF POS=(07,40),LENGTH=25,ATTRB=(PROT,NORM),               X
+               INITIAL='Por Apellidos de cliente ',                    X
+               COLOR=TURQUOISE
+*
+TX50     DFHMDF POS=(09,10),LENGTH=20,ATTRB=(PROT,NORM),               X
+               INITIAL='Tipo de ¢rden....:',                           X
+               COLOR=TURQUOISE
+*
+OASC     DFHMDF POS=(09,35),LENGTH=01,ATTRB=(UNPROT,FSET),             X
+               COLOR=GREEN,HILIGHT=UNDERLINE
+         DFHMDF POS=(09,37),LENGTH=01,ATTRB=ASKIP
+*
+TX60     DFHMDF POS=(09,40),LENGTH=25,ATTRB=(PROT,NORM),               X
+               INITIAL='àrden Ascendente         ',                    X
+               COLOR=TURQUOISE
+*
+ODES     DFHMDF POS=(10,35),LENGTH=01,ATTRB=(UNPROT,FSET),             X
+               COLOR=GREEN,HILIGHT=UNDERLINE
+         DFHMDF POS=(10,37),LENGTH=01,ATTRB=ASKIP
+*
+TX70     DFHMDF POS=(10,40),LENGTH=25,ATTRB=(PROT,NORM),               X
+               INITIAL='àrden Descendente        ',                    X
+               COLOR=TURQUOISE
+*
+TX80     DFHMDF POS=(12,10),LENGTH=20,ATTRB=(PROT,NORM),               X
+               INITIAL='Filtro de texto....:',                         X
+               COLOR=TURQUOISE
+*
+FCOM     DFHMDF POS=(12,35),LENGTH=01,ATTRB=(UNPROT,FSET),             X
+               COLOR=GREEN,HILIGHT=UNDERLINE
+         DFHMDF POS=(12,37),LENGTH=01,ATTRB=ASKIP
+*
+TX90     DFHMDF POS=(12,40),LENGTH=25,ATTRB=(PROT,NORM),               X
+               INITIAL='Comienza por el texto... ',                    X
+               COLOR=TURQUOISE
+*
+FCON     DFHMDF POS=(13,35),LENGTH=01,ATTRB=(UNPROT,FSET),             X
+               COLOR=GREEN,HILIGHT=UNDERLINE
+         DFHMDF POS=(13,37),LENGTH=01,ATTRB=ASKIP
+*
+TX100    DFHMDF POS=(13,40),LENGTH=25,ATTRB=(PROT,NORM),               X
+               INITIAL='Contiene el texto...     ',                    X
+               COLOR=TURQUOISE
+*
+TX110    DFHMDF POS=(15,10),LENGTH=20,ATTRB=(PROT,NORM),               X
+               INITIAL='Texto a buscar.....:',                         X
+               COLOR=TURQUOISE
+*
+TEXT     DFHMDF POS=(15,35),LENGTH=35,ATTRB=(UNPROT,FSET),             X
+               COLOR=GREEN,HILIGHT=UNDERLINE
+         DFHMDF POS=(15,71),LENGTH=01,ATTRB=ASKIP
+*
+         DFHMDF POS=(21,01),LENGTH=78,ATTRB=(PROT,NORM),               X
+               INITIAL='-----------------------------------------------X
+               -------------------------------',                       X
+               COLOR=YELLOW
+*
+TX120    DFHMDF POS=(22,01),LENGTH=40,ATTRB=(PROT,NORM),               X
+               INITIAL='F1-Ayuda        F3-Volver',                    X
+               COLOR=TURQUOISE
+TX130    DFHMDF POS=(22,64),LENGTH=13,ATTRB=(PROT,NORM),               X
+               INITIAL='Intro-Proceso',                                X
+               COLOR=TURQUOISE
+*
+         DFHMDF POS=(23,01),LENGTH=78,ATTRB=(PROT,NORM),               X
+               INITIAL='-----------------------------------------------X
+               -------------------------------',                       X
+               COLOR=YELLOW
+*
+MSG      DFHMDF POS=(24,01),LENGTH=78,ATTRB=(PROT,BRT,FSET),           X
+               COLOR=RED
+*
+         DFHMSD TYPE=FINAL
+         END

@@ -1,0 +1,25 @@
+      * --- AREA DE DB2 PARA TRATAMIENTO DE ERRORES (VARIABLES HOST) -
+      * --- VERSION 1.1
+       01  DB2-AREA.
+           03  DB2-CODE                     PIC S9(9).
+           03  DB2-CODE-EDIT                PIC --------9.
+           03  DB2-CODE-X                   PIC X(10).
+           03  DB2-ERROR-MSG                PIC X(50).
+      *
+           03  DB2-IDIOMA                   PIC XX   VALUE 'ES'.
+      *
+      *--- TXMUL ->
+      *    03  DB2-TABLA                    PIC X(8).
+      *    03  DB2-CLAVE1                   PIC X(8).
+      *    03  DB2-CLAVE2                   PIC X(8).
+      *    03  DB2-CLAVE3                   PIC X(8).
+      *    03  DB2-VALOR                    PIC X(80).
+      *--- TXMUL <-
+      *
+           03  DB2-TABLA-TITULOS            PIC X(8) VALUE 'TITULMAP'.
+           03  DB2-TABLA-TEXTOMAP           PIC X(8) VALUE 'TEXTOMAP'.
+           03  DB2-TABLA-PROGRMSG           PIC X(8) VALUE 'PROGRMSG'.
+      *
+           03  DB2-COUNT1                   PIC S9(9) COMP-3.
+           03  DB2-COUNT2                   PIC S9(9) COMP-3.
+      *---------------------------------------------------------------

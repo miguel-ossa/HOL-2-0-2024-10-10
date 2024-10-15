@@ -1,0 +1,22 @@
+//LOGRECF JOB (9999),'CREATE NEW LOGREC DS',CLASS=A,MSGCLASS=X,
+//        MSGLEVEL=(1,1),NOTIFY=&SYSUID
+//*------------------------------------------------------------------
+//*  RENAME THE CURRENT LOGREC DATASET
+//*  UNCATLG SYS1.LOGREC SO THE NEW LOGREC CAN BE ALLOCATED ON
+//*  ANOTHER VOLUME, IF DESIRED
+//*------------------------------------------------------------------
+//RENAME    EXEC PGM=IEHPROGM
+//SBSYS1    DD VOL=SER=ZVOL09,UNIT=3390,DISP=SHR
+//SYSPRINT  DD SYSOUT=A
+//SYSIN     DD *
+         RENAME DSNAME=SYS1.LOGREC,VOL=3390=ZVOL09,                    X
+               NEWNAME=SYS1.LOGREC.OLD02
+         UNCATLG DSNAME=SYS1.LOGREC
+/*
+//*------------------------------------------------------------------
+//*  CREATE THE NEW LOGREC DATASET AND INITIALIZE IT
+//*------------------------------------------------------------------
+//IFCDIP00 EXEC    PGM=IFCDIP00,COND=(0,LT)
+//SERERDS  DD  DSN=SYS1.LOGREC,DISP=(,CATLG),
+//         VOL=SER=ZVOL09,UNIT=SYSDA,SPACE=(CYL,100,,CONTIG)
+/*

@@ -1,0 +1,970 @@
+      *****************************************************************
+      *                 IDENTIFICATION     DIVISION                   *
+      *****************************************************************
+       IDENTIFICATION DIVISION.
+      *
+       PROGRAM-ID.      PHOM1.
+       AUTHOR.          LUIS MARTINEZ.
+      *
+      *****************************************************************
+      **  PROYECTO .........: HOL                                    **
+      **  PROGRAMA .........: PHOM1                                  **
+      **  VERSION ..........: 1.1                                    **
+      **  TITULO ...........: MENU GENERAL DE CLIENTES               **
+      **                                                             **
+      **  TIPO .............:                                        **
+      **     - LENGUAJE ...............: COBOL II                    **
+      **     - ENTORNO ................: CICS                        **
+      **     - BASE DE DATOS ..........: DB2                         **
+      **                                                             **
+      **  DESCRIPCION ......:                                        **
+      **                                                             **
+      **    - Menu general para la gestion de clientes               **
+      **      Permite seleccionar o elegir la opcion entre:          **
+      **      (A)lta,(B)aja,(C)consulta o (M)odificacion             **
+      **      para llamar al programa de mantenimiento de Cliente    **
+      **                                                             **
+      **      La opci¢n 5 permite lanzar  la transaccion             **
+      **      de visualizacion del £ltimo listado (HOLR) con XCTL    **
+      **                                                             **
+      **      La opci¢n 6 permite enviar el listado generado en HOLS **
+      **      al Spool directamente                                  **
+      **                                                             **
+      **  LOG DE MODIFICACIONES:                                     **
+      **  FECHA----- DESCRIPCION------------------------------ BUSCA **
+      **  2024-01-19 Nueva opci¢n Listado por JCL              CB001 **
+      **  2024-08-18 Adaptaci¢n multiidioma (MOSSA)            TXMUL **
+      **  2024-09-24 Multiusuario (MOSSA)                      USER  **
+      **                                                             **
+      **                                                             **
+      **                                                             **
+      **                                                             **
+      **                                                             **
+      *****************************************************************
+       ENVIRONMENT DIVISION.
+      *
+       CONFIGURATION SECTION.
+       SPECIAL-NAMES.
+           DECIMAL-POINT IS COMMA.
+      *
+       DATA DIVISION.
+      *----------------------------------------------------------------
+       WORKING-STORAGE SECTION.
+      *
+      *--- Zona CICS --------------------------------------------------
+      *
+       COPY DFHAID.
+       COPY DFHBMSCA.
+       COPY HOM1MP.
+       COPY DDCICS.
+      *
+      *--- Zona CICS fin ----------------------------------------------
+      *
+      *--- Zona DB2 ---------------------------------------------------
+      *
+           EXEC SQL
+                INCLUDE SQLCA
+           END-EXEC
+      *
+           EXEC SQL
+                INCLUDE DDDB2
+           END-EXEC
+      *--- TXMUL ->
+           EXEC SQL
+                INCLUDE TABLAS
+           END-EXEC
+      *--- TXMUL <-
+      *--- Zona DB2 fin -----------------------------------------------
+      *
+       01  FILLER                          PIC X(19)
+           VALUE '***START-WORKING***'.
+      *
+       01  WC-CONSTANTES.
+           03  WC-PROGRAMA                 PIC X(8)  VALUE 'PHOM1'.
+           03  WC-TRANSACCION              PIC X(4)  VALUE 'HOM1'.
+           03  WC-MAP                      PIC X(8)  VALUE 'HOM1MP'.
+           03  WC-MAPSET                   PIC X(8)  VALUE 'HOM1MP'.
+           03  WC-CURPOS                   PIC S9(4) VALUE +992.
+      *--- USER ->
+      *    03  WC-LONGITUD-TITULO          PIC 99    VALUE 74.
+      *--- USER <-
+      *
+           03  WC-CUR-CONSULTA             PIC S9(4) COMP VALUE +501.
+           03  WC-CUR-ALTA                 PIC S9(4) COMP VALUE +581.
+           03  WC-CUR-MODIFICA             PIC S9(4) COMP VALUE +661.
+           03  WC-CUR-BAJA                 PIC S9(4) COMP VALUE +741.
+           03  WC-CUR-LISTADO              PIC S9(4) COMP VALUE +821.
+           03  WC-CUR-SPOOL                PIC S9(4) COMP VALUE +901.
+      *--- CB001 ->
+           03  WC-CUR-JCL                  PIC S9(4) COMP VALUE +981.
+      *--- CB001 <-
+           03  WC-CUR-PRINT                PIC S9(4) COMP VALUE +1061.
+      *--- TXMUL ->
+           03  WC-CUR-IDIOMA               PIC S9(4) COMP VALUE +1141.
+      *--- TXMUL <-
+           03  WC-CUR-OPCION               PIC S9(4) COMP VALUE +1253.
+      *
+       01  SW-SWITCHES.
+           03 SW-ENVIO-MAPA                PIC X    VALUE '0'.
+              88 ENVIO-ERASE                        VALUE '1'.
+              88 ENVIO-DATAONLY                     VALUE '2'.
+      *
+           03 SW-ERROR-VALIDACION          PIC 999  VALUE 0.
+              88 ERROR-VALIDACION                   VALUE 1.
+      *
+       01  WL-LITERALES.
+           03  WL-FIN-SESION               PIC X(80) VALUE
+               'La transaccion HOM1 ha finalizado...'.
+      *TEMPORAL
+      *77  DCURSOR                         PIC ZZZ9.
+      *
+      *--- Zona para CALLs --------------------------------------------
+      *
+           COPY LKCENTI.
+      *
+       01  WX-VARIABLES.
+           03  WX-NUM                      PIC S9(4) VALUE 0.
+      *--- TXMUL ->
+       77 IND                             PIC 99 VALUE ZERO.
+      *--- TXMUL <-
+      *
+       01 FILLER                           PIC X(17)
+           VALUE '***END-WORKING***'.
+      *----------------------------------------------------------------
+       LINKAGE SECTION.
+      *
+       01 DFHCOMMAREA                      PIC X(2048).
+      *
+      *================================================================
+       PROCEDURE DIVISION.
+      *----------------------------------------------------------------
+      *--- Proceso principal                                        ---
+      *----------------------------------------------------------------
+       0000-PROCESO-TAREA.
+      *
+           EXEC SQL
+                INCLUDE PDOPCIDB
+           END-EXEC
+      *
+           MOVE WC-TRANSACCION              TO WA-TRANSACCION
+      *
+           IF EIBCALEN > 0
+              MOVE DFHCOMMAREA              TO CH-COMMAREA-HOL
+           END-IF.
+      *
+      *--- Evaluacion de Commarea y Teclas para identificar
+      *--- los procesos que deban de ejecutarse
+      *
+           EVALUATE TRUE
+      *
+      *--- No hay Commarea
+      *--- Se inicializa la Commarea y se envia mapa limpio
+      *
+               WHEN EIBCALEN = ZERO
+                    MOVE LOW-VALUE          TO HOM1MPO
+                    MOVE WC-CUR-CONSULTA    TO CH-CURPOS
+                    MOVE DFHRED             TO MSGC
+                    SET ENVIO-ERASE         TO TRUE
+                    PERFORM 2700-READ-LANGUAGE
+                    MOVE 'HOM1ARR'          TO CL-CLAVE1
+                    PERFORM 20100-OBTENER-TEXTO
+                    MOVE CL-VALOR           TO MSGO
+      *             MOVE 'Para arrancar HOM1 utiliza HOLM... pulsa F3'
+      *               TO MSGO
+                    PERFORM 8000-ENVIO-MAPA
+      *
+      *--- Hay Commarea
+      *--- El programa ha podido ser arrancado por XCTL desde otro
+      *--- programa con XCTL como retorno al actual. En este caso
+      *--- el campo ch-programa-retorno contiene algun valor.
+      *--- En este caso inicializamos la Commarea y eviamos mapa limpio
+      *
+               WHEN EIBCALEN > ZERO AND CH-TRANS-RETORNO NOT = SPACES
+      *TEMPORAL
+                    MOVE 'PHOM1' TO WA-TRAZA
+                    PERFORM 8800-TRAZA
+      *
+                    MOVE LOW-VALUE          TO HOM1MPO
+                    INITIALIZE CH-COMUN
+                    SET ENVIO-ERASE         TO TRUE
+                    PERFORM 8000-ENVIO-MAPA
+      *
+      *--- Borrado de pantalla  - Mensaje y retorno a CICS
+      *--- F3 tambien puede terminar esta transaccion
+      *
+               WHEN EIBAID = DFHCLEAR OR EIBAID = DFHPF3
+                    PERFORM 2900-PROCESO-VOLVER
+      *
+      *--- Teclas de Att no hacemos nada
+      *
+               WHEN EIBAID = DFHPA1 OR DFHPA2 OR DFHPA3
+                    CONTINUE
+      *
+      *--- Teclas de funcion Legales
+      *--- Teclas que requieren un procesado del mapa
+      *
+               WHEN EIBAID = DFHENTER
+                 OR EIBAID = DFHPF1
+                 OR EIBAID = DFHPF12
+                    PERFORM 1000-PROCESO-MAPA
+      *
+      *--- Teclas ilegales
+      *--- Teclas no programadas que se detectaran en proceso de mapa
+      *
+               WHEN OTHER
+                    PERFORM 1000-PROCESO-MAPA
+      *
+           END-EVALUATE
+      *
+      *--- Terminamos el proceso con Return TransId
+      *--- Volvemos a enganchar esta misma transaccion
+      *
+           PERFORM 8200-RETORNO-TRANS.
+      *
+       0000-PROCESO-TAREA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Procesa la pantalla segun tecla elegida por el usuario   ---
+      *----------------------------------------------------------------
+       1000-PROCESO-MAPA.
+      *
+      * Recuperamos el mapa desde el terminal
+      *
+           PERFORM 8400-RECIBE-MAPA
+      *
+           EVALUATE TRUE
+      *
+      *--- Enter: Validamos el mapa y si es correcto proceso Enter
+      *
+              WHEN EIBAID = DFHENTER
+                   PERFORM 1100-VALIDA-MAPA
+      *
+      *--- F12 : Llamamos al programa de Listas y seleccion
+      *
+              WHEN EIBAID = DFHPF12
+                   PERFORM 3000-PROCESO-LISTA
+      *
+      *--- F1: Se llama al programa de ayuda online
+      *
+              WHEN EIBAID = DFHPF1
+                   PERFORM 5000-PROCESO-PF1
+      *
+      *-- Otras teclas: Se avisa con mensaje en pantalla y mapa limpio
+      *
+              WHEN OTHER
+      *--- TXMUL ->
+                   MOVE 'KEYERR'           TO CL-CLAVE1
+                   PERFORM 20100-OBTENER-TEXTO
+      *            MOVE 'Tecla erronea...' TO MSGO
+                   MOVE CL-VALOR           TO MSGO
+      *--- TXMUL <-
+      *
+           END-EVALUATE.
+      *
+           SET ENVIO-DATAONLY              TO TRUE
+           PERFORM 8000-ENVIO-MAPA.
+      *
+       1000-PROCESO-MAPA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Valida los datos del mapa. Identifica la opcion          ---
+      *----------------------------------------------------------------
+       1100-VALIDA-MAPA.
+      *
+           MOVE SPACES                     TO CH-M-OPCION  CH-X-ACCION
+           MOVE EIBCPOSN                   TO CH-CURPOS
+           MOVE 0                          TO SW-ERROR-VALIDACION
+      *
+      *--- Prioridad al valor de la opcion en pantalla
+      *
+           IF CH-X-ACCION = SPACES             AND
+              OPCI = 1
+              PERFORM 1110-CONSULTA
+           END-IF.
+      *
+           IF CH-X-ACCION = SPACES             AND
+              OPCI = 2
+              PERFORM 1120-ALTA
+           END-IF.
+      *
+           IF CH-X-ACCION = SPACES             AND
+              OPCI = 3
+              PERFORM 1130-MODIFICA
+           END-IF.
+      *
+           IF CH-X-ACCION = SPACES             AND
+              OPCI = 4
+              PERFORM 1140-BAJA
+           END-IF.
+      *
+           IF CH-X-ACCION = SPACES             AND
+              OPCI = 5
+              PERFORM 1150-LISTADO
+           END-IF.
+      *
+           IF CH-X-ACCION = SPACES             AND
+              OPCI = 6
+              PERFORM 1160-LISTADO-SPOOL
+           END-IF.
+      *--- CB0001 ->
+           IF CH-X-ACCION = SPACES             AND
+              OPCI = 7
+              PERFORM 1170-LISTADO-JCL
+           END-IF.
+           IF CH-X-ACCION = SPACES             AND
+              OPCI = 8
+              PERFORM 1180-LISTADO-PRINT
+           END-IF.
+      *--- TXMUL <-
+      *--- CB001 <-
+      *
+      *--- CB001 ->
+      *    IF (OPCI < 1 OR OPCI > 6)           AND
+      *--- CB001 <-
+      *--- TXMUL ->
+      *    IF (OPCI < 1 OR OPCI > 8)           AND
+      *--- TXMUL <-
+           IF OPCI < 1                         AND
+              (OPCI NOT = SPACES               AND
+               OPCI NOT = LOW-VALUES           AND
+               OPCI NOT = HIGH-VALUES)
+              SET ERROR-VALIDACION       TO TRUE
+              MOVE 'X'                   TO CH-X-ACCION  CH-M-OPCION
+      *--- TXMUL ->
+              MOVE 'OPCERR'              TO CL-CLAVE1
+              PERFORM 20100-OBTENER-TEXTO
+              MOVE CL-VALOR              TO MSGO
+      *       MOVE 'Opci¢n seleccionada incorrecta...' TO MSGO
+      *--- TXMUL <-
+           END-IF.
+      *
+      *TEMPORAL
+      *    MOVE CH-CURPOS TO DCURSOR.
+      *    MOVE DCURSOR TO WA-TRAZA.
+      *    PERFORM 8800-TRAZA.
+      *
+           IF CH-X-ACCION = SPACES             AND
+              CH-CURPOS = WC-CUR-CONSULTA
+              PERFORM 1110-CONSULTA
+           END-IF.
+      *
+           IF CH-X-ACCION = SPACES             AND
+              CUR1I NOT = SPACES               AND
+              CUR1I NOT = HIGH-VALUES          AND
+              CUR1I NOT = LOW-VALUES
+              PERFORM 1110-CONSULTA
+           END-IF.
+      *
+           IF CH-X-ACCION = SPACES             AND
+              CH-CURPOS = WC-CUR-ALTA
+              PERFORM 1120-ALTA
+           END-IF.
+      *
+           IF CH-X-ACCION = SPACES             AND
+              CUR2I NOT = SPACES               AND
+              CUR2I NOT = HIGH-VALUES          AND
+              CUR2I NOT = LOW-VALUES
+              PERFORM 1120-ALTA
+           END-IF.
+      *
+           IF CH-X-ACCION = SPACES             AND
+              CH-CURPOS = WC-CUR-MODIFICA
+              PERFORM 1130-MODIFICA
+           END-IF.
+      *
+           IF CH-X-ACCION = SPACES             AND
+              CUR3I NOT = SPACES               AND
+              CUR3I NOT = HIGH-VALUES          AND
+              CUR3I NOT = LOW-VALUES
+              PERFORM 1130-MODIFICA
+           END-IF.
+      *
+           IF CH-X-ACCION = SPACES             AND
+              CH-CURPOS = WC-CUR-BAJA
+              PERFORM 1140-BAJA
+           END-IF.
+      *
+           IF CH-X-ACCION = SPACES             AND
+              CUR4I NOT = SPACES               AND
+              CUR4I NOT = HIGH-VALUES          AND
+              CUR4I NOT = LOW-VALUES
+              PERFORM 1140-BAJA
+           END-IF.
+      *
+           IF CH-X-ACCION = SPACES             AND
+              CH-CURPOS = WC-CUR-LISTADO
+              PERFORM 1150-LISTADO
+           END-IF.
+      *
+           IF CH-X-ACCION = SPACES             AND
+              CUR5I NOT = SPACES               AND
+              CUR5I NOT = HIGH-VALUES          AND
+              CUR5I NOT = LOW-VALUES
+              PERFORM 1150-LISTADO
+           END-IF.
+      *
+           IF CH-X-ACCION = SPACES             AND
+              CH-CURPOS = WC-CUR-SPOOL
+              PERFORM 1160-LISTADO-SPOOL
+           END-IF.
+      *
+           IF CH-X-ACCION = SPACES             AND
+              CUR6I NOT = SPACES               AND
+              CUR6I NOT = HIGH-VALUES          AND
+              CUR6I NOT = LOW-VALUES
+              PERFORM 1160-LISTADO-SPOOL
+           END-IF.
+      *
+      *--- CB001 ->
+      *
+           IF CH-X-ACCION = SPACES             AND
+              CH-CURPOS = WC-CUR-JCL
+              PERFORM 1170-LISTADO-JCL
+           END-IF.
+      *
+           IF CH-X-ACCION = SPACES             AND
+              CUR7I NOT = SPACES               AND
+              CUR7I NOT = HIGH-VALUES          AND
+              CUR7I NOT = LOW-VALUES
+              PERFORM 1170-LISTADO-JCL
+           END-IF.
+      *
+           IF CH-X-ACCION = SPACES             AND
+              CH-CURPOS = WC-CUR-PRINT
+              PERFORM 1180-LISTADO-PRINT
+           END-IF.
+      *
+           IF CH-X-ACCION = SPACES             AND
+              CUR8I NOT = SPACES               AND
+              CUR8I NOT = HIGH-VALUES          AND
+              CUR8I NOT = LOW-VALUES
+              PERFORM 1180-LISTADO-PRINT
+           END-IF.
+      *
+      *TEMPORAL
+      *    MOVE CH-M-OPCION TO WA-TRAZA.
+      *    PERFORM 8800-TRAZA.
+      *
+      *--- CB001 <-
+      *
+           IF NOT ERROR-VALIDACION AND CH-M-OPCION = 'L'
+              PERFORM 6000-LISTADO
+           END-IF.
+      *
+           IF NOT ERROR-VALIDACION AND CH-M-OPCION = 'S'
+              PERFORM 7000-ENVIAR-SPOOL
+           END-IF.
+      *
+      *--- CB001 ->
+      *
+           IF NOT ERROR-VALIDACION AND CH-M-OPCION = 'J'
+              PERFORM 7100-ENVIAR-JCL
+           END-IF.
+      *
+           IF NOT ERROR-VALIDACION AND CH-M-OPCION = 'P'
+              PERFORM 7200-LISTADOS-PARM
+           END-IF.
+      *
+      *--- CB001 <-
+      *
+           IF NOT ERROR-VALIDACION AND
+              (CH-M-OPCION = 'A' OR
+               CH-M-OPCION = 'B' OR
+               CH-M-OPCION = 'C' OR
+               CH-M-OPCION = 'M')
+              PERFORM 2000-MANTENIMIENTO
+           END-IF.
+      *
+           IF CH-X-ACCION = SPACES
+              SET ERROR-VALIDACION         TO TRUE
+      *--- TXMUL ->
+              MOVE 'OPCDESC'               TO CL-CLAVE1
+              PERFORM 20100-OBTENER-TEXTO
+              MOVE CL-VALOR                TO MSGO
+      *       MOVE 'No se ha podido determinar la opcion'
+      *         TO MSGO
+      *--- TXMUL <-
+           END-IF.
+      *
+       1100-VALIDA-MAPA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Opcion Consulta                                          ---
+      *----------------------------------------------------------------
+       1110-CONSULTA.
+      *
+           MOVE 'C'                        TO CH-M-OPCION  CH-X-ACCION
+           MOVE '1'                        TO OPCO.
+      *
+       1110-CONSULTA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Opcion Alta                                              ---
+      *----------------------------------------------------------------
+       1120-ALTA.
+      *
+           MOVE 'A'                        TO CH-M-OPCION  CH-X-ACCION
+           MOVE '2'                        TO OPCO.
+      *
+       1120-ALTA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Opcion Modificacion                                      ---
+      *----------------------------------------------------------------
+       1130-MODIFICA.
+      *
+           MOVE 'M'                        TO CH-M-OPCION  CH-X-ACCION
+           MOVE '3'                        TO OPCO.
+      *
+       1130-MODIFICA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Opcion Baja                                              ---
+      *----------------------------------------------------------------
+       1140-BAJA.
+      *
+           MOVE 'B'                        TO CH-M-OPCION  CH-X-ACCION
+           MOVE '4'                        TO OPCO.
+      *
+       1140-BAJA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Opcion de visualizaci¢n de listado                       ---
+      *----------------------------------------------------------------
+       1150-LISTADO.
+      *
+           MOVE 'L'                        TO CH-M-OPCION  CH-X-ACCION
+           MOVE '5'                        TO OPCO
+           MOVE EIBTRMID                   TO CH-TERMINAL.
+      *
+       1150-LISTADO-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Opcion de env¡o del listado al Spool                     ---
+      *----------------------------------------------------------------
+       1160-LISTADO-SPOOL.
+      *
+           MOVE 'S'                        TO CH-M-OPCION  CH-X-ACCION
+           MOVE '6'                        TO OPCO
+           MOVE EIBTRMID                   TO CH-TERMINAL.
+      *
+       1160-LISTADO-SPOOL-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- CB001 Opcion de env¡o del listado por JCL                ---
+      *----------------------------------------------------------------
+       1170-LISTADO-JCL.
+      *
+           MOVE 'J'                        TO CH-M-OPCION  CH-X-ACCION
+           MOVE '7'                        TO OPCO
+           MOVE EIBTRMID                   TO CH-TERMINAL.
+      *
+       1170-LISTADO-JCL-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- CB001 Opcion de env¡o del listado por JCL                ---
+      *----------------------------------------------------------------
+       1180-LISTADO-PRINT.
+      *
+           MOVE 'P'                        TO CH-M-OPCION  CH-X-ACCION
+           MOVE '8'                        TO OPCO
+           MOVE EIBTRMID                   TO CH-TERMINAL.
+      *
+       1180-LISTADO-PRINT-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Llamamos al programa de mantenimiento                    ---
+      *----------------------------------------------------------------
+       2000-MANTENIMIENTO.
+      *
+           MOVE CS-PGM-MANTENIMIENTO       TO CH-XCTL
+           MOVE WC-TRANSACCION             TO CH-TRANSACCION
+           MOVE WC-TRANSACCION             TO CH-TRANS-RETORNO
+           MOVE WC-PROGRAMA                TO CH-PROGRAMA-RETORNO.
+           PERFORM 8700-XCTL-PROGRAMA.
+      *
+       2000-MANTENIMIENTO-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Leemos el idioma actual de la tabla                      ---
+      *----------------------------------------------------------------
+       2700-READ-LANGUAGE.
+      *
+           EXEC SQL
+                SELECT VALOR
+                  INTO :TB-VALOR
+                  FROM TABLAS
+                       WHERE TABLA  = 'LANGUAGE'
+                         AND CLAVE1 = 'X'
+                         AND CLAVE2 = 'X'
+                         AND CLAVE3 = 'X'
+           END-EXEC.
+      *
+           IF SQLCODE NOT = ZERO THEN
+              PERFORM G999-ERROR-DB2
+           ELSE
+              MOVE TB-VALOR  TO CL-IDIOMA
+      *       MOVE CL-IDIOMA TO WA-TRAZA
+      *       PERFORM 8800-TRAZA
+           END-IF.
+      *
+       2700-READ-LANGUAGE-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Llamamos al programa de MENU (Volver)                    ---
+      *----------------------------------------------------------------
+       2900-PROCESO-VOLVER.
+      *
+           MOVE CS-PGM-MENU                TO CH-XCTL
+           MOVE WC-TRANSACCION             TO CH-TRANSACCION
+           MOVE WC-TRANSACCION             TO CH-TRANS-RETORNO
+           MOVE SPACES                     TO CH-PROGRAMA-RETORNO
+           PERFORM 8700-XCTL-PROGRAMA.
+      *
+       2900-PROCESO-VOLVER-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Procesa la tecla F12                                     ---
+      *---    Llamamos al programa de Listas y Seleccion            ---
+      *---    Si es la primera vez que llamamos a seleccion         ---
+      *---    pondremos por defecto el tipo de orden que hay por    ---
+      *---    defecto en el mapa DNI ascendente sin filtros         ---
+      *----------------------------------------------------------------
+       3000-PROCESO-LISTA.
+      *
+           IF CH-S-CODIGO-CURSOR = SPACES      OR
+              CH-S-CODIGO-CURSOR = LOW-VALUES  OR
+              CH-S-CODIGO-CURSOR = HIGH-VALUES
+              MOVE 'DA'                    TO CH-S-CODIGO-CURSOR
+              MOVE SPACES                  TO CH-S-BUSCAR
+              MOVE 'N'                     TO CH-S-COMIENZA
+              MOVE 'N'                     TO CH-S-CONTIENE
+              MOVE SPACES                  TO CH-S-DNI1 CH-S-DNI4
+              MOVE SPACES                  TO CH-S-NOMBRE1 CH-S-NOMBRE4
+              MOVE SPACES                  TO CH-S-APELLIDOS1
+              MOVE SPACES                  TO CH-S-APELLIDOS4
+              MOVE SPACES                  TO CH-S-UP-MORE
+              MOVE SPACES                  TO CH-S-DOWN-MORE
+              MOVE SPACES                  TO CH-S-DNI-SELECCION
+           END-IF
+      *
+           MOVE CS-PGM-LISTA               TO CH-XCTL
+           MOVE WC-TRANSACCION             TO CH-TRANSACCION
+           MOVE WC-TRANSACCION             TO CH-TRANS-RETORNO
+           MOVE WC-PROGRAMA                TO CH-PROGRAMA-RETORNO
+           PERFORM 8700-XCTL-PROGRAMA.
+      *
+       3000-PROCESO-LISTA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Procesa la tecla F1                                      ---
+      *---    Llamamos al programa de visualizacion de ayuda        ---
+      *----------------------------------------------------------------
+       5000-PROCESO-PF1.
+      *
+           MOVE CS-PGM-AYUDAOL             TO CH-XCTL
+           MOVE WC-TRANSACCION             TO CH-TRANSACCION
+           MOVE WC-TRANSACCION             TO CH-TRANS-RETORNO
+           MOVE WC-PROGRAMA                TO CH-PROGRAMA-RETORNO
+           PERFORM 8700-XCTL-PROGRAMA.
+      *
+       5000-PROCESO-PF1-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Procesa la opci¢n 5. Llama al visualizador de listado    ---
+      *----------------------------------------------------------------
+       6000-LISTADO.
+      *
+           MOVE CS-PGM-VISUAL-LIST         TO CH-XCTL
+           MOVE WC-TRANSACCION             TO CH-TRANSACCION
+           MOVE WC-TRANSACCION             TO CH-TRANS-RETORNO
+           MOVE WC-PROGRAMA                TO CH-PROGRAMA-RETORNO
+           PERFORM 8700-XCTL-PROGRAMA.
+      *
+       6000-LISTADO-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Procesa la opci¢n 6. Lanzamos HOLY transacci¢n Spool     ---
+      *----------------------------------------------------------------
+       7000-ENVIAR-SPOOL.
+      *
+           MOVE SPACES                     TO CH-Y-RETORNO.
+      *
+           MOVE CS-PGM-SPOOL               TO CH-XCTL.
+           PERFORM 8700-XCTL-PROGRAMA.
+      *
+      *
+       7000-ENVIAR-SPOOL-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- CB001 Opci¢n 7. Start transacci¢n HOLW JCL desde CICS    ---
+      *----------------------------------------------------------------
+       7100-ENVIAR-JCL.
+      *
+           MOVE SPACES                     TO CH-Y-RETORNO.
+      *
+           MOVE TH-TRN-JCL                 TO CH-TRANSACCION.
+           PERFORM 8610-START-NO-COM.
+      *
+           MOVE DFHPINK                    TO MSGC.
+      *--- TXMUL ->
+           MOVE 'JCLSEND'                  TO CL-CLAVE1.
+           PERFORM 20100-OBTENER-TEXTO.
+           MOVE CL-VALOR                   TO MSGO.
+      *    MOVE 'Se ha lanzado el JCL de listado...'
+      *      TO MSGO.
+      *--- TXMUL <-
+      *
+       7100-ENVIAR-JCL-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Procesa la opci¢n 8. Llama al Solicitud de listados      ---
+      *----------------------------------------------------------------
+       7200-LISTADOS-PARM.
+      *
+           MOVE CS-PGM-LIST-PARM           TO CH-XCTL
+           MOVE 355                        TO CH-CURPOS
+           MOVE WC-TRANSACCION             TO CH-TRANSACCION
+           MOVE WC-TRANSACCION             TO CH-TRANS-RETORNO
+           MOVE WC-PROGRAMA                TO CH-PROGRAMA-RETORNO
+           PERFORM 8700-XCTL-PROGRAMA.
+      *
+       7200-LISTADOS-PARM-EXIT.
+           EXIT.
+      *--- USER ->
+      *----------------------------------------------------------------
+      *--- Llamamos al programa de login                            ---
+      *----------------------------------------------------------------
+       7400-USER-LOGIN.
+      *
+           MOVE CS-PGM-USER                TO CH-XCTL.
+           MOVE WC-TRANSACCION             TO CH-TRANSACCION.
+           MOVE WC-TRANSACCION             TO CH-TRANS-RETORNO.
+           MOVE WC-PROGRAMA                TO CH-PROGRAMA-RETORNO.
+           PERFORM 8700-XCTL-PROGRAMA.
+      *
+       7400-USER-LOGIN-EXIT.
+           EXIT.
+      *--- USER <-
+      *----------------------------------------------------------------
+      *--- Envia el mapa al terminal sergun modo del switch         ---
+      *----------------------------------------------------------------
+       8000-ENVIO-MAPA.
+      *
+           EVALUATE TRUE
+      *
+      *--- Envio de mapa limpio
+      *
+               WHEN ENVIO-ERASE
+      *
+      *--- TXMUL ->
+                   MOVE 50 TO RTC-CENTER-AREA
+                   PERFORM 20000-TITULO-MAPA
+      * Carga de los textos fijos del mapa
+                   MOVE WC-TRANSACCION TO TB-CLAVE1
+                   PERFORM 20200-OPEN-CURSOR-MAPS
+                   PERFORM WITH TEST AFTER UNTIL SQLCODE = 100
+                       PERFORM 20200-FETCH-CURSOR-MAPS
+                       IF SQLCODE NOT = 100 AND
+                          TB-CLAVE3 = CL-IDIOMA THEN
+                          ADD 1 TO IND
+                          EVALUATE IND
+                             WHEN 1
+                                MOVE TB-VALOR TO TX10O
+                             WHEN 2
+                                MOVE TB-VALOR TO TX20O
+                             WHEN 3
+                                MOVE TB-VALOR TO TX30O
+                             WHEN 4
+                                MOVE TB-VALOR TO TX40O
+                             WHEN 5
+                                MOVE TB-VALOR TO TX50O
+                             WHEN 6
+                                MOVE TB-VALOR TO TX60O
+                             WHEN 7
+                                MOVE TB-VALOR TO TX70O
+                             WHEN 8
+                                MOVE TB-VALOR TO TX80O
+                             WHEN 9
+                                MOVE TB-VALOR TO TX100O
+                             WHEN 10
+                                MOVE TB-VALOR TO TX110O
+                             WHEN 11
+                                MOVE TB-VALOR TO TX120O
+                          END-EVALUATE
+                       END-IF
+                   END-PERFORM
+                   PERFORM 20200-CLOSE-CURSOR-MAPS
+      *--- TXMUL <-
+      *
+                   EXEC CICS
+                       SEND MAP    ('HOM1MP')
+                            MAPSET ('HOM1MP')
+                            FROM   (HOM1MPO)
+                            ERASE
+                   END-EXEC
+      *
+      *--- Envio del mapa Solo datos
+      *
+               WHEN ENVIO-DATAONLY
+                   EXEC CICS
+                       SEND MAP     ('HOM1MP')
+                            MAPSET  ('HOM1MP')
+                            FROM    (HOM1MPO)
+                            DATAONLY
+                   END-EXEC
+      *
+           END-EVALUATE.
+      *
+       8000-ENVIO-MAPA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Envia un mensaje al terminal del usuario (fin sesion)    ---
+      *----------------------------------------------------------------
+       8100-ENVIA-MENSAJE.
+      *
+      *--- TXMUL ->
+           MOVE 'HOM1END'                  TO CL-CLAVE1.
+           PERFORM 20100-OBTENER-TEXTO.
+           MOVE CL-VALOR                   TO WL-FIN-SESION.
+      * 'La transaccion HOM1 ha finalizado...'
+      *--- TXMUL <-
+           EXEC CICS
+               SEND TEXT FROM(WL-FIN-SESION)
+                         ERASE
+                         FREEKB
+           END-EXEC.
+      *
+       8100-ENVIA-MENSAJE-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Devuelve el control a una transaccion                    ---
+      *----------------------------------------------------------------
+       8200-RETORNO-TRANS.
+           EXEC CICS
+               RETURN
+               TRANSID      (WA-TRANSACCION)
+               COMMAREA     (CH-COMMAREA-HOL)
+           END-EXEC.
+      *
+       8200-RETORNO-TRANS-EXIT.
+           EXIT.
+      *--- TXMUL ->
+      *----------------------------------------------------------------
+      *--- Recibe el mapa de la tarea                               ---
+      *----------------------------------------------------------------
+       8400-RECIBE-MAPA.
+      *
+           EXEC CICS
+                RECEIVE
+                MAP     ('HOM1MP')
+                MAPSET  ('HOM1MP')
+                INTO    (HOM1MPI)
+           END-EXEC.
+      *
+       8400-RECIBE-MAPA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Llama a otro programa CICS por LINK con Commarea         ---
+      *----------------------------------------------------------------
+       8500-LINK-PROGRAMA.
+      *
+           EXEC CICS
+                LINK
+                PROGRAM (CH-LINK)
+                COMMAREA(CH-COMMAREA-HOL)
+                LENGTH  (LENGTH OF CH-COMMAREA-HOL)
+           END-EXEC.
+      *
+       8500-LINK-PROGRAMA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Lanza una transacci¢n por START                          ---
+      *----------------------------------------------------------------
+       8600-START-TRANSACCION.
+      *
+           EXEC CICS
+                START
+                TRANSID   (CH-TRANSACCION)
+                FROM      (CH-COMMAREA-HOL)
+                LENGTH    (LENGTH OF CH-COMMAREA-HOL)
+           END-EXEC.
+      *
+       8600-START-TRANSACCION-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Lanza una transacci¢n por START SIN COMMAREA             ---
+      *----------------------------------------------------------------
+       8610-START-NO-COM.
+      *
+           EXEC CICS
+                START
+                TRANSID   (CH-TRANSACCION)
+           END-EXEC.
+      *
+       8610-START-NO-COM-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Cede el control a otro programa CICS                     ---
+      *----------------------------------------------------------------
+       8700-XCTL-PROGRAMA.
+      *
+           EXEC CICS
+                SET TERMINAL(EIBTRMID) UCTRAN
+           END-EXEC
+      *
+           EXEC CICS
+               XCTL PROGRAM  (CH-XCTL)
+                    COMMAREA (CH-COMMAREA-HOL)
+                    RESP     (WA-RESPUESTA-CICS)
+           END-EXEC.
+      *
+       8700-XCTL-PROGRAMA-EXIT.
+           EXIT.
+      *--- TXMUL ->
+      *----------------------------------------------------------------
+      *--- CEDF visualiza una traza - Quitar para produccion        ---
+      *----------------------------------------------------------------
+       8800-TRAZA.
+      *
+           EXEC CICS
+               ENTER       TRACEID(0)
+               FROM        (WA-TRAZA)
+           END-EXEC.
+      *
+       8800-TRAZA-EXIT.
+           EXIT.
+      *--- TXMUL <-
+      *----------------------------------------------------------------
+      *--- Devuelve el control a CICS - Salida total                ---
+      *----------------------------------------------------------------
+       8900-RETORNO-CICS.
+      *
+           EXEC CICS
+                SET TERMINAL(EIBTRMID) UCTRAN
+           END-EXEC
+      *
+           EXEC CICS
+                RETURN
+           END-EXEC.
+      *
+       8900-RETORNO-CICS-EXIT.
+           EXIT.
+      *--- TXMUL ->
+      *
+      * Rutinas multiidioma
+      *
+           EXEC SQL
+                INCLUDE PTXMUL
+           END-EXEC.
+      *
+       999999-DB2-ERRORES SECTION.
+      *----------------------------------------------------------------
+      *--- DB2 Errores y otros                                      ---
+      *----------------------------------------------------------------
+           EXEC SQL
+                INCLUDE PDDB2
+           END-EXEC.
+      *----------------------------------------------------------------
+      *-------------------- FIN DE PROGRAMA  --------------------------
+      *----------------------------------------------------------------

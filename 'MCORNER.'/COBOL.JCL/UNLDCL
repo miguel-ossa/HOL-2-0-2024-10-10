@@ -1,0 +1,40 @@
+//UNLDCL   JOB MCORNER,'UNLOAD-CL',NOTIFY=&SYSUID,                      00001000
+//          MSGCLASS=A,CLASS=A,MSGLEVEL=(1,1),REGION=0M                 00002000
+//*                                                                     00003000
+//* VERSION 1.0                                                         00004000
+//*                                                                     00005000
+//* UNLOAD DE LA TABLA CLIENTES -> MCORNER.DATA.CLDATA   EN ZVOL01      00009200
+//* GENERA DATOS PARA EL LOAD   -> MCORNER.DATA.CLLOAD   EN ZVOL01      00009300
+//*                                                                     00009400
+//BORRA1   EXEC PGM=IEFBR14                                             00009500
+//FICH1    DD DSN=MCORNER.DATA.CLDATA,DISP=(OLD,DELETE,DELETE),         00009600
+//            UNIT=3390,VOL=SER=ZVOL01                                  00009700
+//*                                                                     00009800
+//BORRA2   EXEC PGM=IEFBR14                                             00009900
+//FICH2    DD DSN=MCORNER.DATA.CLLOAD,DISP=(OLD,DELETE,DELETE),         00010000
+//            UNIT=3390,VOL=SER=ZVOL01                                  00010100
+//*                                                                     00010200
+//UNLOAD   EXEC PGM=IKJEFT1B,DYNAMNBR=50,REGION=4M                      00010300
+//STEPLIB  DD DSNAME=DSN910.DB9G.SDSNEXIT,DISP=SHR                      00010400
+//         DD DSNAME=DSN910.SDSNLOAD,DISP=SHR                           00011000
+//         DD DSNAME=DSN910.DB9G.RUNLIB.LOAD,DISP=SHR                   00012000
+//SYSIN    DD *                                                         00013000
+  SELECT * FROM CLIENTES;                                               00014001
+/*                                                                      00019200
+//SYSTSIN  DD *                                                         00020000
+  DSN SYSTEM(DB9G) RETRY(20)                                            00030000
+  RUN PROGRAM(DSNTIAUL) PLAN(DSNTIB91) PARMS('SQL') -                   00040000
+      LIB ('DSN910.DB9G.RUNLIB.LOAD')                                   00050000
+/*                                                                      00060000
+//SYSTSPRT DD SYSOUT=A                                                  00155000
+//SYSPRINT DD SYSOUT=A                                                  00157000
+//SYSUDUMP DD SYSOUT=A                                                  00159000
+//SYSREC00 DD DSNAME=MCORNER.DATA.CLDATA,UNIT=3390,                     00159400
+//            DISP=(NEW,CATLG,DELETE),                                  00159602
+//            DCB=(LRECL=3000,RECFM=FB),                                00159702
+//            VOL=SER=ZVOL01,SPACE=(TRK,(10,10),RLSE)                   00159800
+//SYSPUNCH DD DSNAME=MCORNER.DATA.CLLOAD,UNIT=3390,                     00159900
+//            DISP=(NEW,CATLG,DELETE),                                  00160000
+//            DCB=(LRECL=133,RECFM=FB),                                 00161002
+//            VOL=SER=ZVOL01,SPACE=(TRK,(10,10),RLSE)                   00170000
+//*                                                                     00270000

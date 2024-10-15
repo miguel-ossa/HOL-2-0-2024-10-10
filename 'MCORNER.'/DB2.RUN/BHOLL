@@ -1,0 +1,6 @@
+  DSN SYSTEM(DB9G)
+      RUN PROGRAM (BHOLL)                   -
+          PLAN(BTHPLAN)                     -
+          LIBRARY('MCORNER.BATCH.LOAD')     -
+          PARMS('DANS(VALENCIA)                         ')
+  END

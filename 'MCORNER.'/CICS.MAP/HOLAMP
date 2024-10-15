@@ -1,0 +1,70 @@
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*                   -----  MAP  'HOLAMP' -----                        *
+*                 LOGIN DE USUARIO EN APLICACI‡N                      *
+*                          VERSION 1.0                                *
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+HOLAMP   DFHMSD MODE=INOUT,LANG=COBOL,TIOAPFX=YES,TYPE=DSECT,TERM=ALL, X
+               CTRL=FREEKB,STORAGE=AUTO,                               X
+               MAPATTS=(COLOR,HILIGHT,OUTLINE),                        X
+               DSATTS=(COLOR,HILIGHT,OUTLINE),                         X
+               EXTATT=YES,COLOR=GREEN
+*
+HOLAMP   DFHMDI SIZE=(24,80),LINE=1,COLUMN=1
+*
+* --- Map fields ---
+*
+TITLE    DFHMDF POS=(01,01),LENGTH=60,ATTRB=(PROT,NORM),               X
+               COLOR=YELLOW,INITIAL='Aplicaci¢n HOL*'
+*
+DATE     DFHMDF POS=(01,70),LENGTH=10,ATTRB=(PROT,NORM),               X
+               COLOR=YELLOW
+*
+         DFHMDF POS=(02,01),LENGTH=04,ATTRB=(PROT,NORM),               X
+               COLOR=YELLOW,INITIAL='HOLA'
+*
+TIME     DFHMDF POS=(02,72),LENGTH=10,ATTRB=(PROT,NORM),               X
+               COLOR=YELLOW
+*
+TX010    DFHMDF POS=(03,29),LENGTH=20,ATTRB=(PROT,NORM),               X
+               COLOR=YELLOW,INITIAL='CONTROL DE ACCESO'
+*
+TX020    DFHMDF POS=(05,01),LENGTH=40,ATTRB=(PROT,NORM),               X
+               COLOR=NEUTRAL,INITIAL='ESCRIBA SU USUARIO Y PASSWORD'
+*
+         DFHMDF POS=(06,01),LENGTH=79,ATTRB=(PROT,NORM),               X
+               COLOR=YELLOW,                                           X
+               INITIAL='-----------------------------------------------X
+               --------------------------------'
+*
+TX030    DFHMDF POS=(08,27),LENGTH=12,ATTRB=(PROT,NORM),               X
+               COLOR=NEUTRAL,INITIAL='USUARIO....:'
+*
+USU      DFHMDF POS=(08,40),LENGTH=06,ATTRB=(UNPROT,FSET,IC),          X
+               COLOR=GREEN,HILIGHT=UNDERLINE
+         DFHMDF POS=(08,47),LENGTH=01,ATTRB=ASKIP
+*
+TX040    DFHMDF POS=(09,27),LENGTH=12,ATTRB=(PROT,NORM),               X
+               COLOR=NEUTRAL,INITIAL='PASSWORD...:'
+*
+PSW      DFHMDF POS=(09,40),LENGTH=15,ATTRB=(UNPROT,DRK),              X
+               COLOR=GREEN
+         DFHMDF POS=(09,56),LENGTH=01,ATTRB=ASKIP
+*
+         DFHMDF POS=(21,01),LENGTH=79,ATTRB=(PROT,NORM),               X
+               COLOR=YELLOW,                                           X
+               INITIAL='-----------------------------------------------X
+               --------------------------------'
+*
+TX100    DFHMDF POS=(22,01),LENGTH=79,ATTRB=(PROT,NORM),               X
+               COLOR=YELLOW,                                           X
+               INITIAL='Enter-Validar                                  *
+               F3-Salir          '
+         DFHMDF POS=(23,01),LENGTH=79,ATTRB=(PROT,NORM),               X
+               COLOR=YELLOW,                                           X
+               INITIAL='-----------------------------------------------X
+               --------------------------------'
+MSG      DFHMDF POS=(24,01),LENGTH=79,ATTRB=(PROT,BRT,FSET),           X
+               COLOR=RED
+*
+         DFHMSD TYPE=FINAL
+         END

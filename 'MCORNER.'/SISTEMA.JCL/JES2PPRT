@@ -1,0 +1,23 @@
+/* PRINTDEF CCWNUM=10,  */   /*  CCWS / PRINT BUFFER   &NOPRCCW WNC*/
+/*       DBLBUFR=YES,   */   /* DOUBLE BUFFER LCL PRTS  &PRTBOPT WNC*/
+/*       FCB=EX01,      */   /* INITIAL FCB LOADED      &PRTFCB  WNC*/
+/*       LINECT=61,     */   /* 61 LINES/PAGE          &LINECT OHWNC*/
+/*       NIUCS=GF10,    */   /* 3800 CHAR. SET LOADED   &NIPUCS  WNC*/
+/*       RDBLBUFR=NO,   */   /* SINGLE BUFFER RMT PRTS  &RPRBOPT WNC*/
+/*       SEPPAGE=(LOCAL=DOUBLE, */
+                             /* SEPARATOR PAGE DEFAULTS         OHWNC*/
+                             /*     (ADDED SP410)                    */
+                             /*   LOCAL PRINTER  (PRE SP410 SEPLINE) */
+/*         REMOTE=HALF), */  /*   REMOTE PRINTER (PRE SP410 RSEPLINE)*/
+/*       TRANS=YES,      */  /* PN-XLATE FOR 1403/RM.PR &PRTRANS WNC*/
+/*       UCS=0           */  /* BYPASS UCS-LOADING      &PRTUCS  WNC*/
+                             /*                                      */
+/* PRT(1)   UNIT=000E,CKPTLINE=0,CKPTMODE=PAGE,CLASS=P,     */
+/*       CKPTPAGE=100,FORMS=(,,,,,,,),LIMIT=(0,*),          */
+/*       MODE=JES,NEWPAGE=DEFAULT,NPRO=300,PAUSE=NO,        */
+/*       PLIM=(0,*),PRMODE=(LINE),QUEUE=A,RANGE=(J1,        */
+/*       65534),ROUTECDE=(LOCAL),SEP=YES,                   */
+/*       SEPCHARS=DEFAULT,SEPDS=NO,SETUP=NOHALT,            */
+/*       START=YES,TRACE=NO,TRANS=DEFAULT,TRKCELL=NO,       */
+/*       UCSVERFY=NO,VOLUME=(,,,),                          */
+/*       W=(W,Q,R,PRM,LIM/F,UCS,FCB),FSATRACE=NO            */

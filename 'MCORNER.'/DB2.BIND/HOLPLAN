@@ -1,0 +1,21 @@
+DSN     SYSTEM     (DB9G)                                               00010011
+BIND PLAN          (HOL4PL)    -                                        00020011
+     PKLIST        (APPHOL.*)  -                                        00021011
+     ISOLATION     (CS)        -                                        00022011
+     VALIDATE      (BIND)      -                                        00023011
+     RELEASE       (COMMIT)    -                                        00024011
+     EXPLAIN       (YES)       -                                        00025011
+     CURRENTDATA   (NO)        -                                        00026011
+     DEGREE        (ANY)       -                                        00027011
+     DYNAMICRULES  (RUN)       -                                        00028011
+     ACQUIRE       (USE)       -                                        00029011
+     NODEFER       (PREPARE)   -                                        00029111
+     SQLRULES      (DB2)       -                                        00029211
+     DISCONNECT    (EXPLICIT)  -                                        00029311
+     ACTION        (REPLACE)   -                                        00029411
+     RETAIN                    -                                        00029511
+     FLAG          (I)         -                                        00029611
+     QUALIFIER  (IBMUSER)      -                                        00029711
+     CACHESIZE  (4096)         -                                        00030011
+     OWNER      (IBMUSER)                                               00060011
+END                                                                     00070011

@@ -1,0 +1,157 @@
+      *****************************************************************
+      **  PROYECTO .........: HOL                                    **
+      **  PROGRAMA .........: FPROC1                                 **
+      **  VERSION ..........: 1.0                                    **
+      **  TITULO ...........: PROCEDIMIENTOS COMPARTIDOS             **
+      **                                                             **
+      **  TIPO .............:                                        **
+      **     - LENGUAJE ...............: COBOL II                    **
+      **     - ENTORNO ................: CICS                        **
+      **     - BASE DE DATOS ..........: DB2                         **
+      **                                                             **
+      **  DESCRIPCION ......:                                        **
+      **                                                             **
+      **    - Procedimientos de uso general en programas.            **
+      **                                                             **
+      **  LOG DE MODIFICACIONES:                                     **
+      **  FECHA----- DESCRIPCION------------------------------ BUSCA **
+      **  2024-08-19 Adaptaci¢n multiidioma (MOSSA)            TXMUL **
+      **                                                             **
+      **                                                             **
+      **                                                             **
+      **                                                             **
+      **                                                             **
+      **                                                             **
+      *****************************************************************
+      *--- TXMUL ->
+      *----------------------------------------------------------------
+      *--- Recuperar el titulo del mapa LNKTL    de tabla: TABLAS   ---
+      *----------------------------------------------------------------
+       20000-TITULO-MAPA.
+      *==================
+           PERFORM 20000-TITULO-MAPA-INI.
+           PERFORM 20000-TITULO-MAPA-FIN.
+       20000-TITULO-MAPA-EXIT.
+           EXIT.
+      *
+       20000-TITULO-MAPA-INI.
+      *======================
+      *
+           MOVE '100000-TITULO-MAPA'         TO WA-PARRAFO.
+           MOVE DB2-TABLA-TITULOS            TO CL-TABLA.
+           MOVE WC-TRANSACCION               TO CL-CLAVE1.
+           MOVE LOW-VALUES                   TO CL-CLAVE2.
+           MOVE CL-IDIOMA                    TO CL-CLAVE3.
+           MOVE CS-PGM-TABLA-TITULO          TO CH-LINK.
+      *
+       20000-TITULO-MAPA-INI-EXIT.
+           EXIT.
+      *
+       20000-TITULO-MAPA-FIN.
+      *=======================
+      *
+           PERFORM 8500-LINK-PROGRAMA.
+      *
+           EVALUATE TRUE
+              WHEN CL-RESULTADO = '00' OR CL-RESULTADO = '01'
+      *--- USER ->
+      *            MOVE WC-LONGITUD-TITULO
+      *              TO LKC-LONGITUD-RESULTADO
+      *--- USER <-
+      *
+      *--- Centrado del titulo del mapa CALL
+                   MOVE CL-VALOR           TO RTC-INPUT-STRING
+                   CALL CS-PGM-CALL-RTCENTI USING RTC-CENTI
+                   IF RTC-RESULT = ZERO THEN
+                      MOVE RTC-OUTPUT-STRING TO TITLEO
+                   ELSE
+                      MOVE RTC-INPUT-STRING  TO TITLEO
+                   END-IF
+      *
+              WHEN CL-RESULTADO = '99'
+                   MOVE '20000-TITULO-MAPA'         TO WA-PARRAFO
+                   MOVE 'LNKTITLE KO'               TO CH-E-ACCION,
+      *--- TXMUL ->
+                                                       CL-VALOR
+      *--- TXMUL <-
+                   MOVE -999999999                  TO SQLCODE
+                   MOVE 'SQLMSG?'                   TO SQLERRMC
+                   PERFORM G999-ERROR-DB2
+           END-EVALUATE.
+      *--- Mostrar el usuario en la esquina superior izquierda
+           MOVE SPACES TO USERO.
+           STRING "(" US-USER ")"
+                  DELIMITED BY SPACES
+                INTO USERO
+           END-STRING.
+      *
+       20000-TITULO-MAPA-FIN-EXIT.
+           EXIT.
+      *
+      *----------------------------------------------------------------
+      *--- Obtener texto fijo con prog LNKTL     de tabla: TABLAS   ---
+      *----------------------------------------------------------------
+       20100-OBTENER-TEXTO.
+      *
+           MOVE '20100-OBTENER-TEXTO'        TO WA-PARRAFO.
+           MOVE DB2-TABLA-PROGRMSG           TO CL-TABLA.
+           MOVE LOW-VALUES                   TO CL-CLAVE2.
+           MOVE CL-IDIOMA                    TO CL-CLAVE3.
+           MOVE CS-PGM-TABLA-TITULO          TO CH-LINK.
+           PERFORM 8500-LINK-PROGRAMA.
+           IF CL-RESULTADO = '99' THEN
+              IF CS-PGM-TABLA-TITULO NOT = CS-PGM-ERROR THEN
+                 MOVE '20100-OBTENER-TEXTO'       TO WA-PARRAFO
+                 MOVE 'LNKTEXTO KO'               TO CH-E-ACCION,
+                                                     CL-VALOR
+                 MOVE -999999999                  TO SQLCODE
+                 MOVE 'SQLMSG?'                   TO SQLERRMC
+                 PERFORM G999-ERROR-DB2
+              ELSE
+                 MOVE 'FATAL ERROR' TO MSGO
+                 SET ENVIO-DATAONLY TO TRUE
+                 PERFORM 8000-ENVIO-MAPA
+              END-IF
+           END-IF.
+      *
+       20100-OBTENER-TEXTO-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Declaraci¢n y apertura del cursor de textos para mapas   ---
+      *----------------------------------------------------------------
+       20200-OPEN-CURSOR-MAPS.
+           EXEC SQL
+              DECLARE TXT-CUR CURSOR FOR
+                 SELECT CLAVE2, CLAVE3, VALOR
+                   FROM TABLAS
+                   WHERE TABLA = 'TEXTOMAP'
+                     AND CLAVE1 = :TB-CLAVE1
+           END-EXEC.
+      *
+           EXEC SQL
+              OPEN TXT-CUR
+           END-EXEC.
+       20200-OPEN-CURSOR-MAPS-FIN.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Fetch del cursor para obtener textos para mapas          ---
+      *----------------------------------------------------------------
+       20200-FETCH-CURSOR-MAPS.
+      *
+           EXEC SQL
+              FETCH TXT-CUR
+                 INTO :TB-CLAVE2, :TB-CLAVE3, :TB-VALOR
+           END-EXEC.
+       20200-FETCH-CURSOR-MAPS-FIN.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Cierre del cursor para obtener textos para mapas         ---
+      *----------------------------------------------------------------
+       20200-CLOSE-CURSOR-MAPS.
+      *
+           EXEC SQL
+              CLOSE TXT-CUR
+           END-EXEC.
+       20200-CLOSE-CURSOR-MAPS-FIN.
+           EXIT.
+      *--- TXMUL <-

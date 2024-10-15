@@ -1,0 +1,22 @@
+ ======================================================================
+ VERSION 1.1
+ -----------
+
+ Documentaci¢n sobre las versiones de la aplicaci¢n HOL*
+
+=======================================================================
+  Se anotan la versi¢n V y la release R, la descripci¢n de la versi¢n
+  o modificaci¢n que ocasiona la evoluci¢n, la fecha de publicaci¢n,
+  y finalmente, la referencia al log de modificaciones de los programas
+  que se ven modificados debido a la versi¢n nueva.
+
+
+=======================================================================
+V.R Descripci¢n                                        LogMd Publicado
+=======================================================================
+1.0 Distribuci¢n inicial HOL*                          ..... 2024-01-11
+-----------------------------------------------------------------------
+1.1 Implementaci¢n del entorno Batch                   CB001 2024-01-19
+-----------------------------------------------------------------------
+
+

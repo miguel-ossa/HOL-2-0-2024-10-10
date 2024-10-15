@@ -1,0 +1,42 @@
+//RUNBHOLL JOB MCORNER,'RUN-BHOLL',NOTIFY=&SYSUID,                      00010001
+//          MSGCLASS=A,CLASS=A,MSGLEVEL=(1,1),REGION=0M                 00020012
+//*                                                                     00021000
+//* VERSION 1.0                                                         00022001
+//*                                                                     00023106
+//SETPG    SET PGM=BHOLL                                                00023222
+//*                                                                     00023421
+//BORRA1   EXEC PGM=IEFBR14                                             00023521
+//FICH1    DD DSN=MCORNER.LST.LSTOUT,DISP=(OLD,DELETE,DELETE),          00023621
+//            UNIT=3390,VOL=SER=ZVOL01                                  00023721
+//*-------------------------------------------------------------------  00024001
+//* LISTADO PARAMETRIZADO DE CLIENTES                                   00025001
+//* PARMS='CCXY-----------------------------------'                     00026003
+//*        --==TXT.............................TXT                      00027003
+//*        | |||                                                        00028003
+//*        | |||- TEXTO A BUSCAR SI FILTRO CONTIENE O COMIENZA = 'S'    00029003
+//*        | ||-- FILTRO CONTIENE 'S' O 'N'                             00030003
+//*        | |--- FILTRO COMIENZA 'S' O 'N'                             00040003
+//*        |---- TIPO ORDEN                                             00050003
+//*                   DA DNI                                            00060003
+//*                   DD DNI                                            00070003
+//*                   NA NOMBRE                                         00080003
+//*                   ND NOMBRE                                         00081003
+//*                   AA APELLIDOS                                      00082003
+//*                   AD APELLIDOS                                      00083003
+//*                                                                     00084001
+//RUNPGM   EXEC PGM=IKJEFT01,DYNAMNBR=20,REGION=4096K                   00090003
+//STEPLIB  DD  DISP=SHR,DSN=DSN910.DB9G.SDSNEXIT                        00100001
+//         DD  DISP=SHR,DSN=DSN910.SDSNLOAD                             00110001
+//         DD  DISP=SHR,DSN=MCORNER.BATCH.LOAD                          00110104
+//         DD  DISP=SHR,DSN=MCORNER.CALL.LOAD                           00110204
+//LSTOUT   DD  SYSOUT=A                                                 00111017
+//*LSTOUT   DD  DSN=MCORNER.LST.LSTOUT,                                 00111117
+//*             DISP=(NEW,KEEP,KEEP),                                   00111217
+//*             DCB=(LRECL=134,RECFM=FB),                               00112017
+//*             SPACE=(CYL,(1,1),RLSE),                                 00113017
+//*             UNIT=3390,VOL=SER=ZVOL01                                00114017
+//SYSPRINT DD  SYSOUT=A                                                 00120001
+//SYSTSPRT DD  SYSOUT=A                                                 00130001
+//SYSOUT   DD  SYSOUT=A                                                 00140001
+//SYSTSIN  DD  DISP=SHR,DSN=MCORNER.DB2.RUN(&PGM)                       00150021
+//*                                                                     00210021

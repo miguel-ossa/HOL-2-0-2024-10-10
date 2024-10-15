@@ -1,0 +1,391 @@
+      *****************************************************************
+      *                 IDENTIFICATION     DIVISION                   *
+      *****************************************************************
+       IDENTIFICATION DIVISION.
+      *
+       PROGRAM-ID.      LNKTL.
+       AUTHOR.          LUIS MARTINEZ.
+      *
+      *****************************************************************
+      **  PROYECTO .........: HOL                                    **
+      **  PROGRAMA .........: LNKTL                                  **
+      **  VERSION ..........: 1.1                                    **
+      **  TITULO ...........: CICS LINK PARA LEER TEXTOS EN TABLAS   **
+      **                                                             **
+      **  TIPO .............:                                        **
+      **     - LENGUAJE ...............: COBOL II                    **
+      **     - ENTORNO ................: CICS                        **
+      **     - BASE DE DATOS ..........: DB2                         **
+      **                                                             **
+      **  DESCRIPCION ......:                                        **
+      **                                                             **
+      **    - Recibe  por Commarea los valores para acceder a la     **
+      **      tabla DB2 llamada TABLAS y recuperar los datos de un   **
+      **      registro.                                              **
+      **    - La tabla puede ser 'TITULMAP', 'TEXTOMAP' o 'PROGRMSG' **
+      **    - CLAVE1 es el codigo de transaccion, nombre del mapa    **
+      **             o nulos                                         **
+      **    - CLAVE2 es nulo o mnemot‚cnico del mensaje              **
+      **    - CLAVE3 es 'ES' (Preparar las cosas para multi-idioma)  **
+      **    - Devuelve el valor encontrado en Commarea               **
+      **                                                             **
+      **  LOG DE MODIFICACIONES:                                     **
+      **  FECHA----- DESCRIPCION------------------------------ BUSCA **
+      **  2024-08-18 Adaptaci¢n para textos del mapa (MOSSA)   TXMUL **
+      **                                                             **
+      **                                                             **
+      **                                                             **
+      **                                                             **
+      **                                                             **
+      **                                                             **
+      **                                                             **
+      *****************************************************************
+       ENVIRONMENT DIVISION.
+      *
+       CONFIGURATION SECTION.
+       SPECIAL-NAMES.
+           DECIMAL-POINT IS COMMA.
+      *
+       DATA DIVISION.
+      *----------------------------------------------------------------
+       WORKING-STORAGE SECTION.
+      *
+      *--- Zona CICS --------------------------------------------------
+      *
+       COPY DDCICS.
+      *
+      *--- Zona CICS fin ----------------------------------------------
+      *
+      *--- Zona DB2 ---------------------------------------------------
+      *
+      *****EXEC SQL
+      *****     INCLUDE SQLCA
+      *****END-EXEC
+        01 SQLCA.
+           05 SQLCAID     PIC X(8).
+           05 SQLCABC     PIC S9(9) COMP-4.
+           05 SQLCODE     PIC S9(9) COMP-4.
+           05 SQLERRM.
+              49 SQLERRML PIC S9(4) COMP-4.
+              49 SQLERRMC PIC X(70).
+           05 SQLERRP     PIC X(8).
+           05 SQLERRD     OCCURS 6 TIMES
+                          PIC S9(9) COMP-4.
+           05 SQLWARN.
+              10 SQLWARN0 PIC X.
+              10 SQLWARN1 PIC X.
+              10 SQLWARN2 PIC X.
+              10 SQLWARN3 PIC X.
+              10 SQLWARN4 PIC X.
+              10 SQLWARN5 PIC X.
+              10 SQLWARN6 PIC X.
+              10 SQLWARN7 PIC X.
+           05 SQLEXT.
+              10 SQLWARN8 PIC X.
+              10 SQLWARN9 PIC X.
+              10 SQLWARNA PIC X.
+              10 SQLSTATE PIC X(5).
+      *
+      *****EXEC SQL
+      *****     INCLUDE TABLAS
+      *****END-EXEC.
+      ******************************************************************
+      * DCLGEN TABLE(TABLAS)                                           *
+      *        LIBRARY(MCORNER.DB2.DCLGEN(TABLAS))                     *
+      *        ACTION(REPLACE)                                         *
+      *        LANGUAGE(COBOL)                                         *
+      *        NAMES(TB-)                                              *
+      *        STRUCTURE(TB-TABLAS)                                    *
+      *        QUOTE                                                   *
+      *        COLSUFFIX(YES)                                          *
+      * ... IS THE DCLGEN COMMAND THAT MADE THE FOLLOWING STATEMENTS   *
+      ******************************************************************
+      *****EXEC SQL DECLARE TABLAS TABLE
+      *****( TABLA                          CHAR(8) NOT NULL,
+      *****  CLAVE1                         CHAR(8) NOT NULL,
+      *****  CLAVE2                         CHAR(8),
+      *****  CLAVE3                         CHAR(8),
+      *****  VALOR                          CHAR(64) NOT NULL
+      *****) END-EXEC.
+      ******************************************************************
+      * COBOL DECLARATION FOR TABLE TABLAS                             *
+      ******************************************************************
+       01  TB-TABLAS.
+      *                       TABLA
+           10 TB-TABLA             PIC X(8).
+      *                       CLAVE1
+           10 TB-CLAVE1            PIC X(8).
+      *                       CLAVE2
+           10 TB-CLAVE2            PIC X(8).
+      *                       CLAVE3
+           10 TB-CLAVE3            PIC X(8).
+      *                       VALOR
+           10 TB-VALOR             PIC X(64).
+      ******************************************************************
+      * THE NUMBER OF COLUMNS DESCRIBED BY THIS DECLARATION IS 5       *
+      ******************************************************************
+      *
+      *--- Zona DB2 fin -----------------------------------------------
+      *
+      *----------------------------------------------------------------
+        77 SQL-TEMP      PIC X(128).
+        77 DSN-TEMP      PIC S9(9)  COMP-4.
+        77 DSN-TMP2      PIC S9(18) COMP-3.
+        77 DSNNROWS      PIC S9(9)  COMP-4.
+        77 DSNNTYPE      PIC S9(4)  COMP-4.
+        77 DSNNLEN       PIC S9(4)  COMP-4.
+        77 SQL-NULL      PIC S9(9) COMP-4 VALUE +0.
+        77 SQL-INIT-FLAG PIC S9(4) COMP-4 VALUE +0.
+           88 SQL-INIT-DONE VALUE +1.
+        77 SQL-FILE-READ      PIC S9(9) COMP-4 VALUE +2.
+        77 SQL-FILE-CREATE    PIC S9(9) COMP-4 VALUE +8.
+        77 SQL-FILE-OVERWRITE PIC S9(9) COMP-4 VALUE +16.
+        77 SQL-FILE-APPEND    PIC S9(9) COMP-4 VALUE +32.
+        01 SQL-PLIST2.
+           05 SQL-PLIST-CON   PIC S9(9) COMP-4 VALUE +4211712.
+           05 SQL-CALLTYPE    PIC S9(4) COMP-4 VALUE +30.
+           05 SQL-PROG-NAME   PIC X(8)  VALUE X'4C4E4B544C202020'.
+           05 SQL-TIMESTAMP-1 PIC S9(9) COMP-4 VALUE +469383374.
+           05 SQL-TIMESTAMP-2 PIC S9(9) COMP-4 VALUE +19111680.
+           05 SQL-SECTION     PIC S9(4) COMP-4 VALUE +1.
+           05 SQL-CODEPTR     PIC S9(9) COMP-4.
+           05 SQL-VPARMPTR    PIC S9(9) COMP-4 VALUE +0.
+           05 SQL-APARMPTR    PIC S9(9) COMP-4 VALUE +0.
+           05 FILLER          PIC S9(4) COMP-4 VALUE +1208.
+           05 SQL-STMT-TYPE   PIC S9(4) COMP-4 VALUE +231.
+           05 SQL-STMT-NUM    PIC S9(9) COMP-4 VALUE +219.
+           05 SQL-PLIST-FLG   PIC S9(4) COMP-4 VALUE +0.
+           05 FILLER          PIC X(18) VALUE
+              X'000000000000000000000000000000000000'.
+           05 SQL-PVAR-LIST2.
+              10 PRE-SQLDAID  PIC X(8)  VALUE 'SQLDA  Ê'.
+              10 PRE-SQLDABC  PIC S9(9) COMP-4 VALUE +192.
+              10 PRE-SQLN     PIC S9(4) COMP-4 VALUE +4.
+              10 PRE-SQLLD    PIC S9(4) COMP-4 VALUE +4.
+              10 PRE-SQLVAR.
+                12 SQLVAR-BASE1.
+                  15 SQL-PVAR-TYPE1      PIC S9(4) COMP-4 VALUE +452.
+                  15 SQL-PVAR-LEN1       PIC S9(4) COMP-4 VALUE +8.
+                  15 SQL-PVAR-ADDRS1.
+                     20 SQL-PVAR-ADDR1   PIC S9(9) COMP-4.
+                     20 SQL-PVAR-IND1    PIC S9(9) COMP-4.
+                  15 SQL-PVAR-NAME1.
+                     20 SQL-PVAR-NAMEL1  PIC S9(4) COMP-4 VALUE +0.
+                     20 SQL-PVAR-NAMEC1  PIC X(30) VALUE ' '.
+                12 SQLVAR-BASE2.
+                  15 SQL-PVAR-TYPE2      PIC S9(4) COMP-4 VALUE +452.
+                  15 SQL-PVAR-LEN2       PIC S9(4) COMP-4 VALUE +8.
+                  15 SQL-PVAR-ADDRS2.
+                     20 SQL-PVAR-ADDR2   PIC S9(9) COMP-4.
+                     20 SQL-PVAR-IND2    PIC S9(9) COMP-4.
+                  15 SQL-PVAR-NAME2.
+                     20 SQL-PVAR-NAMEL2  PIC S9(4) COMP-4 VALUE +0.
+                     20 SQL-PVAR-NAMEC2  PIC X(30) VALUE ' '.
+                12 SQLVAR-BASE3.
+                  15 SQL-PVAR-TYPE3      PIC S9(4) COMP-4 VALUE +452.
+                  15 SQL-PVAR-LEN3       PIC S9(4) COMP-4 VALUE +8.
+                  15 SQL-PVAR-ADDRS3.
+                     20 SQL-PVAR-ADDR3   PIC S9(9) COMP-4.
+                     20 SQL-PVAR-IND3    PIC S9(9) COMP-4.
+                  15 SQL-PVAR-NAME3.
+                     20 SQL-PVAR-NAMEL3  PIC S9(4) COMP-4 VALUE +0.
+                     20 SQL-PVAR-NAMEC3  PIC X(30) VALUE ' '.
+                12 SQLVAR-BASE4.
+                  15 SQL-PVAR-TYPE4      PIC S9(4) COMP-4 VALUE +452.
+                  15 SQL-PVAR-LEN4       PIC S9(4) COMP-4 VALUE +8.
+                  15 SQL-PVAR-ADDRS4.
+                     20 SQL-PVAR-ADDR4   PIC S9(9) COMP-4.
+                     20 SQL-PVAR-IND4    PIC S9(9) COMP-4.
+                  15 SQL-PVAR-NAME4.
+                     20 SQL-PVAR-NAMEL4  PIC S9(4) COMP-4 VALUE +0.
+                     20 SQL-PVAR-NAMEC4  PIC X(30) VALUE ' '.
+           05 SQL-AVAR-LIST2.
+              10 PRE-SQLDAID  PIC X(8)  VALUE 'SQLDA  Ê'.
+              10 PRE-SQLDABC  PIC S9(9) COMP-4 VALUE +60.
+              10 PRE-SQLN     PIC S9(4) COMP-4 VALUE +1.
+              10 PRE-SQLLD    PIC S9(4) COMP-4 VALUE +1.
+              10 PRE-SQLVAR.
+                12 SQLVAR-BASE1.
+                  15 SQL-AVAR-TYPE1      PIC S9(4) COMP-4 VALUE +452.
+                  15 SQL-AVAR-LEN1       PIC S9(4) COMP-4 VALUE +64.
+                  15 SQL-AVAR-ADDRS1.
+                     20 SQL-AVAR-ADDR1   PIC S9(9) COMP-4.
+                     20 SQL-AVAR-IND1    PIC S9(9) COMP-4.
+                  15 SQL-AVAR-NAME1.
+                     20 SQL-AVAR-NAMEL1  PIC S9(4) COMP-4 VALUE +0.
+                     20 SQL-AVAR-NAMEC1  PIC X(30) VALUE ' '.
+
+       LINKAGE SECTION.
+      *
+       01 DFHCOMMAREA                      PIC X(2048).
+      *
+      *================================================================
+       PROCEDURE DIVISION.
+      *----------------------------------------------------------------
+      *--- Proceso principal                                        ---
+      *----------------------------------------------------------------
+       DSNSQL SECTION.
+       SQL-SKIP.
+           GO TO SQL-INIT-END.
+       SQL-INITIAL.
+           MOVE 1 TO SQL-INIT-FLAG.
+           CALL 'DSNHADDR' USING SQL-VPARMPTR OF SQL-PLIST2 SQL-PVAR-LIS
+      -    T2.
+           CALL 'DSNHADD2' USING SQL-PVAR-ADDRS1 IN
+           SQL-PVAR-LIST2 TB-TABLA OF TB-TABLAS SQL-NULL TB-CLAVE1 OF TB
+      -    -TABLAS SQL-NULL TB-CLAVE2 OF TB-TABLAS SQL-NULL TB-CLAVE3 OF
+           TB-TABLAS SQL-NULL
+           CALL 'DSNHADDR' USING SQL-APARMPTR OF SQL-PLIST2 SQL-AVAR-LIS
+      -    T2.
+           CALL 'DSNHADD2' USING SQL-AVAR-ADDRS1 IN
+           SQL-AVAR-LIST2 TB-VALOR OF TB-TABLAS SQL-NULL.
+           CALL 'DSNHADDR' USING SQL-CODEPTR OF SQL-PLIST2 SQLCA.
+       SQL-INIT-END.
+           CONTINUE.
+
+       0000-PROCESO-TAREA.
+      *
+      *TEMPORAL
+      *    MOVE 'INI' TO WA-TRAZA.
+      *    PERFORM 8800-TRAZA.
+      *
+           IF EIBCALEN > 0
+              MOVE DFHCOMMAREA              TO CH-COMMAREA-HOL
+              PERFORM 1000-PROCESO
+           ELSE
+              MOVE '01'                     TO CL-RESULTADO
+              MOVE 'DATOS ENTRADA??'        TO CL-VALOR
+           END-IF
+      *
+           MOVE CH-COMMAREA-HOL             TO DFHCOMMAREA
+           PERFORM 8900-RETORNO-CICS.
+      *
+      *----------------------------------------------------------------
+      *--- Proceso principal                                        ---
+      *----------------------------------------------------------------
+       1000-PROCESO.
+      *
+      *TEMPORAL
+      *    MOVE 'PRO' TO WA-TRAZA.
+      *    PERFORM 8800-TRAZA.
+      *
+           PERFORM 1100-RECUPERA-DATOS
+           PERFORM 7200-DB2-CONSULTA
+      *
+           EVALUATE TRUE
+              WHEN SQLCODE = 0
+                   MOVE TB-VALOR           TO CL-VALOR
+                   MOVE '00'               TO CL-RESULTADO
+              WHEN SQLCODE = +100
+      *--- TXMUL ->
+                   MOVE 'NO SE ENCUENTRA EL TEXTO EN TABLAS'
+      *--- TXMUL <-
+                     TO CL-VALOR
+                   MOVE '01'               TO CL-RESULTADO
+              WHEN SQLCODE NOT = 0 AND SQLCODE NOT = +100
+                   MOVE SQLERRMC           TO CL-VALOR
+                   MOVE '99'               TO CL-RESULTADO
+           END-EVALUATE.
+      *
+       1000-PROCESO-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Recupera los datos de la Commarea para este programa     ---
+      *----------------------------------------------------------------
+       1100-RECUPERA-DATOS.
+      *
+      *TEMPORAL
+      *    MOVE 'REC' TO WA-TRAZA.
+      *    PERFORM 8800-TRAZA.
+      *
+           PERFORM 1110-NO-ESPACIOS.
+      *
+           MOVE CL-TABLA                   TO TB-TABLA.
+           MOVE CL-CLAVE1                  TO TB-CLAVE1.
+           MOVE CL-CLAVE2                  TO TB-CLAVE2.
+           MOVE CL-CLAVE3                  TO TB-CLAVE3.
+      *
+       1100-RECUPERA-DATOS-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Protege la posibilidad de haber campos con espacios      ---
+      *--- o null. La tabla DB2 se ha declarado sin DEFAULTs        ---
+      *----------------------------------------------------------------
+       1110-NO-ESPACIOS.
+      *
+      *TEMPORAL
+      *    MOVE 'NOE' TO WA-TRAZA.
+      *    PERFORM 8800-TRAZA.
+      *
+           IF CL-TABLA = SPACES OR CL-TABLA = HIGH-VALUES
+              MOVE LOW-VALUES              TO CL-TABLA
+           END-IF
+      *
+           IF CL-CLAVE1 = SPACES OR CL-CLAVE1 = HIGH-VALUES
+              MOVE LOW-VALUES              TO CL-CLAVE1
+           END-IF
+      *
+           IF CL-CLAVE2 = SPACES OR CL-CLAVE2 = HIGH-VALUES
+              MOVE LOW-VALUES              TO CL-CLAVE2
+           END-IF
+      *
+           IF CL-CLAVE3 = SPACES OR CL-CLAVE3 = HIGH-VALUES
+              MOVE LOW-VALUES              TO CL-CLAVE3
+           END-IF.
+      *
+       1110-NO-ESPACIOS-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Consulta en DB2                                          ---
+      *----------------------------------------------------------------
+       7200-DB2-CONSULTA.
+      *TEMPORAL
+      *    MOVE 'DB2' TO WA-TRAZA.
+      *    PERFORM 8800-TRAZA.
+      *
+      *
+      *--- TXMUL ->
+      *****EXEC SQL
+      *****     SELECT
+      *****          VALOR
+      *****        INTO
+      *****          :TB-VALOR
+      *****        FROM TABLAS
+      *****        WHERE
+      *****               TABLA   = :TB-TABLA
+      *****           AND CLAVE1  = :TB-CLAVE1
+      *****           AND CLAVE2  = :TB-CLAVE2
+      *****           AND CLAVE3  = :TB-CLAVE3
+      *****END-EXEC.
+           PERFORM SQL-INITIAL UNTIL SQL-INIT-DONE
+           CALL 'DSNHLI' USING SQL-PLIST2.
+      *--- TXMUL <-
+      *
+       7200-DB2-CONSULTA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- CEDF visualiza una traza - Quitar para produccion        ---
+      *----------------------------------------------------------------
+       8800-TRAZA.
+      *
+           EXEC CICS
+               ENTER       TRACEID(0)
+               FROM        (WA-TRAZA)
+           END-EXEC.
+      *
+       8800-TRAZA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- Devuelve el control a CICS - Salida total RETORNO        ---
+      *----------------------------------------------------------------
+       8900-RETORNO-CICS.
+      *
+           EXEC CICS
+                RETURN
+           END-EXEC.
+      *
+       8900-RETORNO-CICS-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *-------------------- FIN DE PROGRAMA  --------------------------
+      *----------------------------------------------------------------

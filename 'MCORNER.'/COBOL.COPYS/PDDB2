@@ -1,0 +1,40 @@
+      *----------------------------------------------------------------
+      *--- ERROR DE DB2 EN ALGUNA PARTE DEL CODIGO COBOL
+      *--- VERSION 1.0
+      *----------------------------------------------------------------
+       G999-ERROR-DB2.
+      *
+           MOVE WA-PARRAFO              TO CH-E-PARRAFO
+           MOVE SQLCODE                 TO DB2-CODE
+           MOVE DB2-CODE                TO DB2-CODE-EDIT
+           MOVE DB2-CODE-EDIT           TO CH-E-CODIGO
+           MOVE SQLERRMC                TO CH-E-MENSAJE
+           MOVE WC-PROGRAMA             TO CH-E-PROGRAMA
+           MOVE WC-TRANSACCION          TO CH-E-TRANSACCION
+           MOVE CS-PGM-ERROR            TO CH-XCTL
+           MOVE WC-TRANSACCION          TO CH-TRANS-RETORNO
+           MOVE WC-PROGRAMA             TO CH-PROGRAMA-RETORNO
+           PERFORM 8700-XCTL-PROGRAMA.
+      *----------------------------------------------------------------
+       G999-ERROR-DB2-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+      *--- ERROR DE CICS EN ALGUNA PARTE DEL CODIGO COBOL
+      *----------------------------------------------------------------
+       G888-ERROR-CICS.
+      *
+           MOVE WA-PARRAFO              TO CH-E-PARRAFO
+           MOVE EIBRESP                 TO DB2-CODE
+           MOVE DB2-CODE                TO DB2-CODE-EDIT
+           MOVE DB2-CODE-EDIT           TO CH-E-CODIGO
+      *->  MOVE SQLERRMC                TO CH-E-MENSAJE
+           MOVE WC-PROGRAMA             TO CH-E-PROGRAMA
+           MOVE WC-TRANSACCION          TO CH-E-TRANSACCION
+           MOVE CS-PGM-ERROR            TO CH-XCTL
+           MOVE WC-TRANSACCION          TO CH-TRANS-RETORNO
+           MOVE WC-PROGRAMA             TO CH-PROGRAMA-RETORNO
+           PERFORM 8700-XCTL-PROGRAMA.
+      *
+       G888-ERROR-CCIS-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
